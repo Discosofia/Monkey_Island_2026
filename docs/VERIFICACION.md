@@ -5615,6 +5615,49 @@ Se cambia el ajuste «Efectos de los jefes» (`fxQuality`) antes de cada prueba.
 19. [ ] Con una cuenta sin permisos de administrador, juega una partida normal de la Isla.
     ✅ No aparece ninguna batalla ni orden de batalla durante la partida.
 
+## 148. Fase 26 26b: la cancha de Dunas (05-11-2026)
+
+La cancha (`Workspace.Cancha`, generada por `World/CourtBuilder` con `CourtGeometry` como fuente de medidas) se probó en Studio de Dunas por MCP con un jugador: layout 1, 3 y 5 (suelo de 56, 88 y 120 studs; 222, 238 y 248 piezas, 2 a 3 ms), apariciones por equipo, `TeamBarrier` en el grupo `CourtBarrier` (choca con el suelo y no con `Disparo`), bandera igual que antes con `setMode("CaptureFlag")`, y capturas de vista general, desde dentro y de cerca del aro. Lo que sigue sin probar es esto.
+
+### 148.1 Piezas de la cancha (Studio de Dunas, a mano)
+
+`Rendimiento` solo existe en el Studio de la Isla y no mide `Workspace.Cancha`, así que el recuento se hace a mano. Añadir la línea de `CourtParts` a `Rendimiento` queda pendiente.
+
+1. [ ] Con el place de Dunas en modo edición, deja la cancha en 5v5 con `require(game.ServerScriptService.Server.World.CourtBuilder).layout(5)` y cuenta las piezas de `Workspace.Cancha` en la barra de comandos: `local n = 0; for _, d in workspace.Cancha:GetDescendants() do if d:IsA("BasePart") then n += 1 end end; print(n)`.
+   ✅ Sale 248 piezas, por debajo del tope de 800 (`Config.Budgets.Matches.CourtParts`). Si sale otro número, se anota el formato que había puesto.
+
+### 148.2 Juego publicado
+
+2. [ ] Publica el place de Dunas con la cancha guardada en el place y entra con una cuenta. En el Explorer, mira `Workspace.Cancha` y su atributo `Version`.
+   ✅ Existe `Workspace.Cancha` con `Version` = 4 desde el primer momento.
+3. [ ] Espera unos 30 s en Dunas y vuelve a mirar `Workspace.Cancha` (mismo `Court` y mismo número de piezas).
+   ✅ La cancha no cambia: el servidor no la regenera con retraso ni aparece una segunda `Court`.
+
+### 148.3 Dos jugadores (muro de equipo, espera y rayos)
+
+Hasta 26e el modo Ballgame no sale en la cola, así que se activa a mano con `ArenaWorldService.setMode("Ballgame")` en el servidor, con la cancha montada.
+
+4. [ ] Pon a las dos cuentas en equipos distintos (una Jaguar, otra Quetzal). Que cada una intente cruzar el muro de equipo (x = 0) desde su lado y desde el contrario, andando y saltando.
+   ✅ Ninguna lo cruza: el muro bloquea a los dos equipos desde los dos lados.
+5. [ ] Con las dos cuentas en `Cancha/EsperaSpawn` (sin equipo), que salgan de la espera hacia la cancha, vuelvan y lo repitan cambiando de equipo.
+   ✅ Nadie queda atascado en la espera ni dentro del muro, y cada cuenta aparece en su `Spawn_<equipo>`.
+6. [ ] Con el arco del Cazador o el bastón del Mago, dispara a la otra cuenta a través del muro de equipo.
+   ✅ El rayo atraviesa el muro y el impacto llega como en el resto del mapa. Si el muro lo para, se anota: sería un fallo de la matriz de colisión.
+
+### 148.4 Móvil y PC: banqueta, talud y plaza
+
+7. [ ] En el teléfono (emulador o móvil) y en PC, camina por la banqueta y sube el talud (unos 51°) hasta el paramento, a los dos lados de la línea central.
+   ✅ Se anda sin trabarse en la banqueta ni en el cambio de pendiente, sin saltar ni hundirse, y se llega arriba del talud sin caerse.
+8. [ ] Sube a la plaza superior (y = 20) y camina hasta el borde exterior, y después hasta el borde interior, sobre la cancha.
+   ✅ Nadie cae por el borde exterior. Por el borde interior sí se puede caer a la cancha: es a propósito, no hay barandilla.
+
+### 148.5 Aspecto con la iluminación del place
+
+9. [ ] Mira la cancha desde la plaza y desde la espera, con la iluminación real del place (no la de edición).
+   ✅ Se leen el suelo, las bandas, las cabeceras y los aros. Si el patio se ve oscuro, se añaden luces antes de dar el aspecto por bueno.
+10. [ ] Mira de cerca las rayas `FloorStripe_<equipo>` y el tlécotl (`Court/Decor`), desde el suelo y desde la plaza, moviendo la cámara.
+    ✅ No parpadean (z-fighting) con el suelo, que están a 0,06 studs. Si parpadean, se anota el sitio y se sube su altura.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

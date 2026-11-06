@@ -1240,6 +1240,9 @@ local Config = {
 		ModeFormats = { CaptureFlag = { 1, 2, 3, 4, 5 }, Ballgame = { 1, 2, 3, 4, 5 } },
 		-- Modo de Studio (sin viaje desde el Lobby).
 		StudioMode = "CaptureFlag",
+		-- Grupo de colisión de los muros invisibles de la cancha (Fase 26b, World/CourtBuilder): chocan con los
+		-- personajes pero no con los rayos de ShotCollisionGroup. La pelota es analítica y no los ve.
+		CourtBarrierGroup = "CourtBarrier",
 		-- Antes de la partida: si todos pulsan "Listo", cuenta atrás; si no, a los WaitSeconds de
 		-- llegar el primero arranca igual (si algún equipo está vacío, se cancela y vuelven al Lobby).
 		WaitSeconds = 60,
@@ -2503,6 +2506,9 @@ local Config = {
 			LaboratorioParts = 20000, -- Laboratorio 5v5
 			LobbyParts = 30000, -- Lobby con 20 jugadores
 			RangeParts = 6000, -- Campo de tiro del Lobby (World/RangeBuilder), construido aparte del Lobby
+			-- Cancha del Juego de pelota de Dunas (Fase 26b, World/CourtBuilder) con el formato 5v5, sin fusionar (son
+			-- pocas piezas grandes y de colores distintos): CourtBuilder la cuenta al construir y avisa si la pasa.
+			CourtParts = 800,
 			LobbyPlayers = 20,
 			MovedPartsPerFrame = 1500, -- piezas movidas por fotograma, en todas
 			MemoryMB = 1300, -- memoria en todas

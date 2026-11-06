@@ -6,6 +6,12 @@
 local Workspace = game:GetService("Workspace")
 
 local ArenaBuilder = require(script.Parent.Parent.World.ArenaBuilder)
+local CourtBuilder = require(script.Parent.Parent.World.CourtBuilder)
+
+-- El modo del Juego de pelota (Config.Arena.ModeNames): su mapa es Workspace.Cancha.
+local BALLGAME = "Ballgame"
+-- El modo en curso (ArenaMatchService.setMode). Fuera del Juego de pelota nada cambia respecto a la bandera.
+local currentMode: string? = nil
 
 -- Hasta qué formato (jugadores por equipo) se cierran los pasillos laterales.
 local SIDE_CORRIDORS_CLOSED_UP_TO = 2
@@ -29,6 +35,9 @@ end
 
 -- Abre (no se ve, no choca, el Parpadeo pasa) o cierra las puertas de las dos bases.
 function ArenaWorldService.setGates(open: boolean)
+	if currentMode == BALLGAME then
+		return -- la cancha no tiene puertas
+	end
 	for _, model in (arenaFolder():WaitForChild("Bases") :: Folder):GetChildren() do
 		local gate = model:FindFirstChild("Gate")
 		if gate and gate:IsA("BasePart") then
@@ -41,6 +50,10 @@ end
 
 -- En 1v1 y 2v2 solo se juega en el carril central: los pasillos laterales se cierran.
 function ArenaWorldService.setFormat(format: number)
+	if currentMode == BALLGAME then
+		CourtBuilder.layout(format) -- la cancha cambia de largo con el formato
+		return
+	end
 	local closers = arenaFolder():FindFirstChild("SideWalls")
 	if not closers then
 		return
@@ -55,11 +68,6 @@ function ArenaWorldService.setFormat(format: number)
 	end
 end
 
--- El modo en curso (ArenaMatchService.setMode). El mapa de cada modo llega con él: la cancha del Juego de
--- pelota (Workspace.Cancha, Fase 26b). Mientras no exista, el escenario de la bandera no cambia: en 26b
--- aquí se mostrará la cancha o la arena de la bandera según el modo.
-local currentMode: string? = nil
-
 function ArenaWorldService.setMode(mode: string)
 	currentMode = mode
 end
@@ -68,8 +76,20 @@ function ArenaWorldService.mode(): string?
 	return currentMode
 end
 
--- Dónde aparece un jugador: en la baldosa de su base o, sin equipo, en lo alto de la pirámide.
+-- Dónde aparece un jugador: en la baldosa de su base o, sin equipo, en lo alto de la pirámide. En el Juego de
+-- pelota, en el volumen de su equipo en la cancha (mirando al centro) o, sin equipo, en la plaza superior.
 function ArenaWorldService.spawnCFrame(teamId: string?): CFrame
+	if currentMode == BALLGAME then
+		local cancha = Workspace:WaitForChild(CourtBuilder.FOLDER_NAME)
+		if teamId then
+			local zone = (cancha:WaitForChild("Court") :: Folder):WaitForChild(`Spawn_{teamId}`) :: BasePart
+			local half = zone.Size / 2
+			local offset = Vector3.new((math.random() * 2 - 1) * (half.X - 1), 3, (math.random() * 2 - 1) * half.Z)
+			local position = zone.Position + offset
+			return CFrame.lookAt(position, Vector3.new(CourtBuilder.CENTER.X, position.Y, position.Z))
+		end
+		return (cancha:WaitForChild("EsperaSpawn") :: BasePart).CFrame + Vector3.new(0, 3.5, 0)
+	end
 	if teamId then
 		local spawn = base(teamId):FindFirstChild("Spawn") :: BasePart
 		local offset = Vector3.new((math.random() * 2 - 1) * SPAWN_SPREAD, 3.5, (math.random() * 2 - 1) * SPAWN_SPREAD)
@@ -92,6 +112,9 @@ end
 function ArenaWorldService:Init()
 	if not ArenaBuilder.isBuilt() then
 		ArenaBuilder.build({ force = true })
+	end
+	if not CourtBuilder.isBuilt() then
+		CourtBuilder.build(true)
 	end
 	ArenaWorldService.setGates(false)
 end

@@ -1365,7 +1365,7 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **26a** | Modos en Dunas: la bandera sale a `Modes/CaptureFlag` (misma interfaz que el Laboratorio); `Config.Arena.Modes`, `ModeNames`, `ModeFormats` y `StudioMode`; `Shared/ArenaModes`; cola por modo (`ArenaQueue_<modo>_<formato>`, con `mode` y `format` en `TeleportData`); `ArenaWorldService.setMode` como esqueleto para el mapa de cada modo; `Modes/Ballgame` como placeholder | commit pendiente | ✅ Hecha sin commit (probada en Studio con un jugador: la bandera igual que antes). Lo que falta, en VERIFICACION §146 |
-| **26b** | La cancha: `World/CourtBuilder` con versión propia y `Workspace.Cancha` (pasillo de 26 studs, largo según el formato, cabeceras 54×22, muros con banqueta, talud, paramento y aro, colores de los cuatro rumbos), `setFormat`, muro invisible de equipo y tope `Config.Budgets.Cancha` medido con `Rendimiento` | — | ⏳ |
+| **26b** | La cancha: `World/CourtBuilder` con versión propia y `Workspace.Cancha` (pasillo de 26 studs, largo según el formato, cabeceras 22×80, muros con banqueta, talud, paramento y aro, colores de los cuatro rumbos), `setFormat`, muro invisible de equipo (`TeamBarrier`) y tope `Config.Budgets.Matches.CourtParts` (800; 248 piezas con 5v5) | commit pendiente | ✅ Hecha, commit pendiente (probada en Studio de Dunas por MCP con un jugador: layout 1/3/5, apariciones por equipo, muro de equipo y bandera igual). Lo que falta, en VERIFICACION §148 |
 | **26c** | La pelota: `Shared/BallSim` (matemática pura, mismo código en servidor y cliente), `Data/Ballgame` (números de la pelota y de los golpes), `BallService` (simula a 60 Hz y manda el estado a 20 Hz), `BallController` (predicción con suavizado) y remotos `BallState`, `BallEvent` y `BallHit` | — | ⏳ |
 | **26d** | El golpe: botón «Golpear» en el móvil y clic o tecla en el PC, zona por altura (rodilla, cadera, codo), falta por pie, ventana perfecta de 0,15 s y ventana buena, anillo de tiempo, dirección hacia donde miras, validación en el servidor y animaciones de `AnimationTrack` (las publica el usuario) | — | ⏳ |
 | **26e** | Reglas y partido: `Modes/Ballgame` (saque por la raya perdida, rayas por bote, fuera, pie y aro fallado, tiro al muro del fondo rival, aro de victoria, 8 rayas o `MatchSeconds`, muerte súbita y pelota parada 3 s); el modo entra en `Config.Arena.Modes` | — | ⏳ |
@@ -1379,15 +1379,23 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 - Repetición a cámara lenta del aro, sonidos de impacto y celebración.
 
 **Handoff de la Fase 26 (05-11-2026)**
-- **Estado (05-11-2026):** 26a hecha, sin commit. Su hash va en la fila cuando se commitee (commit aparte de PLAN). Queda 26b, la cancha.
-- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado: cola real Lobby → Dunas, cartel de la Isla de dunas, captura de bandera, resultados y vuelta al Lobby, y tickets de la cola vieja).
-- **Siguiente paso, 26b:**
-  - Lee `docs/juego de pelota.txt` antes de tocar la cancha: es la referencia de la planta, los muros y los aros.
-  - El patrón de modos está en `src/dunas/server/Modes/` (`Types`, `CaptureFlag`, `Ballgame`) y en `LabMatchService`.
-  - `Config.Arena.Modes` tiene solo `CaptureFlag`. `Ballgame` está en `Config.Arena.ModeNames` y `ModeFormats`, pero NO en `Config.Arena.Modes` hasta 26e. `Modes/Ballgame.luau` es un placeholder que no se puede elegir.
-  - `ArenaWorldService.setMode` es solo un esqueleto: guarda el modo y todavía no cambia el escenario. El mapa de cada modo se enchufa en 26b.
-  - `ArenaBuilder.buildCourtWall` (`src/dunas/server/World/ArenaBuilder.luau`, línea ~1407) ya pone una cancha decorativa en el centro del mapa de bandera. Hay que decidir qué pasa con ella al crear `Workspace.Cancha`.
-  - Escala de 26b: 1 stud ≈ 0,28 m; pasillo de 26 studs; largo 56, 72, 88, 104 y 120 según el formato (`setFormat`); tope nuevo `Config.Budgets.Cancha`, medido con `Rendimiento`.
+- **Estado (05-11-2026):** 26a y 26b hechas, sin commit. Sus hashes van en las filas cuando se commiteen (commit aparte de PLAN). Queda 26c, la pelota.
+- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado) y §148 (26b: Rendimiento, la cancha publicada, 2 jugadores, móvil y PC, iluminación).
+- **Qué necesita 26c de la cancha:** la fuente única de medidas es `src/shared/CourtGeometry.luau`. `BallSim` usa sus funciones y constantes, no números propios.
+  - `CourtGeometry.forFormat(format)` devuelve el `Layout` del formato (`length`, `halfLength`, `halfWidth`, `endX`, `headerHalfWidth`, `profile`, `ring`, `spawns`, `waiting`). `LENGTHS` = 56, 72, 88, 104 y 120 para 1 a 5 jugadores por equipo.
+  - `surfaceY(absZ)` da la altura de la superficie a esa distancia lateral del eje (suelo 0, banqueta 2, talud hasta 10) o `nil` si ahí hay un muro vertical. `isOut(layout, x)` es fuera por la línea de fondo. `teamOfSide(x)` da el equipo que defiende ese lado (Jaguar en X negativa, Quetzal en positiva; `nil` en la línea central).
+  - Constantes: `ALLEY_HALF_WIDTH` 13 (pasillo de 26), `BENCH_INNER_Z` 13, `BENCH_OUTER_Z` 16, `BENCH_HEIGHT` 2, `TALUD_OUTER_Z` 22,5, `TALUD_TOP_Y` 10, `WALL_TOP_Y` 20, `PLAZA_HALF_Z` 62,5, `HEADER_DEPTH` 22, `HEADER_HALF_WIDTH` 40, `TEAM_WALL_HEIGHT` 24, `BALL_RADIUS` 1, `ring` (aro centrado en z 19,5 y y 15, agujero de radio 1,6, `embed` 0,6), `WAITING` (0, 21, -45) y `SPAWN_OFFSET`, `SPAWN_HALF_Z`, `SPAWN_Y`.
+- **Coordenadas:** `CourtGeometry` y el `Layout` van en coordenadas locales de la cancha (centro en x = 0, z = 0). En el mundo, `CourtBuilder.toWorld(p)` = `CENTER + p`, con `CENTER = (0, 0, 1400)`. No es z = 900: el Suelo de la arena llega a z = 900. `BallSim` trabaja en local y el servidor pasa al mundo solo para mandar o dibujar.
+- **Piezas de `Workspace.Cancha`:**
+  - `Court` con `Floor` (suelo del pasillo), `Bench_L/R`, `Talud_L/R`, `Wall_L/R` (paramento), `EndFloor_<equipo>`, `EndWall_<equipo>`, `HeaderWall_<equipo>_L/R`, `TeamBarrier` (muro invisible de equipo en x = 0, en el grupo `CourtBarrier`), `Spawn_Jaguar` y `Spawn_Quetzal` (volúmenes de aparición, sin colisión).
+  - `Court/Decor` (sin colisión): `Ring_L` y `Ring_R` (aros), `Tlecotl`, y las rayas `FloorStripe_<equipo>` (a 0,06 sobre el suelo).
+  - `Cancha/EsperaSpawn`: una Part (no un `SpawnLocation`) en la plaza superior, donde esperan los que no tienen equipo.
+- **Probar Ballgame:** `ArenaWorldService.setMode("Ballgame")` se llama directamente (el modo sigue fuera de `Config.Arena.Modes` hasta 26e). `setFormat` reconstruye la cancha con `CourtBuilder.layout(format)`; `setGates` no hace nada en este modo; `spawnCFrame` usa `Court/Spawn_<equipo>` o `Cancha/EsperaSpawn`.
+- **Generar y publicar:** `Workspace.Cancha` se genera en el place con `require(game.ServerScriptService.Server.World.CourtBuilder).build()` en modo edición (`VERSION` = 4: la 3 rellena el hueco bajo el paramento y la 4 hace macizas la plaza y el desierto, tras ver en Studio los huecos de los laterales). El servidor la reconstruye al arrancar si falta o si `Version` no coincide. Después hay que guardar y publicar el place Dunas.
+- **Tope de piezas:** `Rendimiento` solo existe en el Studio de la Isla y no mide `Workspace.Cancha`. El tope es `Config.Budgets.Matches.CourtParts` = 800; medido a mano, 248 piezas con 5v5 sin fusionar.
+- **Trampa de la caché de `require`:** para ver un cambio en `CourtGeometry` o en `CourtBuilder`, clona la carpeta `Shared` entera, renómbrala y haz `require` del clon. Un `require` suelto reutiliza la copia vieja. Así se probó 26b.
+- **Pendiente de decidir:** la cancha decorativa de `ArenaBuilder.buildCourtWall` (`src/dunas/server/World/ArenaBuilder.luau`, línea ~1407) sigue en el centro del mapa de bandera. 26b no la quita; decidir antes de 26e.
+- **Siguiente paso, 26c:** `Shared/BallSim` (matemática pura con las medidas de `CourtGeometry`), `Data/Ballgame`, `BallService` (60 Hz de simulación y 20 Hz de estado), `BallController` y los remotos `BallState`, `BallEvent` y `BallHit`. Escala: 1 stud ≈ 0,28 m.
 
 ---
 
