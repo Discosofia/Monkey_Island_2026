@@ -38,6 +38,10 @@ local ringAttempt: RingAttempt? = nil
 local callSeq = 0
 local disconnects: { () -> () } = {}
 local heartbeat: RBXScriptConnection? = nil
+-- Saque lento (pruebas, Fase 27b): la pelota espera quieta en el suelo y no se cuentan botes ni pelota parada hasta
+-- el primer golpe o roce (waitingServe).
+local slowServe = false
+local waitingServe = false
 
 local function now(): number
 	return Workspace:GetServerTimeNow()
@@ -71,6 +75,7 @@ local function resetRound()
 	flightClean = false
 	restSince = nil
 	ringAttempt = nil
+	waitingServe = false
 end
 
 local function teamSizes(): (number, number)
@@ -110,7 +115,15 @@ local function serveNow()
 	state = "Live"
 	resetRound()
 	BallService.setActive(true)
-	BallService.serve(servingTeam)
+	if slowServe then
+		-- Quieta en el suelo, en el campo del equipo que saca (el mismo al que iría el lob); al azar si no hay.
+		local sign = CourtGeometry.sideSign(servingTeam or Arena.TEAM_IDS[math.random(1, #Arena.TEAM_IDS)])
+		local x = sign * BallService.layout().halfLength / 2
+		BallService.place(Vector3.new(x, CourtGeometry.BALL_RADIUS + BallgameData.Serve.RestClearance, 0), Vector3.zero)
+		waitingServe = true
+	else
+		BallService.serve(servingTeam)
+	end
 end
 
 local function addPoint(team: string, call: string)
@@ -119,6 +132,7 @@ local function addPoint(team: string, call: string)
 	end
 	setScore(team, Arena.score(team) + 1)
 	ringAttempt = nil
+	waitingServe = false
 	if Arena.score(team) >= Config.Arena.Ballgame.RaysToWin or Arena.phase() == "SuddenDeath" then
 		endMatch(team, call)
 		return
@@ -140,7 +154,11 @@ local function resolveAttempt()
 end
 
 local function onHit(info: BallHitService.HitInfo)
-	if state ~= "Live" or not info.team then
+	if state ~= "Live" then
+		return
+	end
+	waitingServe = false -- el primer golpe o roce acaba el saque lento
+	if not info.team then
 		return
 	end
 	if info.zone == "Foot" then
@@ -231,7 +249,9 @@ local function onBallEvent(event: any)
 	end
 	local kind = event.kind
 	if kind == "bounce" then
-		onBounce(event)
+		if not waitingServe then
+			onBounce(event)
+		end
 	elseif kind == "endWall" then
 		onEndWall(event)
 	elseif kind == "out" then
@@ -293,11 +313,18 @@ function Ballgame.abandoned(ctx: Types.Context): boolean
 	return not ctx.isSolo() and (jaguar == 0 or quetzal == 0)
 end
 
-function Ballgame.stop()
+-- Deja el modo parado sin tocar el saque lento (start lo usa: la bandera la pone el panel antes de empezar).
+local function halt()
 	disconnectAll()
 	state = "Idle"
 	savedCtx = nil
+	waitingServe = false
 	BallService.setActive(false)
+end
+
+function Ballgame.stop()
+	halt()
+	slowServe = false
 end
 
 function Ballgame.reset()
@@ -307,7 +334,7 @@ function Ballgame.reset()
 end
 
 function Ballgame.start(ctx: Types.Context)
-	Ballgame.stop()
+	halt()
 	savedCtx = ctx
 	resetScores()
 	resetRound()
@@ -362,7 +389,8 @@ function Ballgame.tick(ctx: Types.Context, phase: Arena.Phase)
 			serveNow()
 		end
 	elseif state == "Live" then
-		if BallService.state().resting then
+		-- Con la pelota esperando el saque lento no cuenta como parada.
+		if BallService.state().resting and not waitingServe then
 			local since = restSince
 			if since == nil then
 				restSince = now()
@@ -393,11 +421,38 @@ function Ballgame.debugPoint(team: string, call: string)
 	addPoint(team, call)
 end
 
+-- Saque lento (Fase 27b): con él, el saque deja la pelota quieta en el suelo hasta el primer golpe. Al apagarlo
+-- con la pelota esperando, se repite el saque con el lob de siempre.
+function Ballgame.debugSlowServe(enabled: boolean)
+	slowServe = enabled
+	if not enabled and waitingServe and state == "Live" then
+		serveNow()
+	end
+end
+
+function Ballgame.debugIsSlowServe(): boolean
+	return slowServe
+end
+
+-- Con el saque lento, una pelota colocada a mano (BallPlace) también espera quieta al primer golpe.
+function Ballgame.debugHold()
+	if slowServe and state == "Live" then
+		waitingServe = true
+	end
+end
+
+-- ¿La pelota espera el primer golpe del saque lento?
+function Ballgame.debugWaitingServe(): boolean
+	return waitingServe
+end
+
 function Ballgame.debugState(): string
 	local attempt = ringAttempt
 	return string.format(
-		"state=%s score=%d-%d bounces=%d/%d lastToucher=%s flightClean=%s serving=%s ringAttempt=%s",
+		"state=%s slowServe=%s waitingServe=%s score=%d-%d bounces=%d/%d lastToucher=%s flightClean=%s serving=%s ringAttempt=%s",
 		state,
+		tostring(slowServe),
+		tostring(waitingServe),
 		Arena.score("Jaguar"),
 		Arena.score("Quetzal"),
 		bounces.Jaguar,
@@ -411,4 +466,11 @@ function Ballgame.debugState(): string
 	)
 end
 
-return Ballgame :: Types.Mode & { debugPoint: (team: string, call: string) -> (), debugState: () -> string }
+return Ballgame :: Types.Mode & {
+	debugPoint: (team: string, call: string) -> (),
+	debugState: () -> string,
+	debugSlowServe: (enabled: boolean) -> (),
+	debugIsSlowServe: () -> boolean,
+	debugWaitingServe: () -> boolean,
+	debugHold: () -> (),
+}

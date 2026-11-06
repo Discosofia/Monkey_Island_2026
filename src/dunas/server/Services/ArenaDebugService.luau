@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
+local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
@@ -18,6 +19,7 @@ local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
+local BallBotService = require(script.Parent.BallBotService)
 local BallHitService = require(script.Parent.BallHitService)
 local BallService = require(script.Parent.BallService)
 local BallgameMode = require(script.Parent.Parent.Modes.Ballgame)
@@ -27,6 +29,8 @@ local DUMMY_HEALTH = 300
 local RING_SHOT_X = -12
 local RING_SHOT_Y = 12
 local RING_SHOT_SPEED = 40
+-- BallPlace «center»: altura (local) a la que se deja la pelota en el centro.
+local CENTER_PLACE_HEIGHT = 2
 
 local ArenaDebugService = {}
 
@@ -127,8 +131,33 @@ local function shootAtRing(zSign: number)
 	BallService.place(Vector3.new(RING_SHOT_X, RING_SHOT_Y, zSign * ring.centerZ), Vector3.new(RING_SHOT_SPEED, vy, 0))
 end
 
+-- Equipo del jugador (Jaguar si no tiene).
+local function teamOfPlayer(player: Player): string
+	return Arena.teamOf(player) or "Jaguar"
+end
+
+-- Los equipos que acepta un argumento de texto ("Jaguar" o "Quetzal"), o nil.
+local function teamArg(arg: any): string?
+	return if arg == "Jaguar" or arg == "Quetzal" then arg else nil
+end
+
+-- BallPlace con un atajo: en el campo del jugador («mine»), en el del rival («rival») o al centro («center»).
+-- Devuelve el punto local, o nil si "arg" no es un atajo.
+local function presetPlace(player: Player, arg: any): Vector3?
+	local halfLength = BallService.layout().halfLength
+	local resting = CourtGeometry.BALL_RADIUS + Ballgame.Serve.RestClearance
+	if arg == "mine" then
+		return Vector3.new(CourtGeometry.sideSign(teamOfPlayer(player)) * halfLength / 2, resting, 0)
+	elseif arg == "rival" then
+		return Vector3.new(-CourtGeometry.sideSign(teamOfPlayer(player)) * halfLength / 2, resting, 0)
+	elseif arg == "center" then
+		return Vector3.new(0, CENTER_PLACE_HEIGHT, 0)
+	end
+	return nil
+end
+
 local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
-	-- La pelota del Juego de pelota (Fase 26c). El modo aún no está en Config.Arena.Modes: se activa a mano.
+	-- La pelota del Juego de pelota (Fase 26c).
 	BallOn = function()
 		BallService.setActive(true)
 		if BallService.state().dead then
@@ -138,12 +167,21 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	BallOff = function()
 		BallService.setActive(false)
 	end,
-	BallServe = function()
+	-- «Jaguar» o «Quetzal»: el lob va al campo de ese equipo; sin argumento, al azar.
+	BallServe = function(_player, arg)
 		BallService.setActive(true)
-		BallService.serve()
+		BallService.serve(teamArg(arg))
 	end,
-	-- "x y z vx vy vz" en coordenadas locales de la cancha (la velocidad es opcional).
-	BallPlace = function(_player, arg)
+	-- «mine», «rival» o «center» (atajos), o "x y z vx vy vz" en coordenadas locales de la cancha (la velocidad es
+	-- opcional).
+	BallPlace = function(player, arg)
+		local preset = presetPlace(player, arg)
+		if preset then
+			BallService.setActive(true)
+			BallService.place(preset, Vector3.zero)
+			BallgameMode.debugHold() -- con el saque lento, espera quieta al primer golpe
+			return
+		end
 		local n = numbersOf(arg)
 		if #n < 3 then
 			return
@@ -153,7 +191,9 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	end,
 	-- Lado del aro (-1 o 1); sin argumento, alterna.
 	BallRing = function(_player, arg)
-		local zSign = if arg == -1 or arg == 1 then arg else nextRingSide
+		-- El panel manda el lado como texto ("-1" o "1").
+		local side = if typeof(arg) == "string" then tonumber(arg) else arg
+		local zSign = if side == -1 or side == 1 then side else nextRingSide
 		nextRingSide = -zSign
 		shootAtRing(zSign)
 	end,
@@ -191,6 +231,23 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	end,
 	BallState = function()
 		print(`[ArenaDebugService] {BallgameMode.debugState()}`)
+	end,
+	-- Saque lento (Fase 27b): «on», «off» o, sin argumento, alterna.
+	SlowServe = function(player, arg)
+		local enabled = if arg == "on" then true elseif arg == "off" then false else not BallgameMode.debugIsSlowServe()
+		BallgameMode.debugSlowServe(enabled)
+		Remotes.Notify:FireClient(player, `🏀 Saque lento: {if enabled then "sí" else "no"}`)
+	end,
+	-- Rivales de prueba (BallBotService): «1», «3», «5» u «off»; van en el campo CONTRARIO al del jugador.
+	BotRivals = function(player, arg)
+		local count = if arg == "off" then 0 else tonumber(arg) or 0
+		BallBotService.setRivals(Arena.otherTeam(teamOfPlayer(player)), count)
+	end,
+	-- Cambia de modo («Ballgame» o «CaptureFlag») y vuelve a la espera (ArenaMatchService.debugSetMode).
+	Mode = function(player, arg)
+		if typeof(arg) == "string" and ArenaMatchService.debugSetMode(arg) then
+			Remotes.Notify:FireClient(player, `🎮 Modo: {Config.Arena.ModeNames[arg]}`)
+		end
 	end,
 	GoEnemyFlag = function(player)
 		local teamId = Arena.teamOf(player)

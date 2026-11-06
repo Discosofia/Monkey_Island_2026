@@ -30,8 +30,10 @@ local LOOKAHEAD_SECONDS = 0.5
 -- Salir de PassiveContactDist por este factor rearma el roce pasivo de un jugador.
 local PASSIVE_REARM_FACTOR = 1.5
 
+-- "player" es nil en el golpe de un rival de prueba (BallBotService); "bot" trae entonces su nombre.
 export type HitInfo = {
-	player: Player,
+	player: Player?,
+	bot: string?,
 	team: string?,
 	zone: string,
 	quality: string,
@@ -62,17 +64,28 @@ local function rootOf(player: Player): BasePart?
 end
 
 -- Aplica el golpe: fija la velocidad (y la curva del Viento, en segundos), avisa a los clientes y a los oyentes.
-local function apply(player: Player, team: string?, zone: string, quality: string, velocity: Vector3, curve: number)
+-- "player" es nil si golpea un rival de prueba ("botName"): sin enfriamiento ni roce propios, y userId 0.
+local function apply(
+	player: Player?,
+	team: string?,
+	zone: string,
+	quality: string,
+	velocity: Vector3,
+	curve: number,
+	botName: string?
+)
 	BallService.applyImpulse(velocity - BallService.state().vel)
 	BallService.setCurve(curve)
 	local after = BallService.state()
-	lastHitAt[player] = now()
 	lastBallHitAt = now()
-	touching[player] = true
+	if player then
+		lastHitAt[player] = now()
+		touching[player] = true
+	end
 	Remotes.BallEvent:FireAllClients({
 		kind = "hit",
 		t = now(),
-		userId = player.UserId,
+		userId = if player then player.UserId else 0,
 		zone = zone,
 		quality = quality,
 		pos = after.pos,
@@ -81,6 +94,7 @@ local function apply(player: Player, team: string?, zone: string, quality: strin
 	})
 	local info: HitInfo = {
 		player = player,
+		bot = botName,
 		team = team,
 		zone = zone,
 		quality = quality,
@@ -208,6 +222,21 @@ function BallHitService.force(player: Player, zone: string, quality: string, loo
 		return
 	end
 	hitWithAbilities(player, Arena.teamOf(player), zone, quality, lookDir)
+end
+
+-- Segundos desde el último golpe sobre la pelota (de cualquiera): los rivales de prueba respetan el mismo
+-- enfriamiento entre golpes que los jugadores.
+function BallHitService.secondsSinceHit(): number
+	return now() - lastBallHitAt
+end
+
+-- Depuración (Fase 27b): el golpe de un rival de prueba, sin jugador. Mismo efecto que el de un jugador: fija la
+-- velocidad, quita la curva, avisa a los clientes y a los oyentes (con "team" y "bot" en lugar de "player").
+function BallHitService.botHit(botName: string, team: string, zone: string, quality: string, velocity: Vector3)
+	if not BallService.isActive() or BallService.state().dead then
+		return
+	end
+	apply(nil, team, zone, quality, velocity, 0, botName)
 end
 
 function BallHitService:Init() end

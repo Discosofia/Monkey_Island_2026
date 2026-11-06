@@ -48,6 +48,8 @@ Ballgame.Serve = {
 	Horizontal = 12,
 	Vertical = 16,
 	SideSpeed = 3,
+	-- Pruebas (saque lento y BallPlace «mine»/«rival»): la pelota se deja quieta a esta holgura sobre el suelo.
+	RestClearance = 0.01,
 }
 
 -- Red. El servidor manda el estado a StateHz; el cliente lo avanza con la misma simulación. Si lo dibujado
@@ -190,6 +192,17 @@ Ballgame.ShadowMaxHeight = 30
 Ballgame.Talud = {
 	SlideSpeed = 20,
 	MaxForceFactor = 3000,
+}
+
+-- Rivales de prueba (Fase 27b; Dunas/Services/BallBotService, solo Studio): muñecos que devuelven la pelota para poder
+-- probar el partido en solitario. Speed: studs/s con que van a la pelota. ReactionSeconds: lo que tardan en golpear desde
+-- que la pelota entra en su alcance. Quality: calidad del golpe (Perfect, Good, Weak). ReturnSeconds: tras golpear,
+-- segundos en que el bot descansa (vuelve a su sitio) antes de poder ir otra vez a la pelota.
+Ballgame.Bot = {
+	Speed = 14,
+	ReactionSeconds = 0.06, -- poco: una pelota rápida cruza su alcance en ~0,2 s
+	Quality = "Good",
+	ReturnSeconds = 1,
 }
 
 return Ballgame

@@ -10,7 +10,7 @@
 --               el otro.
 --   SuddenDeath la siguiente captura gana.
 --   Results     resultados unos segundos y otra vez Waiting con los mismos equipos (la revancha).
--- Aquí va lo común a todos los modos (Config.Arena.Modes: hoy Captura la bandera); lo que cambia de uno a
+-- Aquí va lo común a todos los modos (Config.Arena.Modes: Captura la bandera y Juego de pelota); lo que cambia de uno a
 -- otro (cómo se puntúa, cuándo acaba, quién gana) está en Modes/ (Modes/Types).
 -- El estado va en atributos (Shared/Arena). El modo y el formato (jugadores por equipo) llegan del Lobby en
 -- el viaje (TeleportData "mode" y "format"); en Studio, Config.Arena.StudioMode y StudioFormat o el panel de
@@ -33,6 +33,7 @@ local Ballgame = require(script.Parent.Parent.Modes.Ballgame)
 local CaptureFlag = require(script.Parent.Parent.Modes.CaptureFlag)
 local Types = require(script.Parent.Parent.Modes.Types)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
+local BallBotService = require(script.Parent.BallBotService)
 local RespawnService = require(script.Parent.RespawnService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -40,7 +41,7 @@ local TICK_SECONDS = 0.25
 -- Las estadísticas comunes; el modo reinicia las suyas (Captura la bandera: "ArenaCaptures").
 local STAT_ATTRIBUTES = { "ArenaKills", "ArenaDeaths" }
 
--- Un modo por clave de Config.Arena.ModeNames (Ballgame, de la Fase 26e, aún no está en Config.Arena.Modes).
+-- Un modo por clave de Config.Arena.ModeNames.
 local MODES: { [string]: Types.Mode } = {
 	CaptureFlag = CaptureFlag,
 	Ballgame = Ballgame,
@@ -243,9 +244,28 @@ end
 -- Panel de pruebas.
 function ArenaMatchService.debugSolo()
 	solo = true
+	-- En el Juego de pelota, probar en solitario es con el saque lento (el panel lo apaga).
+	if ArenaModes.current() == "Ballgame" then
+		Ballgame.debugSlowServe(true)
+	end
 	if Arena.phase() == "Waiting" then
 		startCountdown()
 	end
+end
+
+-- Cambia el modo desde el panel, en cualquier fase: el modo en curso se para y se limpia (se cancela la partida y
+-- se apagan los rivales de prueba), se prepara el mapa del nuevo y se vuelve a Waiting con todos en su punto de
+-- espera. Devuelve false si el modo no existe.
+function ArenaMatchService.debugSetMode(modeId: string): boolean
+	if not (MODES[modeId] and table.find(Config.Arena.Modes, modeId)) then
+		return false
+	end
+	BallBotService.clear()
+	mode().reset() -- el modo viejo: se para (deja la pelota y el saque lento) y borra su marcador
+	setMode(modeId)
+	startWaiting() -- solo = false, marcador del nuevo a cero, puertas abiertas, fase Waiting y reloj de espera
+	RespawnService.respawnAll()
+	return true
 end
 
 function ArenaMatchService.debugNextFormat(): number

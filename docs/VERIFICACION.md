@@ -6117,6 +6117,51 @@ La cancha de Dunas pasa a su perfil nuevo (muros a 30, pasillo de 30, talud de 3
 20. [ ] Revisa `PlayerData_v1_backups` y decide sobre las copias `u_8620190944_pre26e` y `u_8620190944_prealtar`, que siguen sin restaurar. Comprueba también que el perfil real de la cuenta está como esperas tras el Play de 27a (se hizo sin copia nueva, con permiso).
     ✅ Las copias se restauran o se borran según decidas, y el perfil de la cuenta queda como esperas.
 
+## 158. Fase 27b: modo de prueba del Juego de pelota (06-11-2026)
+
+El panel «🛠️ Pruebas» de Dunas gana argumentos, cabeceras y comandos de partido: `Mode` (Ballgame o CaptureFlag), `SlowServe` (saque lento), `BotRivals` (muñecos rivales que devuelven la pelota), `BallPlace` con atajos, `BallServe` por equipo, `BallRing` y `BallScore` con «Out». Probado en Studio de Dunas, en Play con el perfil real (autorizado sin copia) y con jugador en Quetzal y bots de Jaguar: 6 cabeceras y 37 botones, `Mode` de ida y vuelta, `Solo` con saque lento, `BotRivals 3` con devoluciones de 3 de 3, `BallScore` y `BallServe` por equipo, y capturas de los bots por delante y por detrás. Stylua, selene, `strings.py` y los cuatro `rojo build` pasan. Lo que sigue sin probar es esto.
+
+### 158.1 Con 2 jugadores reales (*Prueba → Clientes y servidores*, 2 clientes, en Dunas)
+
+1. [ ] Desde el segundo cliente abre el panel «🛠️ Pruebas» y pulsa un botón con argumento (por ejemplo `BallPlace` con el atajo `mine` y `BallServe` con un equipo).
+   ✅ El comando se ejecuta en el servidor igual que desde el primer cliente, y los dos clientes ven la pelota en el mismo sitio.
+2. [ ] Con dos jugadores conectados, activa `Solo` y deja el saque lento encendido.
+   ✅ La cuenta atrás y la fase Battle arrancan una vez; la pelota queda quieta en el campo del equipo que saca hasta el primer golpe, sin puntos ni botes en los dos clientes.
+3. [ ] Con dos jugadores en el mismo equipo y `BotRivals 3`, dejad que los bots devuelvan la pelota varias veces.
+   ✅ Los bots devuelven la pelota en los dos clientes, el golpe aparece como ajeno (sin el nombre de un jugador) y ningún bot cuenta como miembro del equipo.
+4. [ ] Con un jugador de cada equipo, pasa de Ballgame a CaptureFlag con `Mode` (y vuelta), con banderas en mano; en CaptureFlag coge una bandera antes de cambiar.
+   ✅ Los dos jugadores vuelven a su sitio del modo nuevo, el atributo `ArenaMode` cambia en los dos clientes, el marcador vuelve a 0 y la bandera que llevaba el jugador se suelta (`FlagService` la suelta por `LoadCharacter`, no probado con una bandera cogida).
+
+### 158.2 En el teléfono y en el PC (*Prueba → Dispositivo*, en Dunas, con el panel de pruebas)
+
+5. [ ] En el teléfono, abre el panel «🛠️ Pruebas» y desplázate por las 6 cabeceras y los 37 botones.
+   ✅ El panel se desplaza bien de arriba abajo, cada cabecera se lee como separador y ningún botón queda tapado por la barra superior.
+6. [ ] Pulsa en el teléfono los botones nuevos: `Mode`, `Saque lento`, `BotRivals` (1, 3 y 5), `BallPlace` (mine, rival, center), `BallServe` (Jaguar y Quetzal), `BallRing` y `BallScore` (Jaguar Out y Quetzal Out).
+   ✅ Cada botón responde con un toque, sin pulsarse dos veces, y su efecto llega al partido (el banner de la raya sale al pulsar `BallScore`).
+7. [ ] Repite el paso 5 en el PC con la ventana a tamaño normal.
+   ✅ Las cabeceras y los botones se ven completos y en orden, sin cortes.
+
+### 158.3 Jugando de verdad (*Prueba → Jugar*, en Dunas, Juego de pelota)
+
+8. [ ] Juega un partido con `Solo` y `BotRivals 3` y devuelve la pelota varias veces, después deja que los bots devuelvan solos.
+   ✅ Los bots dan una partida que se puede jugar: ni regalan todos los puntos ni son imposibles. Si son demasiado fáciles o difíciles, anótalo y ajusta `Data/Ballgame.Bot` (Quality Good, `ReactionSeconds` 0,06, `ReturnSeconds` 1).
+9. [ ] Mitad de un partido de Ballgame, pulsa `Mode CaptureFlag` y después vuelve a `Mode Ballgame`.
+   ✅ El marcador, `ArenaWinner` y el HUD vuelven a su sitio de cada modo; en CaptureFlag se ven las banderas y el altar, y en Ballgame el HUD del Juego de pelota de la Fase 26g (VERIFICACION §156).
+10. [ ] Con el juego de pelota ya en marcha, mira el HUD tras cada `Mode`.
+    ✅ El HUD del Juego de pelota no muestra restos del modo anterior (marcador, avisos, tiempos).
+
+### 158.4 En el juego publicado (*Prueba → Jugar*, en Dunas)
+
+11. [ ] Guarda y publica el place Dunas (con el panel de pruebas incluido) y entra en el juego publicado, en el Juego de pelota.
+    ✅ No se ve ningún botón nuevo del panel «🛠️ Pruebas» (`DebugPanel` solo pinta en Studio), ni el panel ni sus cabeceras, y el partido se juega igual que antes.
+
+### 158.5 Papeleo (Studio)
+
+12. [ ] Revisa que no hay frases nuevas para Creator Hub: el panel es herramienta de desarrollo, sin textos para el jugador.
+    ✅ `python tools/strings.py` pasa sin frases nuevas que subir, y la tabla de Creator Hub no cambia en esta fase.
+13. [ ] Comprueba el perfil real de la cuenta tras el Play de 27b (se hizo sin copia nueva, con permiso), junto con las copias `PlayerData_v1_backups` pendientes de §157.5.
+    ✅ El perfil de la cuenta queda como esperas y las copias se restauran o se borran según decidas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

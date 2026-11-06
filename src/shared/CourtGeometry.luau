@@ -211,4 +211,9 @@ function CourtGeometry.teamOfSide(x: number): string?
 	return nil
 end
 
+-- Signo en X del campo de un equipo: el Jaguar defiende X negativa (-1); el otro, +1.
+function CourtGeometry.sideSign(teamId: string?): number
+	return if teamId == "Jaguar" then -1 else 1
+end
+
 return CourtGeometry

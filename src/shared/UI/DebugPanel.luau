@@ -17,6 +17,8 @@ local DebugPanel = {}
 -- también las cinemáticas). Al volver a pulsar, deja cada cosa como estaba. Con el cursor quitado el botón
 -- "🛠️ Pruebas" (abajo a la izquierda) sigue funcionando.
 local RECORD_MODE = "RecordMode"
+-- Alto de las cabeceras de sección (las de los botones son de 34 px).
+local HEADER_HEIGHT = 22
 local recording = false
 
 local function toggleRecordMode(panel: ScreenGui)
@@ -63,22 +65,37 @@ function DebugPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio"): 
 	layout.Parent = list
 
 	for index, command in DebugCommands[place] do
-		local button = Instance.new("TextButton")
-		button.LayoutOrder = index
-		button.Size = UDim2.new(1, -8, 0, 34)
-		button.BackgroundColor3 = Color3.fromRGB(60, 50, 40)
-		button.TextColor3 = Color3.new(1, 1, 1)
-		button.Font = Enum.Font.BuilderSansBold
-		button.TextScaled = true
-		button.Text = command.label
-		button.Parent = list
-		button.MouseButton1Click:Connect(function()
-			if command.id == RECORD_MODE then
-				toggleRecordMode(gui)
-				return
-			end
-			Remotes.DebugCommand:FireServer(command.id)
-		end)
+		local commandId = command.id
+		if command.header then
+			-- Cabecera de sección: una etiqueta discreta, no pulsable.
+			local header = Instance.new("TextLabel")
+			header.LayoutOrder = index
+			header.Size = UDim2.new(1, -8, 0, HEADER_HEIGHT)
+			header.BackgroundTransparency = 1
+			header.TextColor3 = Color3.fromRGB(170, 160, 145)
+			header.Font = Enum.Font.BuilderSansBold
+			header.TextScaled = true
+			header.TextXAlignment = Enum.TextXAlignment.Left
+			header.Text = command.header
+			header.Parent = list
+		elseif commandId then
+			local button = Instance.new("TextButton")
+			button.LayoutOrder = index
+			button.Size = UDim2.new(1, -8, 0, 34)
+			button.BackgroundColor3 = Color3.fromRGB(60, 50, 40)
+			button.TextColor3 = Color3.new(1, 1, 1)
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			button.Text = command.label or commandId
+			button.Parent = list
+			button.MouseButton1Click:Connect(function()
+				if commandId == RECORD_MODE then
+					toggleRecordMode(gui)
+					return
+				end
+				Remotes.DebugCommand:FireServer(commandId, command.arg)
+			end)
+		end
 	end
 
 	toggle.MouseButton1Click:Connect(function()

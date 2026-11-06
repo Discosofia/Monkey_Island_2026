@@ -1,8 +1,9 @@
 --!strict
 -- Órdenes del panel de pruebas (solo Studio): nombre interno y texto del botón, en el orden en que
--- salen. El servidor de cada place (DebugService) decide qué hace cada una.
+-- salen. El servidor de cada place (DebugService) decide qué hace cada una. "arg" (opcional) es el texto que el
+-- panel manda junto al id. Una entrada con "header" y sin id es una cabecera de sección (no se pulsa).
 
-export type Command = { id: string, label: string }
+export type Command = { id: string?, label: string?, arg: string?, header: string? }
 
 local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command }, Laboratorio: { Command } } = {
 	Island = {
@@ -97,23 +98,45 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 	Dunas = {
-		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo)" },
+		{ header = "Partida" },
+		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo; en pelota, con saque lento)" },
 		{ id = "Format", label = "👥 Siguiente formato (1v1…5v5)" },
 		{ id = "SkipPhase", label = "⏩ Saltar a la siguiente fase" },
+		{ id = "Mode", arg = "Ballgame", label = "🎮 Modo: Juego de pelota" },
+		{ id = "Mode", arg = "CaptureFlag", label = "🎮 Modo: Captura la bandera" },
+		{ header = "Pelota" },
+		{ id = "BallOn", label = "🏀 Pelota: activar" },
+		{ id = "BallOff", label = "⏹️ Pelota: desactivar" },
+		{ id = "BallState", label = "📋 Pelota: estado del partido (se imprime)" },
+		{ id = "BallServe", arg = "Jaguar", label = "🏀 Pelota: saque Jaguar" },
+		{ id = "BallServe", arg = "Quetzal", label = "🏀 Pelota: saque Quetzal" },
+		{ id = "BallPlace", arg = "mine", label = "📍 Pelota: colocar en mi campo" },
+		{ id = "BallPlace", arg = "rival", label = "📍 Pelota: colocar en el campo rival" },
+		{ id = "BallPlace", arg = "center", label = "📍 Pelota: colocar al centro" },
+		{ id = "BallHit", arg = "Hip Perfect", label = "💥 Golpe: cadera perfecta" },
+		{ id = "BallHit", arg = "Knee Good", label = "💥 Golpe: rodilla buena" },
+		{ id = "BallHit", arg = "Elbow Perfect", label = "💥 Golpe: codo perfecto" },
+		{ id = "BallRing", arg = "-1", label = "⭕ Tiro al aro: lado −z" },
+		{ id = "BallRing", arg = "1", label = "⭕ Tiro al aro: lado +z" },
+		{ header = "Marcador" },
+		{ id = "BallScore", arg = "Jaguar Out", label = "🐆 Raya Jaguar" },
+		{ id = "BallScore", arg = "Quetzal Out", label = "🦜 Raya Quetzal" },
+		{ id = "SlowServe", arg = "on", label = "🐢 Saque lento: sí" },
+		{ id = "SlowServe", arg = "off", label = "🐇 Saque lento: no" },
+		{ header = "Rivales de prueba" },
+		{ id = "BotRivals", arg = "1", label = "🤖 Rivales de prueba: 1" },
+		{ id = "BotRivals", arg = "3", label = "🤖 Rivales de prueba: 3" },
+		{ id = "BotRivals", arg = "5", label = "🤖 Rivales de prueba: 5" },
+		{ id = "BotRivals", arg = "off", label = "🚫 Rivales de prueba: quitar" },
+		{ header = "Bandera" },
 		{ id = "GoEnemyFlag", label = "🚩 Ir a la bandera rival" },
 		{ id = "GoHome", label = "🏠 Volver a mi pedestal" },
 		{ id = "Altar", label = "⛩️ Encender el altar ya y subir a él" },
+		{ header = "Otros" },
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "FakeKill", label = "☠️ Bajas falsas en el registro" },
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },
-		{ id = "BallOn", label = "🏀 Pelota: activar" },
-		{ id = "BallOff", label = "🏀 Pelota: desactivar" },
-		{ id = "BallServe", label = "🏀 Pelota: saque" },
-		{ id = "BallRing", label = "🏀 Pelota: tiro al aro (alterna lado)" },
-		{ id = "BallHit", label = "🏀 Pelota: golpe forzado (zona calidad: Hip Perfect)" },
-		{ id = "BallScore", label = "🏀 Partido: dar raya (equipo [aviso]: Jaguar Out)" },
-		{ id = "BallState", label = "🏀 Partido: estado (se imprime)" },
 		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
 		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
