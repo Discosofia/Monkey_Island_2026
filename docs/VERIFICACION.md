@@ -5997,18 +5997,20 @@ Las habilidades de rol (Guerrero «Golpe de yugo», Cazador «Salto de jaguar»,
 
 ### 155.3 Recargas con `Equilibrio` (Studio de la Isla, en modo edición)
 
-7. [ ] Ejecuta `Equilibrio` con el comando de CLAUDE.md (clon, `informe()`) y mira las recargas de las cuatro habilidades de rol.
-   ✅ Yugo 8 s, Salto 6 s, Viento 10 s y Paso 8 s.
+7. [x] Hecho (06-11-2026): `Equilibrio` con las cuatro como propuesta (hueco 5) las da dentro de 4–25 s: Yugo 8 s, Salto 6 s, Viento 8,5 s (factor 0,85 del Mago) y Paso 8 s. La alerta «Viento imbloqueable, se ve venir 0,2 s» viene de la preparación por defecto del Mago, no es real (no hace daño).
+   ✅ Sin alertas de recarga.
 8. [ ] Mira en el mismo informe el efecto del `CooldownRate` del equipo de arena, que se aplica en Dunas.
    ✅ Las cuatro recargas salen más cortas que las del paso 7, en la proporción de `CooldownRate`.
+9. [ ] En Dunas (Juego de pelota) lanza Viento con el Mago y mide la recarga de `AbilityReadyAt1`.
+   ✅ Unos 8,5 s (10 s × 0,85), igual que en `Equilibrio`; si sale 10 s, el factor del Mago no se aplica en Dunas.
 
 ### 155.4 En el teléfono o el emulador (*Prueba → Dispositivo*, en Dunas, Juego de pelota)
 
-9. [ ] Entra en el Juego de pelota con un rol de habilidad (Guerrero, Cazador, Mago o Médico) y mira la barra de habilidades.
+10. [ ] Entra en el Juego de pelota con un rol de habilidad (Guerrero, Cazador, Mago o Médico) y mira la barra de habilidades.
    ✅ El botón 1 muestra la habilidad de tu rol.
-10. [ ] Mira los botones 2 a 5 de habilidades.
+11. [ ] Mira los botones 2 a 5 de habilidades.
    ✅ No aparecen.
-11. [ ] Usa la habilidad del botón 1 y mira la recarga.
+12. [ ] Usa la habilidad del botón 1 y mira la recarga.
    ✅ Se ve la recarga en el botón 1 y baja hasta que la habilidad vuelve a estar lista, con los tiempos de los pasos 7 y 8.
 
 ## Cuando termines
