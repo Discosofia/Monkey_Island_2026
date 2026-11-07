@@ -25,6 +25,31 @@
 --          arriba ni el 22 % de abajo. Va como primer evento de la escena. `bubble` admite `verbatim = true`
 --          (el texto no se traduce: un nombre propio).
 --
+--   MODO PÁGINA (Fase 25, G7c; es aparte de la ventana única: no se mezclan en una escena). Una página con varias
+--   viñetas de borde negro y medianil blanco; solo la viñeta activa enseña el 3D en vivo y las anteriores quedan
+--   congeladas. Eventos:
+--   page    { layout = <id de Comic.PAGES> | { {x0,y0,x1,y1}, … }, colors = { c1, c2 }, wipe = "left" | "right" | "down"?,
+--             seconds? }
+--           Crea una página nueva. Si había otra, congela su viñeta viva y la nueva la empuja fuera (0,25 s): "left"
+--           = la página nueva entra por la derecha, "right" = por la izquierda, "down" = por arriba. Sin "wipe"
+--           (o al saltar en el tiempo) no hay barrido. c1 es el fondo liso de las viñetas y c2 el color de los
+--           puntos de trama.
+--   cell    { index, bg = "flat" | "dots", color?, cast = { <nombre de actor o de mono>, … }? }
+--           La viñeta `index` pasa a ser la activa: un agujero que deja ver el 3D vivo (el resto de la pantalla lo
+--           tapa la página). La que estaba viva se congela: copia «horneada» (Clone sin juntas, scripts ni efectos,
+--           con la pose de ese instante) de los modelos de ctx.actors y de los monos de CinematicActors que caen
+--           dentro de su rectángulo y a menos de FROZEN_RANGE studs, en un ViewportFrame sobre fondo liso o de
+--           puntos, con una cámara que reproduce el recorte exacto. `cast` da la lista a mano. El tope de piezas
+--           clonadas por página es Config.Budgets.Comic.FrozenParts (se descartan primero los más lejanos).
+--           Se congela con la cámara de hace CUT_HOLD segundos: los planos de cutShots llegan quietos al final y la
+--           cámara del cuadro del corte ya es la del plano siguiente.
+--   pageEnd {}   congela la última viñeta y quita la página con un fundido corto (antes de un cartel o al acabar).
+--   El rectángulo de la viñeta activa (sin su borde) se expone como `win`, así que bubble y sfx (ver arriba) se
+--   recortan a él; sfx `pos` y bubble `point` son siempre 0–1 de la pantalla (ver ComicPages.cellPoint). bubble
+--   narration admite `onPage = true`: el recuadro se pega a una esquina de la pantalla entera y no a la viñeta.
+--   Al saltar en el tiempo se aplica la última página y la viñeta activa sin animación; las anteriores salen solo
+--   con su fondo (no hay pose que copiar).
+--
 -- Todo se mide con el lado corto de la pantalla (igual en 1920×1080 que en un teléfono). Al saltar en el tiempo
 -- (ctx.seeking) el panel se aplica al momento; bubble y sfx no se repiten. Al empezar y al acabar la escena se
 -- borra todo.
@@ -33,6 +58,8 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
+local Config = require(script.Parent.Parent.Config)
+local ComicPages = require(script.Parent.Parent.Data.ComicPages)
 local Presentation = require(script.Parent.Presentation)
 local Strings = require(script.Parent.Parent.Strings)
 
@@ -61,6 +88,9 @@ Comic.PRESETS = {
 	reelDiagR = { { 0.03, 0.02 }, { 0.97, 0.12 }, { 0.97, 0.98 }, { 0.03, 0.88 } }, -- baja hacia la derecha
 } :: { [string]: { { number } } }
 
+-- Plantillas del modo página (evento page): rectángulos { x0, y0, x1, y1 } en 0–1 de la pantalla, con el medianil dentro.
+Comic.PAGES = ComicPages.PAGES
+
 -- Banda 9:16 del reel y su zona segura (los porcentajes de las interfaces de TikTok e Instagram).
 local REEL_ASPECT = 9 / 16
 local REEL_SAFE_TOP = 0.12
@@ -86,7 +116,31 @@ type Live = {
 	box: { center: Vector2, w: number, h: number }?, -- recuadros fijos (narración, título): los globos los esquivan
 }
 
+-- Modo página: una viñeta (su marco negro y su interior), la página y el estado del cuadro de la cámara.
+type PageCell = {
+	rect: ComicPages.Rect,
+	root: Frame, -- el marco negro de la viñeta (el borde); oculto mientras es la viva
+	inner: Frame, -- el interior: fondo, puntos y personajes congelados
+	bg: string, -- "flat" | "dots", lo que dice el evento cell al activarla
+	color: Color3?,
+	cast: { string }?,
+}
+
+type PageState = {
+	root: Frame,
+	layout: { ComicPages.Rect },
+	colors: { Color3 },
+	cells: { PageCell },
+	active: number?,
+	gutter: { Frame }, -- 4 rectángulos blancos alrededor del agujero (todo menos la viñeta viva)
+	ink: { Frame }, -- 4 tiras negras: el borde de la viñeta viva, por dentro de su rectángulo
+	parts: number, -- piezas clonadas en las viñetas congeladas de la página
+}
+
+type CameraSnap = { t: number, cf: CFrame, fov: number, size: Vector2 }
+
 local LAYER_NAME = "ComicLayer"
+local PAGE_NAME = "ComicPage"
 local BUBBLES_NAME = "ComicBubbles"
 local REFERENCE_SHORT = 1080 -- lado corto con el que están pensados los px de los datos
 local FONT = Enum.Font.Bangers
@@ -101,6 +155,12 @@ local DEFAULT_BORDER_WIDTH = 7
 local DEFAULT_SECONDS = 3
 local POP_SECONDS = 0.28
 local FADE_SECONDS = 0.25
+local PAGE_WIPE_SECONDS = 0.25 -- lo que tarda una página en empujar a la anterior
+local CUT_HOLD = 0.03 -- cutShots deja la cámara quieta en los últimos 0,03 s de un plano: de ahí se congela
+local FROZEN_RANGE = 80 -- studs: lo que está más lejos de la cámara no se copia a una viñeta congelada
+local FROZEN_MARGIN = 0.25 -- un personaje cuenta si su centro cae a este tanto (del tamaño de la viñeta) de ella
+local FROZEN_DOTS = 150 -- puntos de trama de una viñeta congelada (la ventana única usa 560 a pantalla completa)
+local CAMERA_HISTORY = 12 -- cuadros de cámara que se guardan para congelar con la pose de antes del corte
 local HEAD_DROP = 0.15 -- el punto de la cabeza del jefe: este tanto (de su alto) por debajo de lo más alto
 local DEFAULT_BACKGROUND: Background = {
 	style = "flat",
@@ -125,6 +185,13 @@ local connections: { RBXScriptConnection } = {}
 local loopConnection: RBXScriptConnection? = nil -- el bucle de cada cuadro (aparte: connections lleva también otras)
 local decorToken = 0
 local generation = 0 -- sube al limpiar: los task.delay de una escena anterior no tocan la nueva
+-- Modo página (aparte de la ventana única).
+local pageLayer: Frame? = nil -- cuelga del ScreenGui, a la altura de `layer`
+local page: PageState? = nil
+local pageSerial = 0 -- cuántas páginas se han creado (no se usa como ZIndex: ver buildPage)
+local cameraHistory: { CameraSnap } = {}
+local historyInstalled = false
+local pagePreStep: (() -> ())? = nil -- coloca `poly` en la viñeta viva cada cuadro (se asigna en el modo página)
 
 -- Ventana en píxeles, recalculada una vez por cuadro (refreshWindow).
 local win = {
@@ -240,7 +307,7 @@ end
 -- Pantalla y ventana ---------------------------------------------------------------------------------------
 
 local function screenSize(): Vector2
-	local holder = layer or bubbleLayer
+	local holder = layer or pageLayer or bubbleLayer
 	if holder and holder.AbsoluteSize.X > 0 and holder.AbsoluteSize.Y > 0 then
 		return holder.AbsoluteSize
 	end
@@ -501,24 +568,27 @@ local function layoutShapes()
 	end
 end
 
-local function buildDots(parent: Instance, edges: { Edge }, size: Vector2)
+-- `target` (puntos que se quieren, 560 por defecto) y `dotColor` (el color 2 del fondo por defecto) son del modo página.
+local function buildDots(parent: Instance, edges: { Edge }, size: Vector2, target: number?, dotColor: Color3?)
 	local short = math.min(size.X, size.Y)
+	local wanted = target or 560
+	local cap = if target then math.ceil(target * 1.2) else MAX_DOTS
 	-- En modo reel los puntos solo se reparten por la banda (fuera la tapa el relleno liso).
 	local xMin, xMax = 0, size.X
 	if reelMode then
 		local band = reelBand(size)
 		xMin, xMax = band.left, band.right
 	end
-	local step = math.max(short / 22, math.sqrt((xMax - xMin) * size.Y / (0.8 * 560)))
+	local step = math.max(short / 22, math.sqrt((xMax - xMin) * size.Y / (0.8 * wanted)))
 	local reach = short * 0.55
 	local margin = borderPixels() * 0.5 + 4 * unitScale()
-	local color = background.colors[2]
+	local color = dotColor or background.colors[2]
 	local count = 0
 	local row = 0
 	local y = 0
-	while y <= size.Y + step and count < MAX_DOTS do
+	while y <= size.Y + step and count < cap do
 		local x = xMin + (if row % 2 == 0 then 0 else step / 2)
-		while x <= xMax + step and count < MAX_DOTS do
+		while x <= xMax + step and count < cap do
 			local distance = outsideDistance(edges, Vector2.new(x, y))
 			if distance > 0 then
 				local radius = step * (0.13 + 0.33 * math.clamp(distance / reach, 0, 1))
@@ -651,6 +721,10 @@ end
 
 -- Un cuadro: avanza la transición de la ventana y actualiza lo que vive en la capa de bocadillos.
 local function step()
+	local preStep = pagePreStep
+	if preStep then
+		preStep()
+	end
 	local tr = transition
 	if tr then
 		local alpha = math.clamp((os.clock() - tr.start) / tr.seconds, 0, 1)
@@ -723,6 +797,11 @@ local function reset()
 	if bubbleLayer then
 		bubbleLayer:Destroy()
 	end
+	if pageLayer then
+		pageLayer:Destroy()
+	end
+	pageLayer, page, pagePreStep = nil, nil, nil
+	cameraHistory, historyInstalled = {}, false
 	layer, bubbleLayer, decor = nil, nil, nil
 	edgeFrames, inkFrames, paperFrames, sideFrames, live = {}, {}, {}, {}, {}
 	reelMode = false
@@ -846,6 +925,529 @@ local function setPanel(event: { [string]: any }, seeking: boolean)
 		refreshWindow()
 		rebuildDecor(not seeking)
 	end
+end
+
+-- modo página (page, cell, pageEnd) -------------------------------------------------------------------------
+
+local function rectFrame(name: string, parent: Instance, z: number, color: Color3): Frame
+	local frame = Instance.new("Frame")
+	frame.Name = name
+	frame.BorderSizePixel = 0
+	frame.BackgroundColor3 = color
+	frame.ZIndex = z
+	frame.Parent = parent
+	return frame
+end
+
+-- La ventana (`win`) es el interior de la viñeta viva: su rectángulo menos el borde. refreshWindow lo lee de `poly`.
+local function updatePageWindow()
+	local current = page
+	local active = if current then current.active else nil
+	local rect = if current and active then current.layout[active] else nil
+	if not rect then
+		return
+	end
+	local size = screenSize()
+	local inset = borderPixels()
+	local x0, y0 = (rect[1] * size.X + inset) / size.X, (rect[2] * size.Y + inset) / size.Y
+	local x1, y1 = (rect[3] * size.X - inset) / size.X, (rect[4] * size.Y - inset) / size.Y
+	poly = { Vector2.new(x0, y0), Vector2.new(x1, y0), Vector2.new(x1, y1), Vector2.new(x0, y1) }
+end
+
+local function ensurePageLayer(): boolean
+	if pageLayer and pageLayer.Parent then
+		return true
+	end
+	local gui = Presentation.gui()
+	if not gui then
+		return false
+	end
+	if pageLayer then
+		reset() -- la pantalla de Presentation se recreó: lo viejo ya no cuelga de ella
+	end
+	local new = Instance.new("Frame")
+	new.Name = PAGE_NAME
+	new.Size = UDim2.fromScale(1, 1)
+	new.BackgroundTransparency = 1
+	new.BorderSizePixel = 0
+	new.ZIndex = 0 -- como la ventana única: por debajo de los textos de Presentation
+	new.Parent = gui
+	pageLayer = new
+	pagePreStep = updatePageWindow
+	return true
+end
+
+-- Coloca el agujero de la viñeta viva: cuatro rectángulos blancos (medianil y resto de la pantalla) alrededor de su
+-- rectángulo y cuatro tiras negras por dentro de él (el borde). Sin viñeta viva, el blanco tapa toda la pantalla.
+local function layoutHole(p: PageState)
+	local inset = borderPixels()
+	local active = p.active
+	local rect = if active then p.layout[active] else nil
+	local g, ink = p.gutter, p.ink
+	if not rect then
+		g[1].Position = UDim2.fromScale(0, 0)
+		g[1].Size = UDim2.fromScale(1, 1)
+		for i = 2, 4 do
+			g[i].Visible = false
+		end
+		for _, strip in ink do
+			strip.Visible = false
+		end
+		return
+	end
+	local x0, y0, x1, y1 = rect[1], rect[2], rect[3], rect[4]
+	g[1].Position, g[1].Size = UDim2.fromScale(0, 0), UDim2.fromScale(1, y0)
+	g[2].Position, g[2].Size = UDim2.fromScale(0, y1), UDim2.fromScale(1, 1 - y1)
+	g[3].Position, g[3].Size = UDim2.fromScale(0, y0), UDim2.fromScale(x0, y1 - y0)
+	g[4].Position, g[4].Size = UDim2.fromScale(x1, y0), UDim2.fromScale(1 - x1, y1 - y0)
+	ink[1].Position, ink[1].Size = UDim2.fromScale(x0, y0), UDim2.new(x1 - x0, 0, 0, inset)
+	ink[2].Position, ink[2].Size = UDim2.new(x0, 0, y1, -inset), UDim2.new(x1 - x0, 0, 0, inset)
+	ink[3].Position, ink[3].Size = UDim2.new(x0, 0, y0, inset), UDim2.new(0, inset, y1 - y0, -2 * inset)
+	ink[4].Position, ink[4].Size = UDim2.new(x1, -inset, y0, inset), UDim2.new(0, inset, y1 - y0, -2 * inset)
+	for _, frame in g do
+		frame.Visible = true
+	end
+	for _, strip in ink do
+		strip.Visible = true
+	end
+end
+
+local function buildPage(layout: { ComicPages.Rect }, colors: { Color3 }): PageState
+	local holder = pageLayer :: Frame
+	pageSerial += 1
+	local root = Instance.new("Frame")
+	root.Name = "Page"
+	root.Size = UDim2.fromScale(1, 1)
+	root.BackgroundTransparency = 1
+	root.BorderSizePixel = 0
+	-- El ScreenGui es Global: todo va a ZIndex 1 y manda el orden de creación (el hijo sobre el padre, la página nueva
+	-- sobre la vieja). Con ZIndex distintos, el interior de la viñeta quedaba bajo su borde y salía negro.
+	root.ZIndex = 1
+	root.Parent = holder
+	local gutter: { Frame } = {}
+	local ink: { Frame } = {}
+	for i = 1, 4 do
+		gutter[i] = rectFrame("Gutter", root, 1, PAPER)
+		ink[i] = rectFrame("Ink", root, 1, INK)
+	end
+	local inset = borderPixels()
+	local cells: { PageCell } = {}
+	for index, rect in layout do
+		local cellRoot = rectFrame("Cell", root, 1, INK)
+		cellRoot.Position = UDim2.fromScale(rect[1], rect[2])
+		cellRoot.Size = UDim2.fromScale(rect[3] - rect[1], rect[4] - rect[2])
+		local inner = rectFrame("Inner", cellRoot, 1, colors[1])
+		inner.Position = UDim2.fromOffset(inset, inset)
+		inner.Size = UDim2.new(1, -2 * inset, 1, -2 * inset)
+		inner.ClipsDescendants = true
+		cells[index] = { rect = rect, root = cellRoot, inner = inner, bg = "flat", color = nil, cast = nil }
+	end
+	local state: PageState = {
+		root = root,
+		layout = layout,
+		colors = colors,
+		cells = cells,
+		active = nil,
+		gutter = gutter,
+		ink = ink,
+		parts = 0,
+	}
+	layoutHole(state)
+	return state
+end
+
+local function resolveLayout(raw: any): { ComicPages.Rect }
+	if typeof(raw) == "string" then
+		local cells = ComicPages.PAGES[raw]
+		if cells then
+			return cells
+		end
+		warn(`Comic: plantilla de página desconocida ({raw}); se usa single`)
+	elseif typeof(raw) == "table" then
+		local out: { ComicPages.Rect } = {}
+		for _, r in raw do
+			if typeof(r) == "table" and #r == 4 then
+				table.insert(out, { r[1], r[2], r[3], r[4] })
+			end
+		end
+		if #out > 0 then
+			return out
+		end
+		warn("Comic: una página necesita rectángulos {x0, y0, x1, y1}; se usa single")
+	end
+	return ComicPages.PAGES.single
+end
+
+-- Cámara de cada cuadro (hook de ctx.frameHooks): de aquí sale la pose con la que se congela una viñeta.
+local function recordCamera(t: number)
+	local camera = workspace.CurrentCamera
+	if not (camera and pageLayer) then
+		return
+	end
+	table.insert(cameraHistory, { t = t, cf = camera.CFrame, fov = camera.FieldOfView, size = screenSize() })
+	if #cameraHistory > CAMERA_HISTORY then
+		table.remove(cameraHistory, 1)
+	end
+end
+
+local function installHistory(ctx: { [string]: any })
+	if historyInstalled then
+		return
+	end
+	historyInstalled = true
+	local list = ctx.frameHooks
+	if typeof(list) ~= "table" then
+		list = {}
+		ctx.frameHooks = list
+	end
+	table.insert(list, recordCamera)
+end
+
+-- La cámara de antes del corte en `t` (ver CUT_HOLD); si aún no hay cuadros guardados, la de ahora.
+local function snapshotAt(t: number): CameraSnap?
+	local best: CameraSnap? = nil
+	for _, snap in cameraHistory do
+		if snap.t <= t - CUT_HOLD then
+			best = snap
+		end
+	end
+	if best then
+		return best
+	end
+	local last = cameraHistory[#cameraHistory]
+	if last then
+		return last
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		return { t = t, cf = camera.CFrame, fov = camera.FieldOfView, size = screenSize() }
+	end
+	return nil
+end
+
+-- Modelos que se pueden copiar a una viñeta: los actores de la escena y los monos de CinematicMonkeyService.
+local function frozenSources(ctx: { [string]: any }): { { name: string, model: Model } }
+	local out: { { name: string, model: Model } } = {}
+	local actors = ctx.actors
+	if typeof(actors) == "table" then
+		for name, value in actors do
+			if typeof(value) == "Instance" and value:IsA("Model") and value.Parent then
+				table.insert(out, { name = tostring(name), model = value })
+			end
+		end
+	end
+	local monkeys = workspace:FindFirstChild("CinematicActors")
+	if monkeys then
+		for _, child in monkeys:GetChildren() do
+			if child:IsA("Model") then
+				table.insert(out, { name = child.Name, model = child })
+			end
+		end
+	end
+	return out
+end
+
+-- Lo que no se copia a una viñeta congelada: juntas (la pieza se queda donde está), controles, animación, scripts y
+-- efectos.
+local function isStripped(d: Instance): boolean
+	return d:IsA("JointInstance")
+		or d:IsA("WeldConstraint")
+		or d:IsA("Constraint")
+		or d:IsA("Animator")
+		or d:IsA("Humanoid")
+		or d:IsA("LuaSourceContainer")
+		or d:IsA("ParticleEmitter")
+		or d:IsA("Beam")
+		or d:IsA("Trail")
+		or d:IsA("Highlight")
+		or d:IsA("Sound")
+		or d:IsA("Light")
+		or d:IsA("Fire")
+		or d:IsA("Smoke")
+		or d:IsA("Sparkles")
+		or d:IsA("BillboardGui")
+		or d:IsA("SurfaceGui")
+end
+
+-- Copia «horneada» de un modelo: Clone() ya trae cada pieza con su CFrame de ahora; al quitar las juntas se queda en
+-- esa pose, y todas las piezas quedan ancladas y sin colisión. Devuelve la copia y cuántas piezas tiene.
+local function bakedClone(model: Model): (Model?, number)
+	local clone = model:Clone()
+	if not clone then
+		return nil, 0
+	end
+	local doomed: { Instance } = {}
+	local parts = 0
+	for _, d in clone:GetDescendants() do
+		if isStripped(d) then
+			table.insert(doomed, d)
+		elseif d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			parts += 1
+		end
+	end
+	for _, d in doomed do
+		d:Destroy()
+	end
+	return clone, parts
+end
+
+-- Congela la viñeta: un ViewportFrame con la copia de los personajes que caían dentro de ella, vistos con una cámara
+-- que reproduce el recorte (misma posición; dirección hacia el centro de la viñeta; FOV del alto de la viñeta).
+local function freezeCell(p: PageState, cell: PageCell, ctx: { [string]: any }, t: number)
+	local snap = snapshotAt(t)
+	if not snap then
+		return
+	end
+	local size = snap.size
+	local inset = borderPixels()
+	local rect = cell.rect
+	local lo = Vector2.new(rect[1] * size.X + inset, rect[2] * size.Y + inset)
+	local hi = Vector2.new(rect[3] * size.X - inset, rect[4] * size.Y - inset)
+	local holeSize = hi - lo
+	if holeSize.X < 4 or holeSize.Y < 4 then
+		return
+	end
+	local tanHalf = math.tan(math.rad(snap.fov / 2))
+	local aspect = size.X / size.Y
+
+	local cast: { [string]: boolean }? = nil
+	if cell.cast then
+		local names: { [string]: boolean } = {}
+		for _, name in cell.cast do
+			names[name] = true
+		end
+		cast = names
+	end
+	local picks: { { model: Model, distance: number } } = {}
+	for _, source in frozenSources(ctx) do
+		local boxCf, boxSize = source.model:GetBoundingBox()
+		local rel = snap.cf:PointToObjectSpace(boxCf.Position)
+		local wanted = false
+		if cast then
+			wanted = cast[source.name] == true
+		elseif rel.Magnitude <= FROZEN_RANGE then
+			-- Se mira la caja entera del modelo, no su centro: en un primer plano el centro cae fuera de la viñeta y el
+			-- modelo (su cara, su lomo) sigue ocupándola.
+			local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+			local front, behind = 0, 0
+			for sx = -1, 1, 2 do
+				for sy = -1, 1, 2 do
+					for sz = -1, 1, 2 do
+						local corner = snap.cf:PointToObjectSpace(boxCf * (boxSize * 0.5 * Vector3.new(sx, sy, sz)))
+						local depth = -corner.Z
+						if depth > 0.1 then
+							front += 1
+							local px = (corner.X / (depth * tanHalf * aspect) * 0.5 + 0.5) * size.X
+							local py = (0.5 - corner.Y / (depth * tanHalf) * 0.5) * size.Y
+							minX, maxX = math.min(minX, px), math.max(maxX, px)
+							minY, maxY = math.min(minY, py), math.max(maxY, py)
+						else
+							behind += 1
+						end
+					end
+				end
+			end
+			if front > 0 and behind > 0 then
+				wanted = true -- la cámara está dentro o pegada al modelo
+			elseif front > 0 then
+				local marginX, marginY = holeSize.X * FROZEN_MARGIN, holeSize.Y * FROZEN_MARGIN
+				wanted = maxX >= lo.X - marginX
+					and minX <= hi.X + marginX
+					and maxY >= lo.Y - marginY
+					and minY <= hi.Y + marginY
+			end
+		end
+		if wanted then
+			table.insert(picks, { model = source.model, distance = rel.Magnitude })
+		end
+	end
+	if #picks == 0 then
+		return
+	end
+	table.sort(picks, function(a, b)
+		return a.distance < b.distance
+	end)
+
+	local frame = Instance.new("ViewportFrame")
+	frame.Name = "Frozen"
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundTransparency = 1
+	frame.BorderSizePixel = 0
+	frame.ZIndex = 1
+	frame.Ambient = Color3.fromRGB(150, 118, 98) -- luz cálida de atardecer
+	frame.LightColor = Color3.fromRGB(255, 214, 160)
+	frame.LightDirection = Vector3.new(-0.5, -0.8, -0.3)
+	local added = 0
+	for _, pick in picks do -- del más cercano al más lejano: lo que no cabe en el tope es lo más lejano
+		local clone, parts = bakedClone(pick.model)
+		if clone then
+			if p.parts + parts <= Config.Budgets.Comic.FrozenParts then
+				clone.Parent = frame
+				p.parts += parts
+				added += 1
+			else
+				clone:Destroy()
+			end
+		end
+	end
+	if added == 0 then
+		frame:Destroy()
+		return
+	end
+	local middle = (lo + hi) / 2
+	local ndcX = middle.X / size.X * 2 - 1
+	local ndcY = 1 - middle.Y / size.Y * 2
+	local direction = (
+		snap.cf.LookVector
+		+ snap.cf.RightVector * (ndcX * tanHalf * aspect)
+		+ snap.cf.UpVector * (ndcY * tanHalf)
+	).Unit
+	local origin = snap.cf.Position
+	local view = Instance.new("Camera")
+	view.CFrame = CFrame.lookAt(origin, origin + direction)
+	view.FieldOfView = math.clamp(math.deg(2 * math.atan(tanHalf * holeSize.Y / size.Y)), 1, 120)
+	view.Parent = frame
+	frame.CurrentCamera = view
+	frame.Parent = cell.inner
+end
+
+-- Fondo de la viñeta (liso o de puntos). Los puntos van alrededor de un núcleo central (el 30 % de cada lado queda
+-- sin ellos): con la trama creciendo hacia fuera, como la del fondo de la ventana única.
+local function paintCell(p: PageState, cell: PageCell)
+	cell.inner.BackgroundColor3 = cell.color or p.colors[1]
+	if cell.bg ~= "dots" then
+		return
+	end
+	local size = screenSize()
+	local inset = borderPixels()
+	local w = (cell.rect[3] - cell.rect[1]) * size.X - 2 * inset
+	local h = (cell.rect[4] - cell.rect[2]) * size.Y - 2 * inset
+	if w < 8 or h < 8 then
+		return
+	end
+	local cx, cy = w * 0.3, h * 0.3
+	local core = { Vector2.new(cx, cy), Vector2.new(w - cx, cy), Vector2.new(w - cx, h - cy), Vector2.new(cx, h - cy) }
+	buildDots(cell.inner, edgesOf(core), Vector2.new(w, h), FROZEN_DOTS, p.colors[2])
+end
+
+-- La viñeta deja de ser la viva: se pinta su fondo y, si no se está saltando en el tiempo, se congelan sus personajes.
+local function finalizeCell(p: PageState, index: number, ctx: { [string]: any }, t: number, seeking: boolean)
+	local cell = p.cells[index]
+	cell.root.Visible = true
+	paintCell(p, cell)
+	if not seeking then
+		freezeCell(p, cell, ctx, t)
+	end
+end
+
+local function colorOf(raw: any, index: number, fallback: Color3): Color3
+	local value = if typeof(raw) == "table" then raw[index] else nil
+	return if typeof(value) == "Color3" then value else fallback
+end
+
+local function setPage(event: { [string]: any }, ctx: { [string]: any })
+	if not (ensurePageLayer() and ensureBubbleLayer()) then
+		return
+	end
+	local seeking = ctx.seeking == true
+	local t = tonumber(event.t) or 0
+	installHistory(ctx)
+	borderSpec = { color = INK, width = DEFAULT_BORDER_WIDTH }
+	local colors = { colorOf(event.colors, 1, YELLOW), colorOf(event.colors, 2, Color3.fromRGB(240, 178, 40)) }
+
+	local old = page
+	if old and old.active and not seeking then
+		-- La página que se va se lleva su última viñeta congelada, con el agujero ya cerrado.
+		finalizeCell(old, old.active, ctx, t, false)
+		old.active = nil
+		layoutHole(old)
+	end
+	local new = buildPage(resolveLayout(event.layout), colors)
+	page = new
+	if old then
+		local wipe = event.wipe
+		if seeking or (wipe ~= "left" and wipe ~= "right" and wipe ~= "down") then
+			old.root:Destroy()
+		else
+			-- Barrido: la página nueva entra empujando a la vieja (así su agujero deja ver el 3D vivo, no la página anterior).
+			local from, away = UDim2.fromScale(1, 0), UDim2.fromScale(-1, 0)
+			if wipe == "right" then
+				from, away = UDim2.fromScale(-1, 0), UDim2.fromScale(1, 0)
+			elseif wipe == "down" then
+				from, away = UDim2.fromScale(0, -1), UDim2.fromScale(0, 1)
+			end
+			local seconds = tonumber(event.seconds) or PAGE_WIPE_SECONDS
+			new.root.Position = from
+			tween(new.root, seconds, { Position = UDim2.new() })
+			tween(old.root, seconds, { Position = away })
+			local mine = generation
+			task.delay(seconds + 0.05, function()
+				if mine == generation then
+					old.root:Destroy()
+				end
+			end)
+		end
+	end
+end
+
+local function setCell(event: { [string]: any }, ctx: { [string]: any })
+	local p = page
+	if not p then
+		warn("Comic: un evento cell sin page antes")
+		return
+	end
+	local number = tonumber(event.index)
+	local index = if number then math.floor(number) else nil
+	local cell = if index then p.cells[index] else nil
+	if not (index and cell) then
+		warn(`Comic: la viñeta {tostring(event.index)} no existe en la página`)
+		return
+	end
+	if p.active == index then
+		return
+	end
+	local previous = p.active
+	if previous then
+		finalizeCell(p, previous, ctx, tonumber(event.t) or 0, ctx.seeking == true)
+	end
+	cell.bg = if event.bg == "dots" then "dots" else "flat"
+	cell.color = if typeof(event.color) == "Color3" then event.color else nil
+	cell.cast = if typeof(event.cast) == "table" then event.cast else nil
+	p.active = index
+	cell.root.Visible = false
+	layoutHole(p)
+	updatePageWindow()
+	refreshWindow()
+end
+
+local function endPage(event: { [string]: any }, ctx: { [string]: any })
+	local p = page
+	if not p then
+		return
+	end
+	local seeking = ctx.seeking == true
+	if p.active and not seeking then
+		finalizeCell(p, p.active, ctx, tonumber(event.t) or 0, false)
+	end
+	p.active = nil
+	layoutHole(p)
+	page = nil
+	poly = {}
+	if seeking then
+		p.root:Destroy()
+		return
+	end
+	fadeOut(p.root, FADE_SECONDS)
+	local mine = generation
+	task.delay(FADE_SECONDS + 0.05, function()
+		if mine == generation then
+			p.root:Destroy()
+		end
+	end)
 end
 
 -- bocadillos ---------------------------------------------------------------------------------------------
@@ -1191,7 +1793,12 @@ local function buildNarration(event: { [string]: any })
 	local isTitle = event.balloon == "title"
 	local text = if event.verbatim then tostring(event.text) else T(event.text, event.args)
 	local textSize = math.clamp(math.floor(short * (if isTitle then 0.06 else 0.036)), 12, 100)
+	-- onPage (modo página): el recuadro es de la página entera y no de la viñeta viva, así que se lee aunque cambie.
+	local onPage = event.onPage == true
 	local maxWidth = math.min(short * (if isTitle then 0.8 else 0.5), (win.max.X - win.min.X) * 0.45)
+	if onPage then
+		maxWidth = short * (if isTitle then 0.8 else 0.5)
+	end
 	if reelMode then
 		-- Más grande y más ancho (la banda es estrecha): el texto se parte en líneas dentro de ella.
 		textSize = math.clamp(math.floor(short * (if isTitle then 0.075 else 0.04)), 12, 100)
@@ -1234,8 +1841,13 @@ local function buildNarration(event: { [string]: any })
 	local function update()
 		local x = if left then win.min.X + margin + bw / 2 else win.max.X - margin - bw / 2
 		local y = if top then win.min.Y + margin + bh / 2 else win.max.Y - margin - bh / 2
+		if onPage then
+			local screen = screenSize() -- win es el hueco de la viñeta viva: la esquina es la de la pantalla entera
+			x = if left then margin + bw / 2 else screen.X - margin - bw / 2
+			y = if top then margin + bh / 2 else screen.Y - margin - bh / 2
+		end
 		local wanted = if at then normToPixel(at, win.size) else Vector2.new(x, y)
-		local center = fitRect(wanted, bw, bh, margin)
+		local center = if onPage then wanted else fitRect(wanted, bw, bh, margin)
 		root.Position = UDim2.fromOffset(center.X, center.Y)
 		if item then
 			item.box = { center = center, w = bw, h = bh }
@@ -1381,6 +1993,15 @@ function Comic.install(sequencer: Presentation.SequencerModule)
 	end)
 	sequencer.registerHandler("panel", function(event, ctx)
 		setPanel(event, ctx.seeking == true)
+	end)
+	sequencer.registerHandler("page", function(event, ctx)
+		setPage(event, ctx)
+	end)
+	sequencer.registerHandler("cell", function(event, ctx)
+		setCell(event, ctx)
+	end)
+	sequencer.registerHandler("pageEnd", function(event, ctx)
+		endPage(event, ctx)
 	end)
 	sequencer.registerHandler("bubble", function(event, ctx)
 		if ctx.seeking then

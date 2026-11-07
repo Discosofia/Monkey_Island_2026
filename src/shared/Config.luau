@@ -2490,6 +2490,14 @@ local Config = {
 			MapNode = 25, -- nodo de recurso del mapa
 			Viewport = 300, -- modelo de un ViewportFrame (RewardModels)
 		},
+		-- Cómic de página con viñetas (Fase 25, G7c; Cinematics/Comic): piezas clonadas en las viñetas congeladas de una
+		-- página (los personajes que se copian a cada ViewportFrame). Si se pasa, se descartan primero los más lejanos.
+		-- Medido en Studio (G7c): una mascota sin skin tiene de 195 a 402 piezas (las siete suman 1.955), un mono de 8 a 10
+		-- y el avatar R15 16. 1.500 deja cuatro o cinco mascotas por página (solo para grabar, no sale en el juego);
+		-- falta medir el peor caso real en Play.
+		Comic = {
+			FrozenParts = 1500,
+		},
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
 			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): topes medidos con las mallas cargadas (M4, 05-11-2026) más un 30 %.

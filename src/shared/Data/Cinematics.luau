@@ -27,10 +27,11 @@
 --   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
 --   Battle_Pack, Battle_Pack_Comic, Battle_Pack_Reel ... 18,8
 --   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
---   Pets y Pets_Reel ..................... 17,5  (atardecer dorado; sin luces propias: las mascotas se ven con el sol bajo)
+--   Pets, Pets_Reel y Pets_Comic ......... 17,5  (atardecer dorado; sin luces propias: las mascotas se ven con el sol bajo)
 
 local Bosses = require(script.Parent.Bosses)
 local CameraPath = require(script.Parent.Parent.Cinematics.CameraPath)
+local ComicPages = require(script.Parent.ComicPages)
 local Config = require(script.Parent.Parent.Config)
 local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
@@ -658,6 +659,45 @@ local function reelKey(pos: Vector3, subject: Vector3, width: number, f: number)
 	local lift = math.atan((0.5 - f) * 2 * math.tan(math.rad(fov / 2))) -- ángulo del sujeto sobre el eje de la cámara
 	local aimed = CFrame.fromAxisAngle(right.Unit, -lift):VectorToWorldSpace(dir)
 	return cameraKey(pos, pos + aimed * distance, fov)
+end
+
+-- Punto de cámara de un plano de cómic de página (G7c). El 3D se ve a pantalla completa y solo asoma el rectángulo de
+-- la viñeta viva, así que el sujeto tiene que caer en su centro (cx, cy, en 0–1 de la pantalla) y `width` studs tienen
+-- que llenar el ANCHO de la viñeta (cellW, fracción del ancho de la pantalla): con la pantalla 16:9,
+-- tan(fov/2) = (width / 2 / distancia) / (cellW · 16/9). El alto de la viñeta no entra en la cuenta (se cancela con
+-- su aspecto), pero se pide para que quien llama pase el rectángulo entero de ComicPages.cellCenter.
+-- La cámara se gira en horizontal y en vertical hasta que el sujeto caiga en (cx, cy): se corrige la dirección hacia
+-- el sujeto con el error que queda en cada eje (converge en 2 o 3 vueltas con los FOV de aquí).
+local SCREEN_ASPECT = 16 / 9
+local function pageKey(
+	pos: Vector3,
+	subject: Vector3,
+	width: number,
+	cx: number,
+	cy: number,
+	cellW: number,
+	_cellH: number
+): CameraKey
+	local offset = subject - pos
+	local distance = math.max(offset.Magnitude, 1)
+	local fov = math.clamp(math.deg(2 * math.atan(width / 2 / distance / (cellW * SCREEN_ASPECT))), 8, 100)
+	local tanHalf = math.tan(math.rad(fov / 2))
+	local wantX = (cx * 2 - 1) * tanHalf * SCREEN_ASPECT -- dónde debe caer el sujeto en el plano de la cámara
+	local wantY = (1 - cy * 2) * tanHalf
+	local forward = offset.Unit
+	for _ = 1, 6 do
+		local side = forward:Cross(Vector3.yAxis)
+		if side.Magnitude < 1e-3 then
+			return cameraKey(pos, subject, fov)
+		end
+		local right = side.Unit
+		local up = right:Cross(forward)
+		local depth = offset:Dot(forward)
+		local errorX = offset:Dot(right) / depth - wantX
+		local errorY = offset:Dot(up) / depth - wantY
+		forward = (forward + right * errorX + up * errorY).Unit
+	end
+	return cameraKey(pos, pos + forward * distance, fov)
 end
 
 -- Los cortes del reel: la cámara de cada plano y su ventana salen del mismo dato, así que no se desfasan. Las
@@ -3110,11 +3150,265 @@ local function addPetsReelText(events: EventList)
 	addReelTitle(events, 13.3)
 end
 
-local function petsScene(reel: boolean): Scene
+-- Pets_Comic (G7c): los 15 s de Pets_Reel (mismos eventos) montados como páginas de cómic con viñetas (Comic, modo
+-- página). Cada corte da a la vez la cámara, la página (si abre una) y la viñeta que se activa, sin desfase:
+--    0 a 2,45    P1 montaje 3×2 (grid6), seis viñetas de ~0,4 s en la jungla, en amarillo cómic
+--    2,5 a 5,35  P2 jungla (four_a), 4 viñetas de ~0,7 s: salto del Jaguar de Cristal, la pata, el avatar, el grupo
+--    5,4 a 9,9   P3 manglar (four_b), 4 viñetas de ~1,1 s: llega la manada, mordiscos, cenital, el alfa cae
+--    9,9 a 13,1  P4 montaña (four_c), 4 viñetas de ~0,8 s: el Quetzal despega y planea sobre la cámara
+--   13,15 a 15   P5 cartel (single): el grupo en lo alto, «Tus mascotas, tu manada», logo y fundido
+-- Paleta cálida SIN verde (el verde es la curación): amarillo, ocre y mostaza, turquesa y crema, terracota y lila.
+-- Las posiciones salen de petsReelCuts y de petsCamera, con el ancho cambiado al de la viñeta; son de diseño.
+local COMIC_COLORS = {
+	montage = { Color3.fromRGB(255, 222, 89), Color3.fromRGB(240, 178, 40) }, -- amarillo cómic
+	jungle = { Color3.fromRGB(232, 184, 64), Color3.fromRGB(190, 120, 40) }, -- mostaza y ocre
+	mangrove = { Color3.fromRGB(64, 190, 196), Color3.fromRGB(246, 232, 196) }, -- turquesa y crema
+	mountain = { Color3.fromRGB(205, 104, 70), Color3.fromRGB(176, 140, 200) }, -- terracota y lila
+}
+
+type ComicCell = {
+	t0: number,
+	t1: number,
+	pos: Vector3,
+	subject: Vector3,
+	width: number, -- studs que llenan el ancho de la viñeta
+	bg: string, -- "flat" | "dots" (el fondo de la viñeta cuando se congela)
+	posB: Vector3?,
+	subjectB: Vector3?,
+}
+
+type ComicCut = {
+	t0: number,
+	t1: number,
+	layout: string, -- id de Comic.PAGES (ComicPages)
+	page: { layout: string, colors: { Color3 }, wipe: string? }?, -- solo en la primera viñeta de cada página
+	cell: number, -- índice de la viñeta en la plantilla
+	pos: Vector3,
+	posB: Vector3?,
+	subject: Vector3,
+	subjectB: Vector3?,
+	width: number,
+	bg: string,
+}
+
+local function comicCell(
+	t0: number,
+	t1: number,
+	pos: Vector3,
+	subject: Vector3,
+	width: number,
+	bg: string,
+	subjectB: Vector3?
+): ComicCell
+	return { t0 = t0, t1 = t1, pos = pos, subject = subject, width = width, bg = bg, subjectB = subjectB }
+end
+
+-- El cartel final del cómic ve al grupo de frente: justo antes de la última página (la cámara mira hacia otro sitio)
+-- todos se dan la vuelta hacia el sur. En Pets_Reel y Pets siguen de espaldas a la cámara, mirando la pared.
+local function petsComicTurn(w: PetWriter)
+	for _, name in PET_ALL do
+		local at = PET_SUMMIT[name]
+		w.put(13.12, name, at.pos, at.yaw + 180)
+	end
+end
+
+local function petsComicCuts(): { ComicCut }
+	local lift = Vector3.new(0, Q_BODY_LIFT, 0)
+	local cuts: { ComicCut } = {}
+	-- `order`: qué viñeta de la plantilla enseña cada plano, en orden de tiempo. Las páginas de cuatro empiezan por la
+	-- grande (la 4): así no queda medio cuadro vacío mientras pasan las pequeñas.
+	local BIG_FIRST = { 4, 1, 2, 3 }
+	local function addPage(layout: string, colors: { Color3 }, wipe: string?, cells: { ComicCell }, order: { number }?)
+		for index, c in cells do
+			table.insert(cuts, {
+				t0 = c.t0,
+				t1 = c.t1,
+				layout = layout,
+				page = if index == 1 then { layout = layout, colors = colors, wipe = wipe } else nil,
+				cell = if order then order[index] else index,
+				pos = c.pos,
+				posB = c.posB,
+				subject = c.subject,
+				subjectB = c.subjectB,
+				width = c.width,
+				bg = c.bg,
+			})
+		end
+	end
+	-- P1: montaje de la jungla (los cuatro primeros encuadres medidos de Pets, el salto y el plano general).
+	addPage("grid6", COMIC_COLORS.montage, nil, {
+		comicCell(0, 0.41, Vector3.new(-24.6, 15, 267.4), Vector3.new(-23.5, 14.9, 272), 4, "flat"),
+		comicCell(0.41, 0.82, Vector3.new(-33, 16.8, 268.6), Vector3.new(-31, 13.8, 264.9), 5, "dots"),
+		comicCell(0.82, 1.22, Vector3.new(-31.8, 14.4, 277.4), Vector3.new(-26.4, 13.9, 272.4), 6.5, "flat"),
+		comicCell(1.22, 1.63, Vector3.new(-32, 17.7, 272), Vector3.new(-24, 15.2, 272), 9, "dots"),
+		comicCell(1.63, 2.04, jungle(-27.5, 2.4, 279), Vector3.new(-27.7, 14.8, 269.2), 7, "flat"),
+		comicCell(2.04, 2.45, jungle(-8, 3.2, 286.5), jungle(-26.5, 1.2, 270.5), 16, "dots"),
+	})
+	-- P2: jungla. El Jaguar de Cristal salta (2,45), el Labrador da la pata (2,9), el avatar se agacha, el grupo.
+	addPage("four_a", COMIC_COLORS.jungle, "left", {
+		comicCell(2.5, 3.2, jungle(-21, 2.4, 279), Vector3.new(-29, 13.9, 268.8), 15, "flat"),
+		comicCell(3.2, 3.9, jungle(-22.4, 2.2, 277), jungle(-23.6, 1.3, 272), 4.5, "dots"),
+		comicCell(3.9, 4.6, jungle(-14, 2.6, 278), jungle(-24, 1.4, 272), 9, "flat"),
+		comicCell(4.6, 5.35, jungle(-12, 3, 283), jungle(-26.5, 1.2, 270.5), 13, "dots"),
+	}, BIG_FIRST)
+	-- P3: manglar. La manada llega (6,7), mordiscos y zarpazos (7,1 a 8,6), la capibara embiste y el alfa cae (9,7).
+	addPage("four_b", COMIC_COLORS.mangrove, "left", {
+		-- Plano general desde más alto y más lejos (396, 21, 561): el de (394, 17.5, 565) caía entre raíces rojas.
+		comicCell(5.4, 6.5, Vector3.new(396, 21, 561), mangrove(378, 1, 543), 30, "flat"),
+		comicCell(6.5, 7.5, mangrove(388, 2.2, 556), mangrove(379.5, 1, 543), 12, "dots"),
+		comicCell(7.5, 8.6, Vector3.new(381, 24, 553), Vector3.new(376, 14.6, 542), 14, "flat"),
+		comicCell(8.6, 9.9, mangrove(391, 1.9, 530), mangrove(382, 2, 542), 14, "dots"),
+	}, BIG_FIRST)
+	-- P4: montaña. El Quetzal despega (10,1), planea y pasa sobre la cámara (11,4 a 13).
+	addPage("four_c", COMIC_COLORS.mountain, "down", {
+		comicCell(9.9, 10.7, mountain(-403, 6, -89.5), Q_FROM + lift, 10, "flat", quetzalAt(10.7, 10.1, 2.1) + lift),
+		comicCell(
+			10.7,
+			11.5,
+			mountain(-403, 6, -89.5),
+			quetzalAt(10.7, 10.1, 2.1) + lift,
+			7,
+			"dots",
+			quetzalAt(11.5, 10.1, 2.1) + lift
+		),
+		comicCell(
+			11.5,
+			12.3,
+			PET_OVERHEAD_CAM,
+			quetzalAt(11.5, 10.1, 2.1) + lift,
+			12,
+			"flat",
+			quetzalAt(12.3, 10.1, 2.1) + lift
+		),
+		comicCell(
+			12.3,
+			13.1,
+			PET_OVERHEAD_CAM,
+			quetzalAt(12.3, 10.1, 2.1) + lift,
+			12,
+			"dots",
+			quetzalAt(13, 10.1, 2.1) + lift
+		),
+	}, BIG_FIRST)
+	-- P5: cartel. El grupo en lo alto, de cara a la pared (el avatar señala a 13,4).
+	addPage("single", COMIC_COLORS.mountain, "left", {
+		-- De frente (el grupo se da la vuelta a 13,12, ver petsComicTurn) y a su altura, con la pared de roca detrás: la
+		-- cámara (-405,2, 25, -91,3) mide 15 studs hasta el grupo sin nada en medio y el suelo a 21.
+		comicCell(
+			13.15,
+			PETS_REEL_SECONDS,
+			Vector3.new(-405.2, 25, -91.3),
+			Vector3.new(-410, 23.2, -104.5),
+			11,
+			"flat"
+		),
+	})
+	return cuts
+end
+
+-- Los planos de la cámara de los cortes de cómic: empuje lento hacia el sujeto (6 %) y un poco más cerrado al final.
+local function comicShots(cuts: { ComicCut }): { CameraShot }
+	local shots: { CameraShot } = {}
+	for _, cut in cuts do
+		local cx, cy, cellW, cellH = ComicPages.cellCenter(cut.layout, cut.cell)
+		local subjectB = cut.subjectB or cut.subject
+		local posB = cut.posB or cut.pos:Lerp(subjectB, 0.06)
+		table.insert(shots, {
+			t0 = cut.t0,
+			t1 = cut.t1,
+			a = pageKey(cut.pos, cut.subject, cut.width, cx, cy, cellW, cellH),
+			b = pageKey(posB, subjectB, cut.width * 0.9, cx, cy, cellW, cellH),
+		})
+	end
+	return shots
+end
+
+-- La capa cómic de página: el evento `page` en la primera viñeta de cada página y el `cell` de cada corte.
+local function addComicPages(events: EventList, cuts: { ComicCut })
+	for _, cut in cuts do
+		local page = cut.page
+		if page then
+			table.insert(
+				events,
+				{ t = cut.t0, kind = "page", layout = page.layout, colors = page.colors, wipe = page.wipe }
+			)
+		end
+		table.insert(events, { t = cut.t0, kind = "cell", index = cut.cell, bg = cut.bg })
+	end
+end
+
+-- Narración, bocadillos del avatar y onomatopeyas de Pets_Comic, con los tiempos de petsReelEvents. Las mascotas no
+-- hablan; el avatar sí, con frases cortas. Las onomatopeyas van dentro de la viñeta viva (ComicPages.cellPoint).
+local function addPetsComicText(events: EventList)
+	-- Narración pegada a una esquina de la página: en la viñeta grande de abajo, que aún está vacía mientras pasan las
+	-- otras tres.
+	local function narration(t: number, text: string, corner: string, seconds: number)
+		table.insert(events, {
+			t = t,
+			kind = "bubble",
+			balloon = "narration",
+			corner = corner,
+			onPage = true,
+			text = text,
+			seconds = seconds,
+		})
+	end
+	local function speech(t: number, text: string, seconds: number)
+		table.insert(
+			events,
+			{ t = t, kind = "bubble", balloon = "speech", actor = "avatar", text = text, seconds = seconds }
+		)
+	end
+	local function sfx(t: number, text: string, layout: string, cell: number, fx: number, fy: number, rot: number)
+		table.insert(events, {
+			t = t,
+			kind = "sfx",
+			text = text,
+			pos = ComicPages.cellPoint(layout, cell, fx, fy),
+			rot = rot,
+			size = 0.3,
+			color = Color3.new(1, 1, 1),
+			seconds = 0.6,
+		})
+	end
+	narration(2.8, PET_CAPTIONS.jungle, "BL", 2.4)
+	narration(5.65, PET_CAPTIONS.mangrove, "BL", 2.8)
+	narration(10.2, PET_CAPTIONS.mountain, "BL", 2.7)
+	speech(3.95, Strings.later("¡Buen chico!"), 0.65)
+	speech(6, Strings.later("¡A por ellos!"), 0.9)
+	speech(13.25, Strings.later("¡Mira!"), 0.8)
+	sfx(3.3, Strings.later("¡GUAU!"), "four_a", 1, 0.62, 0.28, -12) -- el Labrador da la pata (GivePaw desde 2,9)
+	sfx(7.6, Strings.later("¡ÑAM!"), "four_b", 2, 0.25, 0.3, -14) -- mordiscos (caen a 7,55 y 7,75)
+	sfx(8.95, Strings.later("¡ZAS!"), "four_b", 3, 0.75, 0.25, 12) -- zarpazos del Jaguar de Cristal y el Ocelote (8,95 y 9,15)
+	sfx(9.7, Strings.later("¡PUF!"), "four_b", 3, 0.3, 0.7, -10) -- el alfa cae (9,7)
+	sfx(10.35, Strings.later("¡FIUU!"), "four_c", 4, 0.35, 0.3, 14) -- el Quetzal despega (10,1)
+	-- Cartel final en la viñeta única: título, logo del juego y fundido a negro.
+	table.insert(events, { t = 13.7, kind = "title", text = PET_CAPTIONS.title, seconds = 0.8 })
+	table.insert(events, {
+		t = 14.5,
+		kind = "logo",
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 0.5,
+	})
+	table.insert(events, { t = 14.6, kind = "fade", seconds = 0.4, toBlack = true })
+end
+
+-- `variant`: "normal" (40 s, con bandas), "reel" (15 s, ventana alta 9:16) o "comic" (15 s, páginas con viñetas).
+local function petsScene(variant: string): Scene
+	local reel = variant == "reel"
+	local comic = variant == "comic"
 	local events: EventList = {}
 	local w = petWriter(events)
 	local camera: { CameraPoint }
-	if reel then
+	if comic then
+		petsReelEvents(w)
+		petsComicTurn(w)
+		local cuts = petsComicCuts()
+		camera = cutShots(comicShots(cuts))
+		addComicPages(events, cuts)
+		addPetsComicText(events)
+	elseif reel then
 		petsReelEvents(w)
 		local cuts = petsReelCuts()
 		camera = cutShots(battleReelShots(cuts))
@@ -3153,7 +3447,7 @@ local function petsScene(reel: boolean): Scene
 		radius = 200,
 	})
 	return {
-		duration = if reel then PETS_REEL_SECONDS else PETS_SECONDS,
+		duration = if reel or comic then PETS_REEL_SECONDS else PETS_SECONDS,
 		audience = "Self",
 		freeze = true,
 		skippable = true,
@@ -3173,9 +3467,10 @@ local function petsScene(reel: boolean): Scene
 end
 
 local Cinematics: { [string]: Scene } = {
-	-- Mascotas (G7b): solo para grabar; las lanzan «🐾 Mascotas» y «🐾 Mascotas reel» del panel de pruebas.
-	Pets = petsScene(false),
-	Pets_Reel = petsScene(true),
+	-- Mascotas (G7b y G7c): solo para grabar; las lanzan las órdenes «🐾 Mascotas», «… reel» y «… cómic» del panel de pruebas.
+	Pets = petsScene("normal"),
+	Pets_Reel = petsScene("reel"),
+	Pets_Comic = petsScene("comic"),
 
 	-- Batallas contra un jefe (G5b): solo para grabar; las lanza el panel de pruebas con ArrivalService.play y un stage.
 	Battle_Boss_OrangutanDelManglar = bossBattleScene("OrangutanDelManglar", "normal"),

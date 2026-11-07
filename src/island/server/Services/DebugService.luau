@@ -133,7 +133,7 @@ local function runFlyover(player: Player, sceneId: string)
 	end
 end
 
--- Lanza las mascotas "sceneId" (Pets o Pets_Reel; Fase 25, G7b) solo para "player", con el anchor en el origen del mundo.
+-- Lanza las mascotas "sceneId" (Pets, Pets_Reel o Pets_Comic; Fase 25, G7b y G7c) solo para "player", con el anchor en el origen del mundo.
 local function runPets(player: Player, sceneId: string)
 	local started = CinematicService.play(sceneId, {
 		audience = { player },
@@ -911,12 +911,15 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	CineFlyoverComic = function(player)
 		runFlyover(player, "Flyover_Comic")
 	end,
-	-- «🐾 Mascotas» y «🐾 Mascotas reel» (Fase 25, G7b): las siete mascotas con el avatar en tres sitios de la isla.
+	-- «🐾 Mascotas», «🐾 Mascotas reel» y «🐾 Mascotas cómic» (Fase 25, G7b y G7c): las siete mascotas con el avatar en tres sitios de la isla.
 	CinePets = function(player)
 		runPets(player, "Pets")
 	end,
 	CinePetsReel = function(player)
 		runPets(player, "Pets_Reel")
+	end,
+	CinePetsComic = function(player)
+		runPets(player, "Pets_Comic")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

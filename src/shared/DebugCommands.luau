@@ -71,6 +71,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "CineFlyoverComic", label = "🎬 Sobrevuelo cómic" },
 		{ id = "CinePets", label = "🐾 Mascotas" },
 		{ id = "CinePetsReel", label = "🐾 Mascotas reel" },
+		{ id = "CinePetsComic", label = "🐾 Mascotas cómic" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

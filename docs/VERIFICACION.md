@@ -6552,6 +6552,39 @@ Ya se comprobó en Play con el Studio de la Isla: la escena arranca y recorre ju
 13. [ ] Primera ejecución tras abrir Play (con las cachés vacías) y carga de las mallas, con cortes rápidos (montaje de 0 a 4 s y saltos de sitio a 14 s y 27 s).
    ✅ La escena arranca en pocos segundos (en Studio, con la caché caliente, a 0,7 s de pulsar), nunca se queda en negro, y las mascotas salen con su malla y su textura desde el primer fotograma. En el vídeo de 07-11-2026 (16:09) la primera ejecución de la sesión se quedó en negro los 40 s: `PetActor.preloadAll` y cada `PetActor.build` esperaban a las mallas hasta 6 s cada vez (siete mascotas, hasta 42 s sin interfaz) y `PetModels.preload` no reintenta una malla cuya primera carga falló («Asset content representation is being generated»). Ahora: `preloadAll` espera 6 s como mucho en total, reintenta cada segundo las que no han cargado, baja las texturas con `PreloadAsync` (tope 2,5 s) y marca las mascotas como preparadas para que `build` no espere; una malla que no llega sale a bloques con un aviso en la Salida («PetActor: alguna malla no cargó a tiempo»). Se QUITÓ el fundido de entrada que se probó antes (no se ha podido descartar que dejara la pantalla en negro). NO reproducido el cuelgue en Studio (la caché estaba caliente): hay que grabar justo tras abrir Play. EXCEPCIÓN a propósito: el Jaguar de Cristal no tiene malla en `Data/PetMeshes` (bloques de cristal translúcido), así que siempre se ve a bloques.
 
+## 172. Fase 25 G7c: cómic de página con viñetas y escena «Mascotas cómic» (07-11-2026)
+
+Escena `Pets_Comic` (15 s) en `Data/Cinematics`: los mismos eventos de `Pets_Reel` montados como páginas de cómic con viñetas (`Comic`, modo de página). Se lanza con la orden «🐾 Mascotas cómic» del panel de pruebas de la Isla y solo sirve para grabar: no sale sola en el juego. El cómic de página se calcula con la pantalla entera; el reel no aplica. Las viñetas se congelan por página y el tope es `Config.Budgets.Comic.FrozenParts` (1.500). Referencia de piezas: una mascota sin skin tiene 195–402, las siete juntas 1.955, un mono 8–10 y el avatar 16. `Rendimiento` todavía no tiene la fila «Viñetas congeladas (Pets_Comic)». El cambio tocó `Comic.luau` (`buildDots`, `screenSize`, `step` y `narration`), así que las escenas de cómic que ya existían también hay que mirarlas. El ScreenGui de las cinemáticas usa `ZIndexBehavior` Global, por eso toda la capa de página va a ZIndex 1 y manda el orden de creación.
+
+El último plano (grupo de frente tras darse la vuelta a 13,12 s) y el plano grande de la jungla (ancho 15, antes demasiado cerrado) no se han visto tras el último cambio.
+
+1. [ ] En el Studio de la Isla, en Play, pulsa «🐾 Mascotas cómic» y mira los 15 s enteros. Graba en OBS a 1080p60.
+   ✅ Salen páginas con viñetas, con su borde y su fondo, sin franjas negras. Las narraciones y los bocadillos del avatar salen con los tiempos de `petsReelEvents`. Al acabar no queda capa de cómic ni viñetas en pantalla.
+2. [ ] Mira el último plano: el grupo de frente, tras darse la vuelta a 13,12 s.
+   ✅ El grupo sale de frente, sin pasto a los lados. Si queda pasto, ajusta ese plano en `Data/Cinematics`.
+3. [ ] Mira el plano grande de la jungla (ancho 15).
+   ✅ Se ve el claro con las mascotas enteras dentro de la viñeta, sin cortes por el borde y sin quedar demasiado cerrado.
+4. [ ] Salta la escena (Skip) a mitad, hacia los 7 s.
+   ✅ No quedan restos: ni páginas, ni viñetas, ni `ViewportFrame` en pantalla. Vuelve el HUD y la cámara normal.
+5. [ ] Repite la orden «🐾 Mascotas cómic» justo después del salto y míralo entero.
+   ✅ Arranca desde el principio, sin duplicar capas ni viñetas de la reproducción anterior.
+6. [ ] Regresión de la ventana única: pulsa «Battle_Pack_Comic», uno de los `Boss_*_Comic`, «Pets_Reel», «Battle_Pack_Reel» y el «Sobrevuelo cómic». Míralos enteros o hasta la mitad.
+   ✅ Se ven igual que antes del cambio: una sola ventana de cómic, sin capas de páginas ni viñetas congeladas, con los subtítulos y la narración en su sitio. Los reels siguen en vertical sin cambios.
+7. [ ] Mide en Play el peor caso de piezas congeladas en una sola página (la que tenga más mascotas a la vez) y compáralo con `Config.Budgets.Comic.FrozenParts`.
+   ✅ El peor caso queda por debajo de 1.500. Si la página con más mascotas lo supera, hay que bajar las piezas congeladas de esa página o cambiar el tope en `Config.Budgets` (y anotarlo aquí).
+8. [ ] Abre `Rendimiento` en el Studio de la Isla y busca la fila «Viñetas congeladas (Pets_Comic)».
+   ✅ Hoy la fila no existe: hay que añadirla (skill `modelos-3d-roblox`, §6) y su cifra debe coincidir con la medición del paso 7 y quedar por debajo del tope.
+9. [ ] Mira el cómic de página en al menos dos resoluciones de PC y en el emulador de teléfono.
+   ✅ Las viñetas se quedan dentro de la pantalla, sin franjas negras ni texto cortado. La página se calcula con la pantalla entera y el reel no cambia.
+10. [ ] Mira el cómic de página con la calidad en Low y en Medium.
+   ✅ Las viñetas congeladas se ven igual en las dos calidades, sin desaparecer ni aparecer a destiempo.
+11. [ ] Mira dónde cae el botón «Skip» en PC y en el teléfono.
+   ✅ Está en la esquina inferior derecha, sin tapar el último plano. Al pulsarlo, la escena se salta como en el paso 4.
+12. [ ] Primera cinemática tras abrir Play, con las cachés vacías (espera de mallas, trampa 2 del Handoff de G7): cierra Play, vuelve a abrirlo y lanza «🐾 Mascotas cómic» lo primero.
+   ✅ La escena arranca en pocos segundos y nunca se queda en negro. Las mascotas salen con su malla desde la primera página; si alguna no ha cargado a tiempo, sale a bloques con el aviso «PetActor: alguna malla no cargó a tiempo» en la Salida.
+13. [ ] Frases nuevas: ¡Buen chico!, ¡A por ellos!, ¡Mira!, ¡GUAU!, ¡ÑAM!, ¡ZAS!, ¡PUF! y ¡FIUU!. Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`.
+   ✅ El CSV lleva solo esas 8 frases con su inglés (las cinco de G7b ya están marcadas como subidas en `b88d748`). Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit y el cómic muestra el inglés de las 8.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
