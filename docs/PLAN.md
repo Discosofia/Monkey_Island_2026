@@ -1521,7 +1521,7 @@ Mejoras sobre lo que dejó la Fase 26. No se reforma la cancha: se mantienen la 
 | **27c** | Recompensas de Ámbar por partida jugada y ganada del Juego de pelota, con tope diario; el número lo decide `Economia` (sección «Reglas de pago»); reutiliza `PlayerData`, `Retention` y las misiones como ya paga Dunas por la bandera. Solo Ámbar de juego: lo de Robux sigue siendo cosmético | 23b8560 | ✅ |
 | **27d** | Decorado voxel: Templos Norte y Sur en las cabeceras, tzompantli, relieves de animales y serpientes y gradas con público simple de pocos tonos, todo fusionado con `Shared/VoxelMerge` y medido con `Rendimiento`; tope de `CourtParts` solo si hace falta | 8705b1b | ✅ Hecha y subida (8705b1b): cancha v7 con 1.257 piezas (tope 1500); templos de 5 terrazas, estandartes en vez de tzompantli, relieves y público. Lo que falta, en VERIFICACION §160 |
 | **27e** | Equipamiento visual solo durante el partido: yugo, palma, rodilleras y tocado de plumas, solo cosmético, sin chocar con `CosmeticsServer` ni los trajes, y que se vea por detrás | `348cf64` | ✅ |
-| **27f** | Repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración | commit pendiente | ⏳ |
+| **27f** | Repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración | `df7b54b` | ✅ |
 
 **Handoff de 27a (para 27b–27f y para quien pruebe)**
 - **Lo que cambió en la cancha** (números finales arriba): `CourtBuilder` versión 6; `TeamBarrier` de 96 de ancho y 34 de alto; `WALL_BACK_Z` 54; `PLAZA_HALF_Z` 88 y `PLAZA_HALF_X` 132; cabeceras de 132 × 30. Para 27d: las plazas son mucho más grandes que antes (cada cabecera 132 × 30 y la cornisa de 40 de fondo) y la fila de piezas de `CourtBuilder` cambia con ellas.
@@ -1566,6 +1566,11 @@ Mejoras sobre lo que dejó la Fase 26. No se reforma la cancha: se mantienen la 
 **Handoff de 27e (equipo visual) y siguiente: 27f (06-11-2026)**
 - **Hecho (348cf64):** `Shared/BallgameGear` (`build(team, character)`, `remove`) con yugo cerrado (6 piezas), rodilleras, palma en la espalda y tocado: Jaguar rojo/amarillo con orejas y manchas, Quetzal jade/negro con abanico y dos colas. `Dunas/Services/BallgameGearService` lo pone con `ArenaMode` = Ballgame y fase Battle o SuddenDeath (lee los atributos `ArenaPhase`/`ArenaMode`), lo reaplica en cada `CharacterAdded` y al cambiar `Team`, y lo quita en cualquier otra fase. Modelo aparte «BallgameGear»: no toca `ArmorPiece` ni `CosmeticsServer`. Tope `Config.Budgets.Models.BallgameGear` = 30 (Quetzal 30, Jaguar 24) y filas en `Rendimiento`. Altura de la diadema: `bandY` = 0,36 × Head.Size.Y (más baja tapaba los ojos). Sin Play: VERIFICACION §161.
 - **27f:** repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración. La cancha 5v5 mide 1.257 de 1.500 piezas (`CourtParts`).
+
+**Handoff de 27f (cerrada, 06-11-2026)**
+- **Hecho (df7b54b):** el aro congela la partida (estado `Replay` de `Ballgame`); `BallReplayController` reproduce los últimos 2,2 s a cámara lenta (cámara lateral al aro, estela, «Saltar»), con confeti y cartel (`Shared/PartyFx`, `Data/Ballgame.Celebration`); `finishReplay` suma el punto y da la victoria cuando todos avisan con `BallReplayDone` o a los 9 s. `BallSfxController` pone los sonidos `Ball*` (ids provisionales en `Data/Sounds`). El aro ya no publica el banner del HUD al terminar (salía tapado por los resultados). Probado en Play con 1 jugador, `Rendimiento` sin alertas. Pruebas pendientes: VERIFICACION §162 (2 clientes, abandono, teléfono, ids reales de sonido, `BallRing` roto).
+- **Falta de tu parte:** subir `build/localization_nuevas.csv` (frase «Repetición») y entonces `python tools/strings.py --marcar-subidas`.
+
 - **Pendiente de tu parte:** guardar y publicar el place Dunas (cancha v7), VERIFICACION §157 a §161, y publicar los places.
 
 ---
