@@ -1799,14 +1799,14 @@ end
 -- Los dos últimos puntos miran a proa con la inclinación que deja la luna en el tercio de arriba del cuadro (elevación - 8°,
 -- entre 0 y 6°; calculada en shipwreckCamera); los ángulos entre el eje de la cámara y la luna (t = 0, 8, 14 y 19) salen de
 -- ShipwreckSet.cameraMoonAngles(scene.prepare(), { 0, 8, 14, 19 }). Los números son de arranque: se tocan aquí.
-local SHIPWRECK_SECONDS = 21
+local SHIPWRECK_SECONDS = 31
 local SHIPWRECK_STEP = 0.25
 local SHIPWRECK_HOUR = ShipwreckSet.HOUR -- 18,8: noche con estrellas y la luna baja (G6c, justo antes de amanecer: ~5,3)
 
 local SHIPWRECK_CAMERA: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {
-	{ t = 0, pos = Vector3.new(-52, 41, -50), look = Vector3.new(14, 14, 0), fov = 55 },
-	{ t = 4, pos = Vector3.new(-34, 41, -78), look = Vector3.new(15, 12, 0), fov = 54 },
-	{ t = 8, pos = Vector3.new(20, 30, -65), look = Vector3.new(-5, 14, 0), fov = 52 },
+	{ t = 0, pos = Vector3.new(-52, 41, -50), look = Vector3.new(14, 2, 0), fov = 55 },
+	{ t = 4, pos = Vector3.new(-34, 41, -78), look = Vector3.new(15, -2, 0), fov = 54 },
+	{ t = 8, pos = Vector3.new(20, 30, -65), look = Vector3.new(-5, 6, 0), fov = 52 },
 	-- Las miradas de 11 y 12,5 se giran unos 8° a proa: con las de antes la Isla Calavera (oeste) asomaba por el borde izquierdo.
 	{ t = 11, pos = Vector3.new(6, 27, -42), look = Vector3.new(-17, 21, 0), fov = 42 },
 	{ t = 12.5, pos = Vector3.new(-12, 24.5, -27), look = Vector3.new(-23, 21.5, 0), fov = 44 },
@@ -1817,45 +1817,106 @@ local SHIPWRECK_CAMERA: { { t: number, pos: Vector3, look: Vector3, fov: number?
 	{ t = 16.9, pos = Vector3.new(-29.8, 23, -8), look = Vector3.new(-28.5, 23.2, -1), fov = 48 },
 }
 
--- Final desde fuera (corte en SHIPWRECK_CUT): detrás y encima del puente, mirando a proa por encima de su techo, con la luna roja
--- baja sobre el mar, el mástil a la derecha y las gaviotas. Desde dentro el techo tapaba la luna (el borde del cristal queda a
--- ~10° de elevación y la luna está a 12°). Posiciones en el marco del barco; yaw a estribor y pitch en grados. Hace un avance lento.
+-- PLANOS CERRADOS, de 17,4 s al final (corte seco entre cada uno, sin curva): una lista de planos con cámara casi ESTÁTICA en
+-- el marco del barco (x a proa, y arriba, z a estribor; el barco no balancea en ese marco, así que el cabeceo y el balanceo de
+-- la tormenta se notan contra la cámara). Cada plano: t0 y t1 (segundos), from = pose de arranque y to = pose final (sin to
+-- la cámara no se mueve; con to avanza lento de una a otra), hold = segundos finales quietos (llega a to en t1 - hold y se
+-- queda). Pose: pos (marco del barco), yaw (grados a estribor desde la proa), pitch (grados arriba) y fov. El primero es el
+-- final de G6a: detrás y encima del puente, mirando a proa por encima de su techo (desde dentro el techo tapaba la luna);
+-- los demás son de la tormenta. Medidas del barco: eslora de x -38 a 38, ancho de z -12 a 12, mar en y local 4,4, cubierta en
+-- 12,9, puente de x -32 a -26 (techo en 24,7), contenedores en x de -20 a -8 y de 3 a 15 hasta y 23,5, grúa de x 21 a 33.
+-- Mirar a popa es mirar al oeste (el Lobby): en el plano del puente lo tapa el propio puente. Números de arranque: se tocan aquí.
+type Pose = { pos: Vector3, yaw: number, pitch: number, fov: number }
+-- rocked = true: la cámara va en el marco del barco CON balanceo (el barco no se mueve en el cuadro y el horizonte se inclina). Hace
+-- falta cuando la cámara está pegada al casco o dentro del puente: en el marco sin balanceo el casco la atravesaba al rolar.
+type Shot = { t0: number, t1: number, from: Pose, to: Pose?, hold: number?, rocked: boolean? }
+local function pose(x: number, y: number, z: number, yaw: number, pitch: number, fov: number): Pose
+	return { pos = Vector3.new(x, y, z), yaw = yaw, pitch = pitch, fov = fov }
+end
 local SHIPWRECK_CUT = 17.4
-local SHIPWRECK_FINAL = {
-	{ t = SHIPWRECK_CUT, pos = Vector3.new(-47, 26.2, -13), yaw = 4, pitch = 5, fov = 58 },
-	{ t = 21, pos = Vector3.new(-43, 26.6, -12), yaw = 4, pitch = 5, fov = 54 },
+local EYE = ShipwreckSet.AVATAR_EYE -- los ojos del avatar, en el marco del barco
+local SHIPWRECK_SHOTS: { Shot } = {
+	-- La luna roja, hasta que llega la tormenta (avance lento).
+	{ t0 = SHIPWRECK_CUT, t1 = 19, from = pose(-47, 26.2, -13, 4, 5, 58), to = pose(-45.2, 26.4, -12.6, 4, 5, 56.2) },
+	-- Casco desde fuera, a ras del mar por estribor, mirando a proa: el agua sube por el cuadro y las olas se ven grandes.
+	{ t0 = 19, t1 = 21.5, from = pose(14, 7.5, 15.5, -12, 3, 62), to = pose(22, 7.5, 15.5, -12, 3, 62), hold = 1 },
+	-- El avatar en el puente, visto de perfil por el cristal de babor: detrás se ve el mar por el de estribor (de frente, la pared
+	-- blanca del fondo lo dejaba plano y gris).
+	{
+		t0 = 21.5,
+		t1 = 24,
+		from = pose(-27, 23.3, -16, 90, 2, 40),
+		to = pose(-28.5, 23.3, -16, 90, 2, 40),
+		hold = 1,
+		rocked = true,
+	},
+	-- Cubierta baja en estribor, mirando al mar por la borda (con yaw -8 la cabina de la grúa, sin luz, tapaba el 40 % del cuadro).
+	{ t0 = 24, t1 = 26.5, from = pose(6, 14.8, 10.4, 22, 4, 60), to = pose(11, 14.8, 10.4, 22, 4, 60), hold = 1 },
+	-- Desde popa, viendo cabecear el barco (estático).
+	{ t0 = 26.5, t1 = 29, from = pose(-46, 27.2, 5, -4, -4, 60) },
+	-- Dentro del puente, detrás del avatar, agarrado.
+	{
+		t0 = 29,
+		t1 = 31,
+		from = pose(EYE.X - 2.2, EYE.Y + 0.15, EYE.Z + 0.6, 3, 3, 50),
+		to = pose(EYE.X - 2.4, EYE.Y + 0.15, EYE.Z + 0.6, 3, 3, 50),
+		hold = 1,
+		rocked = true,
+	},
 }
 
+-- Pose de un plano en el segundo t: de from a to y quieta el último hold.
+local function shotLook(shot: Shot, t: number): (Vector3, Vector3, number)
+	local a = shot.from
+	local b = shot.to or a
+	local span = math.max(shot.t1 - shot.t0 - (shot.hold or 0), 0.01)
+	local u = math.clamp((t - shot.t0) / span, 0, 1)
+	local pos = a.pos:Lerp(b.pos, u)
+	local yaw = math.rad(a.yaw + (b.yaw - a.yaw) * u)
+	local pitch = math.rad(a.pitch + (b.pitch - a.pitch) * u)
+	local look = pos
+		+ Vector3.new(10 * math.cos(pitch) * math.cos(yaw), 10 * math.sin(pitch), 10 * math.cos(pitch) * math.sin(yaw))
+	return pos, look, a.fov + (b.fov - a.fov) * u
+end
+
 -- La cámara en el mundo. Fija antes el rumbo del barco hacia la luna (ShipwreckSet.setCourse), porque el marco del barco
--- depende de él, y baja o sube la mirada de los dos últimos puntos para encuadrar la luna.
+-- depende de él. El vuelo hasta el puente (SHIPWRECK_CAMERA) y cada plano de SHIPWRECK_SHOTS son tramos separados: en cada
+-- corte se repiten el primer y el último punto del tramo con una milésima de diferencia, así la curva de la cámara
+-- (Catmull-Rom del Sequencer) no se tuerce hacia el plano de al lado y el corte es seco.
 local function shipwreckCamera(): { { t: number, pos: Vector3, look: Vector3, fov: number? } }
 	ShipwreckSet.setCourse(SHIPWRECK_HOUR)
-	-- Dos tramos separados por un corte: así la curva del primero no se tuerce hacia el segundo.
-	local keys = table.clone(SHIPWRECK_CAMERA)
-	local finalKeys = {}
-	for _, key in SHIPWRECK_FINAL do
-		local yaw, pitch = math.rad(key.yaw), math.rad(key.pitch)
-		table.insert(finalKeys, {
-			t = key.t,
-			pos = key.pos,
-			fov = key.fov,
-			look = key.pos + Vector3.new(
-				10 * math.cos(pitch) * math.cos(yaw),
-				10 * math.sin(pitch),
-				10 * math.cos(pitch) * math.sin(yaw)
-			),
-		})
-	end
 	local points: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {}
-	local t = 0
-	while t < SHIPWRECK_SECONDS + 0.01 do
-		local pos, look, fov = CameraPath.sampleTimed(if t < SHIPWRECK_CUT then keys else finalKeys, t)
-		local frame = ShipwreckSet.frameAt(t)
-		table.insert(
-			points,
-			{ t = t, pos = frame:PointToWorldSpace(pos), look = frame:PointToWorldSpace(look), fov = fov }
-		)
-		t += SHIPWRECK_STEP
+	local function addSegment(
+		t0: number,
+		t1: number,
+		sample: (t: number) -> (Vector3, Vector3, number),
+		rocked: boolean?
+	)
+		local function add(t: number)
+			local pos, look, fov = sample(t)
+			local frame = if rocked then ShipwreckSet.poseAt(t) else ShipwreckSet.frameAt(t)
+			table.insert(
+				points,
+				{ t = t, pos = frame:PointToWorldSpace(pos), look = frame:PointToWorldSpace(look), fov = fov }
+			)
+		end
+		add(t0)
+		add(t0 + 0.001)
+		local t = math.ceil((t0 + 0.01) / SHIPWRECK_STEP) * SHIPWRECK_STEP
+		while t < t1 - 0.01 do
+			add(t)
+			t += SHIPWRECK_STEP
+		end
+		add(t1 - 0.002)
+		add(t1 - 0.001)
+	end
+	addSegment(0, SHIPWRECK_CUT, function(t: number)
+		return CameraPath.sampleTimed(SHIPWRECK_CAMERA, t)
+	end)
+	for _, shot in SHIPWRECK_SHOTS do
+		addSegment(shot.t0, shot.t1, function(t: number)
+			return shotLook(shot, t)
+		end, shot.rocked)
 	end
 	return points
 end
@@ -2277,7 +2338,8 @@ local Cinematics: { [string]: Scene } = {
 
 	-- Naufragio (G6a): la bienvenida del Lobby, solo la primera vez que alguien entra al juego (la lanza el cliente,
 	-- ShipwreckController, y no se puede saltar nunca). De noche: el barco navega con gaviotas y la cámara vuela hasta el
-	-- puente de mando, donde está el avatar del jugador. Termina en negro (la tormenta y la revelación del barco encallado, G6b y G6c).
+	-- puente de mando, donde está el avatar del jugador; a los 19 s llega la tormenta (G6b: planos cerrados con niebla, lluvia, viento,
+	-- olas y rayos, de noche) y acaba en negro a los 31 s (la revelación del barco encallado es G6c).
 	Shipwreck = {
 		duration = SHIPWRECK_SECONDS,
 		audience = "Self",
@@ -2300,16 +2362,44 @@ local Cinematics: { [string]: Scene } = {
 		prepare = shipwreckCamera,
 		events = {
 			{ t = 0, kind = "letterbox" },
-			-- La luz del mundo baja cada cuadro: luna clara al principio, noche cerrada a los 19 s y casi oscuro a los 21 s.
-			{ t = 0, kind = "night", midAt = 19, deepAt = 21, hour = SHIPWRECK_HOUR },
+			-- La luz del mundo baja cada cuadro: luna clara al principio, noche cerrada a los 19 s y, despacio, hasta el fondo
+			-- a los 31 s (la tormenta conserva visibilidad para leer los planos entre rayos: STORM.look en ShipwreckSet).
+			{ t = 0, kind = "night", midAt = 19, deepAt = 31, hour = SHIPWRECK_HOUR },
 			-- Sin luz pegada a la cámara y con muy poca exposición: quemaban el casco blanco. La luna es el ambiente y una luz
 			-- muy suave en el palo del barco (ShipwreckSet).
 			{ t = 0, kind = "exposure", value = 0.3, tint = Color3.fromRGB(225, 235, 255) },
 			{ t = 0, kind = "shipSail" },
 			{ t = 0, kind = "shipAvatar" },
 			{ t = 0, kind = "birds", seconds = 15 },
-			-- Placeholder hasta G6b: a negro al final.
-			{ t = 19, kind = "fade", seconds = 2, toBlack = true },
+			-- Tormenta (19 a 31 s): niebla, mar y viento en 3 s; lluvia desde 19,5; rayos con trueno y un destello grande al
+			-- final (sin tronco). Planos y números: SHIPWRECK_SHOTS y STORM (ShipwreckSet).
+			{ t = 19, kind = "storm", seconds = 3 },
+			{ t = 19.5, kind = "rain", seconds = 2 },
+			{ t = 19, kind = "lightning", side = 0.3, thunderDelay = 0.5 },
+			{ t = 22, kind = "lightning", side = -0.6, thunderDelay = 0.6 },
+			{ t = 25.5, kind = "lightning", side = 0.7, thunderDelay = 0.7 },
+			{ t = 28.5, kind = "lightning", side = -0.2, thunderDelay = 0.5 },
+			{ t = 30.3, kind = "lightning", strength = 1.6, bolt = false, thunderDelay = 0.2 },
+			-- A negro al final.
+			{ t = 29.5, kind = "fade", seconds = 1.5, toBlack = true },
+			-- Diario de a bordo: cada texto dura 0,5 s de entrada + seconds + 0,6 s de salida y acaba antes de que empiece el siguiente.
+			{
+				t = 1.5,
+				kind = "caption",
+				text = Strings.later("Diario de a bordo. Noche 11. Mar en calma."),
+				seconds = 2.2,
+			},
+			{
+				t = 6,
+				kind = "caption",
+				text = Strings.later("La luna sale roja. Los marineros dicen que es mala señal."),
+				seconds = 2.2,
+			},
+			{ t = 11.5, kind = "caption", text = Strings.later("Llevamos semanas sin ver tierra…"), seconds = 2.2 },
+			{ t = 17.5, kind = "caption", text = Strings.later("El barómetro cae en picado."), seconds = 0.8 },
+			{ t = 19.5, kind = "caption", text = Strings.later("¡Tormenta! ¡Todos a cubierta!"), seconds = 1.0 },
+			{ t = 22, kind = "caption", text = Strings.later("Aguanta, Esperanza…"), seconds = 1.3 },
+			{ t = 27, kind = "caption", text = Strings.later("Esto no va a resistir."), seconds = 1.3 },
 		},
 	},
 

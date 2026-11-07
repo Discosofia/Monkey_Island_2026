@@ -6446,6 +6446,25 @@ Se probó en el Studio del Lobby solo en modo edición con `ShipwreckSet.preview
 14. [ ] Publica el Lobby y repite 2, 3 y 6 con el juego publicado.
     ✅ Igual que en Studio.
 
+## 168. Fase 25 G6b: la tormenta del «Naufragio» (07-11-2026)
+
+La escena pasa a 31 s: tras la luna (hasta 19 s) hay una tormenta corta con cinco planos de cámara estáticos y cortes secos, niebla, lluvia, viento, olas grandes y rayos. **No se ha probado en Play ni se ha visto en vídeo**; en el Studio solo se comprobó con `preview({ storm = true })` que ninguna cámara queda dentro de un sólido y que la luz y la niebla se restauran. Los números de cámara de los planos de tormenta (`SHIPWRECK_SHOTS`) son de arranque.
+
+1. [ ] En el Studio del Lobby, lanza «🚢 Naufragio» y míralo hasta el final (31 s).
+   ✅ A los 19 s la luna se cubre y la niebla se espesa; llueve en rayas inclinadas por el viento; el barco cabecea y se balancea mucho, casi parado; hay rayos con destello doble y trueno a los 19, 22, 25,5 y 28,5 s, y un destello grande a los 30,3 s; los planos cambian a golpe de corte (proa, el avatar por el cristal de babor, cubierta con la grúa, popa y el avatar por detrás); fundido a negro a los 29,5 s. Nunca se ve el Lobby ni el barco encallado.
+2. [ ] Fíjate en los planos.
+   ✅ El avatar se lee (de perfil por el cristal y por detrás) aunque el barco suba y baje; ninguna cámara atraviesa el casco; entre rayos se distinguen las formas, sin quedar todo negro.
+3. [ ] Al acabar (o saltando a mitad con el Play parado).
+   ✅ El Lobby vuelve a su luz de antes: `Brightness`, niebla, cielo y luna, `Terrain.WaterWaveSize` (0,15), `Workspace.GlobalWind` (0) y la hora; sin lluvia ni restos del rayo (`Workspace.ShipwreckStorm`).
+4. [ ] Mira la lluvia de cerca.
+   ✅ Son rayas finas (no puntos ni manchas); si salen aplastadas o como puntos, invierte el signo de `Squash` en `STORM.rain`.
+5. [ ] Comprueba que `Workspace.GlobalWind` se puede escribir en el cliente.
+   ✅ Sin errores en la Salida al empezar la escena.
+6. [ ] En el teléfono emulado.
+   ✅ Fluido con la lluvia y el rayo.
+7. [ ] Mira los textos del diario de a bordo (siete, a 1,5, 6, 11,5, 17,5, 19,5, 22 y 27 s).
+   ✅ Salen uno tras otro sin solaparse, legibles sobre cada plano y sin tapar al avatar; con el idioma en inglés salen en inglés («Ship's log. Night 11. Calm seas.», «We've gone weeks without seeing land…»…). Las 7 frases son nuevas: al cerrar el grupo, `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` y subirlas a Creator Hub.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -18,8 +18,13 @@
 --     shipAvatar       pone al avatar en el puente del barco (ctx.actors.ship).
 --     birds { seconds }  las gaviotas giran alrededor del barco hasta "seconds".
 --     night { midAt?, deepAt? }  luz de noche del Lobby, que baja cada cuadro de la luna clara del principio (NIGHT.start) a
---                      la noche cerrada en midAt (17 s, NIGHT.mid) y a casi oscuridad en deepAt (21 s, NIGHT.deep); se
+--                      la noche cerrada en midAt (19 s, NIGHT.mid) y a casi oscuridad en deepAt (NIGHT.deep); se
 --                      devuelve al acabar la escena.
+--     storm { seconds }  tormenta (G6b): en "seconds" s lleva la niebla, la luz, la luna, el oleaje del agua y el viento
+--                      (Workspace.GlobalWind) a STORM.look; lo aplica night en cada cuadro y restoreNight lo devuelve. El
+--                      balanceo y el avance del barco (poseAt, positionAt) dependen de stormAmount(t), no del evento.
+--     rain { seconds }  lluvia de dos capas sobre piezas invisibles que siguen a la cámara.
+--     lightning { side?, thunderDelay?, strength?, bolt? }  destello doble, tronco de Neon al este y trueno (Sfx).
 --   applyNight / restoreNight  la hora, la luz de noche y la luna roja del cielo del Lobby, guardando y devolviendo los
 --                      valores de antes (ClockTime, Lighting, Atmosphere, ColorCorrection, Bloom y Sky: MoonTextureId,
 --                      MoonAngularSize y CelestialBodiesShown).
@@ -33,7 +38,7 @@
 --   cameraMoonAngles(puntos, tiempos)  ángulo entre el eje de la cámara y la luna, para calibrar planos.
 --   findCoplanar(modelo, soloNuevas?)  pares de piezas con caras coplanares (parpadeo); checkCamera(barco, puntos, desde)  puntos de
 --                      cámara dentro de sólidos o a menos de 1,2 del avatar. preview() los ejecuta y avisa con warn.
---   preview(parent?, options?) lo coloca todo en el mundo en modo edición (sin escena) para capturarlo; clearPreview lo quita.
+--   preview(parent?, { t?, night?, nightT?, storm? }) lo coloca todo en el mundo en modo edición (sin escena) para capturarlo; clearPreview lo quita.
 --
 -- El mar del Lobby está en y = 0 y el barco flota con su línea de flotación (la franja negra del casco, a y local 4,4)
 -- a esa altura. Todos los números de arranque están arriba, para tocarlos con capturas.
@@ -48,16 +53,17 @@ local Workspace = game:GetService("Workspace")
 local BridgeModel = require(script.Parent.Parent.BridgeModel)
 local Config = require(script.Parent.Parent.Config)
 local GullModel = require(script.Parent.Parent.GullModel)
+local Sfx = require(script.Parent.Parent.Sfx)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
 
 local ShipwreckSet = {}
 
--- Navegación: el barco avanza SAIL_SPEED studs por segundo en línea recta con la proa hacia la luna (ver setCourse).
--- WATERLINE: y local de la línea de flotación (2 filas de casco de 2,2 de LobbyBuilder). El balanceo es suave: altura,
--- cabeceo y balanceo en grados, con sus periodos en segundos.
+-- Navegación: el barco avanza SAIL_SPEED studs por segundo en línea recta con la proa hacia la luna (ver setCourse); en la
+-- tormenta frena (STORM.slow). WATERLINE: y local de la línea de flotación (2 filas de casco de 2,2 de LobbyBuilder). El
+-- balanceo es suave: altura, cabeceo y balanceo en grados, con sus periodos en segundos (en la tormenta crece: STORM).
 local SAIL_SPEED = 12 -- studs por segundo
-local SAIL_SECONDS = 21 -- duración de la escena: el recorrido entero que debe caber en el mar
+local SAIL_SECONDS = 31 -- duración de la escena: el recorrido entero que debe caber en el mar
 -- RUTA DEL VIAJE (los números que se tocan para cambiar de sitio): center = punto del mar por donde pasa el barco a los
 -- centerSeconds s (el tramo de 14 s va de 0 a 14); bowOffsetDeg = grados a estribor de la proa a los que queda la luna; zone =
 -- rectángulo de mar abierto donde debe caber la recta entera de la línea central (la recta se desplaza lo mínimo si se sale;
@@ -78,6 +84,88 @@ local MOON_SIZE = 22 -- MoonAngularSize: grande y legible cerca del horizonte
 local WATERLINE = 4.4
 local HEAVE, PITCH, ROLL = 0.4, 1.5, 2.5
 local PERIOD_HEAVE, PERIOD_ROLL = 5.2, 6.3
+
+-- LA TORMENTA (G6b). Todos los números, para tocarlos con capturas. Entra a los 19 s: el mar y el barco crecen entre seaFrom y
+-- seaTo (poseAt), y el evento storm lleva el cielo, la niebla y el viento a "look" en los segundos que diga el evento.
+type StormLook = { target: string, property: string, value: any }
+local STORM_WIND = Vector3.new(30, 0, 22) -- studs/s, hacia donde sopla (mundo)
+local STORM = {
+	seaFrom = 19, -- el mar empieza a crecer
+	seaTo = 23, -- y llega a su máximo
+	-- Amplitudes del barco con el mar al máximo (heave en studs, pitch y roll en grados): sustituyen a HEAVE, PITCH y ROLL.
+	heave = 1.6,
+	pitch = 4.5,
+	roll = 11,
+	-- Segundo armónico del balanceo (para que no sea un seno puro): fracción de la amplitud, su periodo (fracción del
+	-- principal) y su fase.
+	harmonic = 0.35,
+	harmonicPeriod = 0.47,
+	harmonicPhase = 1.3,
+	-- Velocidad del barco al luchar contra el mar (fracción de SAIL_SPEED); se alcanza en seaTo (ver sailDistance).
+	slow = 0.02, -- casi parado: con 0,4 el recorrido de 31 s (300 studs) no cabía en la zona de mar (280 a 580) y la cámara de salida quedaba a 45 studs fuera
+	-- Lo que cambia el evento storm (valor final); lo demás de la luz lo sigue llevando "night".
+	look = {
+		{ target = "atmosphere", property = "Density", value = 0.62 },
+		{ target = "atmosphere", property = "Haze", value = 6 },
+		{ target = "atmosphere", property = "Color", value = Color3.new(0.30, 0.34, 0.42) },
+		{ target = "atmosphere", property = "Decay", value = Color3.new(0.14, 0.16, 0.20) },
+		{ target = "atmosphere", property = "Glare", value = 0 },
+		-- Menos luz, pero la justa para leer los planos entre rayos.
+		{ target = "lighting", property = "Brightness", value = 0.5 },
+		{ target = "lighting", property = "Ambient", value = Color3.new(0.17, 0.21, 0.32) },
+		{ target = "lighting", property = "OutdoorAmbient", value = Color3.new(0.22, 0.27, 0.40) },
+		-- La luna roja se tapa al acabar la rampa (la niebla ya la ha borrado casi del todo).
+		{ target = "sky", property = "CelestialBodiesShown", value = false },
+		{ target = "terrain", property = "WaterWaveSize", value = 1 },
+		{ target = "terrain", property = "WaterWaveSpeed", value = 45 },
+		-- Viento fuerte: mueve palmeras y hierba del fondo y inclina la lluvia.
+		{ target = "workspace", property = "GlobalWind", value = STORM_WIND },
+	} :: { StormLook },
+	wind = STORM_WIND,
+	-- Lluvia: dos capas sobre una pieza que sigue a la cámara. height = altura sobre la cámara, side = lado de la pieza,
+	-- rate = gotas por segundo con la lluvia entera, speed = velocidad de caída, drift = fracción del viento que las inclina,
+	-- squash negativo = la gota se alarga en raya.
+	rain = {
+		{
+			height = 26,
+			side = 90,
+			rate = 2200,
+			speed = 70,
+			size = 0.22,
+			lifetime = 1.2,
+			transparency = 0.3,
+			squash = -2,
+		},
+		{
+			height = 14,
+			side = 34,
+			rate = 1100,
+			speed = 95,
+			size = 0.34,
+			lifetime = 0.55,
+			transparency = 0.2,
+			squash = -2.5,
+		},
+	},
+	rainDrift = 0.8,
+	-- Rayo. flash: cuánto suben Lighting.Brightness y ExposureCompensation en el destello (por la fuerza del evento);
+	-- bolt: tronco en zigzag de Neon (steps piezas, tope 12) al horizonte, a minDist-maxDist studs, con spread grados de abanico
+	-- (side del evento, de -1 a 1) y wobble studs de quiebro; dur = pulso del destello doble (encendido, apagado,
+	-- encendido) y fade = lo que tarda en apagarse.
+	flash = { brightness = 3.2, exposure = 1.2 },
+	bolt = {
+		minDist = 250,
+		maxDist = 400,
+		top = 340,
+		steps = 12,
+		thickness = 5,
+		wobble = 16,
+		spread = 28,
+		color = Color3.fromRGB(215, 230, 255),
+	},
+	pulse = { on1 = 0.07, off = 0.08, on2 = 0.12, fade = 0.25 },
+	thunderVolume = 0.8,
+}
 
 -- Avatar en el puente: tamaño (el puente tiene 3,6 de alto) y animación de reposo.
 local AVATAR_SCALE = 0.75
@@ -100,7 +188,8 @@ local ROOF_PARTS = {
 	LuzTope = true,
 }
 local AVATAR_LIGHT = 0.35 -- brillo de la luz tenue sobre su torso
-local AVATAR_LIGHT_OFF = 19 -- segundo en que se apaga (empieza el fundido a negro)
+local AVATAR_LIGHT_OFF = 29.5 -- segundo en que empieza a apagarse (con el fundido a negro)
+local AVATAR_LIGHT_FADE = 1.5 -- lo que tarda en apagarse
 local IDLE_FALLBACK = "rbxassetid://507766388" -- reposo R15 de Roblox, si el personaje no trae el suyo
 
 -- Boquete del casco (LobbyBuilder.isHole: estribor, tramos 6 a 8): de x = -9,5 a 4,75 y por debajo de y = 11. Se tapa con
@@ -142,7 +231,8 @@ local GULL_BANK = 0.3 -- radianes que se inclina cada gaviota al girar
 -- target: "lighting", "atmosphere", "grade" (NaufragioColor) o "bloom" (NaufragioBrillo). El umbral del Bloom sube para que las
 -- ventanas no lo saturen.
 local NIGHT_MID_AT, NIGHT_DEEP_AT = 19, 21
-type NightKey = { target: string, property: string, start: any, mid: any, deep: any }
+local NIGHT_DEEP_AT_STORM = 31 -- con tormenta, la luz tarda hasta aquí en llegar al fondo (no se oscurece antes de tiempo)
+type NightKey = { target: string, property: string, start: any?, mid: any?, deep: any? }
 local NIGHT: { NightKey } = {
 	-- ClockTime: lo pone applyNight con la hora de la escena (SCENE_HOUR o la del evento night).
 	{ target = "lighting", property = "ClockTime", start = 0, mid = 0, deep = 0 },
@@ -186,7 +276,7 @@ local NIGHT: { NightKey } = {
 		mid = Color3.new(0.10, 0.14, 0.28),
 		deep = Color3.new(0.10, 0.14, 0.28),
 	},
-	{ target = "atmosphere", property = "Density", start = 0.30, mid = 0.32, deep = 0.34 },
+	{ target = "atmosphere", property = "Density", start = 0.48, mid = 0.5, deep = 0.52 },
 	{ target = "atmosphere", property = "Glare", start = 0.1, mid = 0.1, deep = 0.1 },
 	{ target = "atmosphere", property = "Haze", start = 1, mid = 1, deep = 1 },
 	{
@@ -197,6 +287,10 @@ local NIGHT: { NightKey } = {
 		deep = Color3.new(0.80, 0.88, 1),
 	},
 	{ target = "bloom", property = "Threshold", start = 2.6, mid = 2.6, deep = 2.6 },
+	-- Solo de la tormenta (STORM.look): sin valor de noche, parten del que tenía el mundo y se guardan para devolverlos.
+	{ target = "terrain", property = "WaterWaveSize" },
+	{ target = "terrain", property = "WaterWaveSpeed" },
+	{ target = "workspace", property = "GlobalWind" },
 }
 
 local NEW_ATTRIBUTE = "ShipwreckNew" -- marca las piezas que añade este módulo (findCoplanar)
@@ -206,6 +300,22 @@ local PREVIEW_SECONDS = 14 -- segundo de la escena donde se coloca la vista prev
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Dónde está el barco
+
+-- Fuerza del mar en el segundo t: 0 hasta STORM.seaFrom, 1 desde STORM.seaTo, con smoothstep entre medias.
+local function stormAmount(t: number): number
+	local u = math.clamp((t - STORM.seaFrom) / (STORM.seaTo - STORM.seaFrom), 0, 1)
+	return u * u * (3 - 2 * u)
+end
+
+-- Studs recorridos por el barco en el segundo t. Hasta STORM.seaFrom va a SAIL_SPEED; después frena con la misma curva
+-- smoothstep hasta SAIL_SPEED * STORM.slow (integral cerrada de la rampa: D * (u^3 - u^4 / 2) + lo que pasa del final).
+local function sailDistance(t: number): number
+	local tau = math.max(t - STORM.seaFrom, 0)
+	local span = STORM.seaTo - STORM.seaFrom
+	local u = math.min(tau / span, 1)
+	local lost = span * (u ^ 3 - u ^ 4 / 2) + math.max(tau - span, 0) * 1
+	return SAIL_SPEED * (t - (1 - STORM.slow) * lost)
+end
 
 -- Rumbo del viaje (setCourse): giro del barco alrededor de Y (la proa es +X local), dirección de avance y punto de salida.
 type MoonInfo = { direction: Vector3, elevation: number, azimuth: number }
@@ -255,8 +365,8 @@ function ShipwreckSet.setCourse(hour: number?, offsetDeg: number?): MoonInfo
 		yaw = math.atan2(-heading.Z, heading.X) + math.rad(if offsetDeg == nil then ROUTE.bowOffsetDeg else offsetDeg)
 	end
 	local forward = Vector3.new(math.cos(yaw), 0, -math.sin(yaw))
-	local start = ROUTE.center - forward * (SAIL_SPEED * ROUTE.centerSeconds)
-	local finish = start + forward * (SAIL_SPEED * SAIL_SECONDS)
+	local start = ROUTE.center - forward * sailDistance(ROUTE.centerSeconds)
+	local finish = start + forward * sailDistance(SAIL_SECONDS)
 	-- Desplazamiento de la recta entera para que quepa en el rectángulo (si es más larga que él, centrada).
 	local function shift(low: number, high: number, zoneLow: number, zoneHigh: number): number
 		local a, b = math.min(low, high), math.max(low, high)
@@ -305,8 +415,10 @@ function ShipwreckSet.cameraMoonAngles(
 end
 
 function ShipwreckSet.positionAt(t: number): Vector3
-	return course.start + course.forward * (SAIL_SPEED * t)
+	return course.start + course.forward * sailDistance(t)
 end
+
+ShipwreckSet.stormAmount = stormAmount
 
 -- Marco del barco sin balanceo: la proa (+X local) mira al rumbo y el origen del marco (el pivote del modelo) queda
 -- WATERLINE por debajo del mar, así que el punto de la línea de flotación está en y = 0.
@@ -315,10 +427,30 @@ function ShipwreckSet.frameAt(t: number): CFrame
 end
 
 -- Con balanceo: sube y baja, cabecea y se balancea girando alrededor del punto de la línea de flotación.
+-- En la tormenta (stormAmount) las amplitudes crecen de las de calma a las de STORM y entra un segundo armónico; con s = 0
+-- sale el mismo movimiento de antes (sin saltos a los 19 s).
 function ShipwreckSet.poseAt(t: number): CFrame
-	local heave = HEAVE * math.sin(2 * math.pi * t / PERIOD_HEAVE)
-	local pitch = math.rad(PITCH) * math.sin(2 * math.pi * t / PERIOD_HEAVE + math.pi / 2)
-	local roll = math.rad(ROLL) * math.sin(2 * math.pi * t / PERIOD_ROLL)
+	local s = stormAmount(t)
+	local tau = 2 * math.pi * t
+	local second = STORM.harmonic * s
+	local heaveAmp = HEAVE + (STORM.heave - HEAVE) * s
+	local pitchAmp = PITCH + (STORM.pitch - PITCH) * s
+	local rollAmp = ROLL + (STORM.roll - ROLL) * s
+	local heave = heaveAmp
+		* (
+			math.sin(tau / PERIOD_HEAVE)
+			+ second * math.sin(tau / (PERIOD_HEAVE * STORM.harmonicPeriod) + STORM.harmonicPhase)
+		)
+	local pitch = math.rad(pitchAmp)
+		* (
+			math.sin(tau / PERIOD_HEAVE + math.pi / 2)
+			+ second * math.sin(tau / (PERIOD_HEAVE * STORM.harmonicPeriod) + STORM.harmonicPhase + 2)
+		)
+	local roll = math.rad(rollAmp)
+		* (
+			math.sin(tau / PERIOD_ROLL)
+			+ second * math.sin(tau / (PERIOD_ROLL * STORM.harmonicPeriod * 0.9) + STORM.harmonicPhase + 4)
+		)
 	return CFrame.new(ShipwreckSet.positionAt(t) + Vector3.new(0, heave, 0))
 		* CFrame.Angles(0, course.yaw, 0)
 		* CFrame.Angles(roll, 0, pitch)
@@ -871,12 +1003,19 @@ end
 -- La noche
 
 type Saved = { instance: Instance, property: string, value: any }
-type Resolved = { instance: Instance, key: NightKey }
+type Resolved = { instance: Instance, key: NightKey, id: string, original: any }
 
 -- Lo que se tocó y sus valores de antes, para devolverlo; y las propiedades de la noche con su instancia.
 local saved: { Saved } = {}
 local resolved: { Resolved } = {}
 local restoreTweens: { Tween } = {}
+-- La tormenta en marcha (evento storm o preview): desde "start" y con "seconds" de rampa. nil = sin tormenta. Y su valor
+-- final por "objetivo.propiedad" (STORM.look).
+local stormState: { start: number, seconds: number }? = nil
+local stormLook: { [string]: any } = {}
+for _, look in STORM.look do
+	stormLook[`{look.target}.{look.property}`] = look.value
+end
 
 local function targetOf(name: string): Instance?
 	if name == "lighting" then
@@ -889,6 +1028,10 @@ local function targetOf(name: string): Instance?
 		return Lighting:FindFirstChildOfClass("Sky")
 	elseif name == "bloom" then
 		return Lighting:FindFirstChild("NaufragioBrillo") or Lighting:FindFirstChildOfClass("BloomEffect")
+	elseif name == "terrain" then
+		return Workspace.Terrain
+	elseif name == "workspace" then
+		return Workspace
 	end
 	return nil
 end
@@ -896,8 +1039,12 @@ end
 local function mix(a: any, b: any, fraction: number): any
 	if typeof(a) == "Color3" then
 		return (a :: Color3):Lerp(b :: Color3, fraction)
+	elseif typeof(a) == "Vector3" then
+		return (a :: Vector3):Lerp(b :: Vector3, fraction)
+	elseif typeof(a) == "boolean" then
+		return if fraction >= 1 then b else a -- un booleano cambia al acabar la rampa
 	elseif typeof(a) ~= "number" then
-		return a -- texto o booleano: no se interpola
+		return a -- texto: no se interpola
 	end
 	return (a :: number) + ((b :: number) - (a :: number)) * fraction
 end
@@ -917,11 +1064,17 @@ function ShipwreckSet.applyNight(t: number?, midAt: number?, deepAt: number?, ho
 		for _, key in NIGHT do
 			local instance = targetOf(key.target)
 			if instance then
-				table.insert(resolved, { instance = instance, key = key })
-				table.insert(
-					saved,
-					{ instance = instance, property = key.property, value = (instance :: any)[key.property] }
-				)
+				-- Una propiedad que este cliente no pueda leer (p. ej. GlobalWind) se salta sin romper lo demás.
+				local ok, original = pcall(function()
+					return (instance :: any)[key.property]
+				end)
+				if ok then
+					table.insert(
+						resolved,
+						{ instance = instance, key = key, id = `{key.target}.{key.property}`, original = original }
+					)
+					table.insert(saved, { instance = instance, property = key.property, value = original })
+				end
 			end
 		end
 		for _, tween in restoreTweens do
@@ -934,14 +1087,29 @@ function ShipwreckSet.applyNight(t: number?, midAt: number?, deepAt: number?, ho
 		if entry.key.property == "ClockTime" then
 			(entry.instance :: any).ClockTime = hour or SCENE_HOUR
 		else
-			(entry.instance :: any)[entry.key.property] =
-				nightValue(entry.key, now, midAt or NIGHT_MID_AT, deepAt or NIGHT_DEEP_AT)
+			local value = nightValue(entry.key, now, midAt or NIGHT_MID_AT, deepAt or NIGHT_DEEP_AT)
+			if value == nil then
+				value = entry.original -- solo de la tormenta: parte del valor que había
+			end
+			local storm = stormState
+			local target = stormLook[entry.id]
+			if storm and target ~= nil then
+				value = mix(value, target, math.clamp((now - storm.start) / math.max(storm.seconds, 0.01), 0, 1))
+			end
+			(entry.instance :: any)[entry.key.property] = value
 		end
 	end
 end
 
+-- Pone la tormenta como si empezara en el segundo "start" y durara "seconds" de rampa (el evento storm y preview). La
+-- aplica applyNight en cada llamada.
+function ShipwreckSet.setStorm(start: number, seconds: number)
+	stormState = { start = start, seconds = seconds }
+end
+
 -- Devuelve la luz de antes (con un fundido de "seconds"; por defecto 0,5 s). No hace nada si no se puso la noche.
 function ShipwreckSet.restoreNight(seconds: number?)
+	stormState = nil
 	if #saved == 0 then
 		return
 	end
@@ -980,15 +1148,97 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- Eventos de la escena
 
-type Shared = { gulls: Folder?, night: boolean }
+-- Destellos en curso: segundo de la escena en que empezaron y su fuerza.
+type Flash = { start: number, strength: number }
+type Shared = { gulls: Folder?, night: boolean, fx: Folder?, alive: boolean, flashes: { Flash }, flashHook: boolean }
+
+local rng = Random.new()
 
 local function stateOf(ctx: Sequencer.Context): Shared
 	local state: Shared? = ctx._shipwreck
 	if not state then
-		state = { gulls = nil, night = false }
+		state = { gulls = nil, night = false, fx = nil, alive = true, flashes = {}, flashHook = false }
 		ctx._shipwreck = state
 	end
 	return state :: Shared
+end
+
+-- Carpeta de los efectos de la tormenta (lluvia y rayos): se destruye entera al acabar.
+local function stormFolder(state: Shared): Folder
+	local folder = state.fx
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "ShipwreckStorm"
+		folder.Parent = Workspace
+		state.fx = folder
+	end
+	return folder :: Folder
+end
+
+-- Brillo del destello doble (0 a 1) a "age" segundos de empezar: encendido, apagado, encendido y se apaga.
+local function pulseAt(age: number): number
+	local pulse = STORM.pulse
+	local second = pulse.on1 + pulse.off
+	if age < 0 then
+		return 0
+	elseif age < pulse.on1 then
+		return 1
+	elseif age < second then
+		return 0
+	elseif age < second + pulse.on2 then
+		return 0.8
+	end
+	return 0.8 * math.clamp(1 - (age - second - pulse.on2) / pulse.fade, 0, 1)
+end
+
+-- Tronco del rayo: zigzag de Neon desde el cielo hasta el mar en "ground", con el destello doble.
+local function spawnBolt(folder: Folder, ground: Vector3)
+	local bolt = STORM.bolt
+	local top = ground + Vector3.new(rng:NextNumber(-20, 20), bolt.top, rng:NextNumber(-20, 20))
+	local points = { top }
+	for i = 1, bolt.steps - 1 do
+		local wobble = bolt.wobble * (1 - i / bolt.steps) + 2
+		table.insert(
+			points,
+			top:Lerp(ground, i / bolt.steps)
+				+ Vector3.new(rng:NextNumber(-wobble, wobble), 0, rng:NextNumber(-wobble, wobble))
+		)
+	end
+	table.insert(points, ground)
+	local parts: { BasePart } = {}
+	for i = 1, #points - 1 do
+		local from, to = points[i], points[i + 1]
+		local part = Instance.new("Part")
+		part.Name = "Rayo"
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Material = Enum.Material.Neon
+		part.Color = bolt.color
+		part.Size = Vector3.new(bolt.thickness, bolt.thickness, (to - from).Magnitude)
+		part.CFrame = CFrame.lookAt((from + to) / 2, to)
+		part.Parent = folder
+		table.insert(parts, part)
+	end
+	-- Mismo pulso que el destello: encendido, apagado, encendido y fuera.
+	task.spawn(function()
+		local pulse = STORM.pulse
+		local function setVisible(visible: boolean)
+			for _, part in parts do
+				part.Transparency = if visible then 0 else 1
+			end
+		end
+		task.wait(pulse.on1)
+		setVisible(false)
+		task.wait(pulse.off)
+		setVisible(true)
+		task.wait(pulse.on2)
+		for _, part in parts do
+			part:Destroy()
+		end
+	end)
 end
 
 local function addFrameHook(ctx: Sequencer.Context, fn: (t: number) -> ())
@@ -1035,7 +1285,7 @@ function ShipwreckSet.install(sequencer: typeof(Sequencer))
 			local full = glow.Brightness
 			addFrameHook(ctx, function(t: number)
 				if glow.Parent then
-					glow.Brightness = full * math.clamp((AVATAR_LIGHT_OFF - t) / 0.6, 0, 1)
+					glow.Brightness = full * math.clamp(1 - (t - AVATAR_LIGHT_OFF) / AVATAR_LIGHT_FADE, 0, 1)
 				end
 			end)
 		end
@@ -1076,6 +1326,108 @@ function ShipwreckSet.install(sequencer: typeof(Sequencer))
 		end)
 	end)
 
+	-- storm { seconds }: en "seconds" s la niebla se espesa, el mar y el viento suben y la luna se tapa (STORM.look). Lo aplica
+	-- el evento night en cada cuadro, así que necesita que esté en la escena; restoreNight lo devuelve todo.
+	sequencer.registerHandler("storm", function(event, ctx)
+		stateOf(ctx)
+		ShipwreckSet.setStorm(event.t, event.seconds or 3)
+	end)
+
+	-- rain { seconds }: dos capas de gotas (STORM.rain) sobre piezas invisibles que siguen a la cámara; entran en "seconds" s.
+	sequencer.registerHandler("rain", function(event, ctx)
+		local state = stateOf(ctx)
+		local folder = stormFolder(state)
+		local wind = STORM.wind * STORM.rainDrift
+		local fadeIn: number = event.seconds or 2
+		local startT: number = event.t
+		local layers: { { part: BasePart, emitter: ParticleEmitter, spec: typeof(STORM.rain[1]) } } = {}
+		for _, spec in STORM.rain do
+			local part = Instance.new("Part")
+			part.Name = "Lluvia"
+			part.Size = Vector3.new(spec.side, 1, spec.side)
+			part.Transparency = 1
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			part.Parent = folder
+			local emitter = Instance.new("ParticleEmitter")
+			emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			emitter.Color = ColorSequence.new(Color3.fromRGB(180, 200, 230))
+			emitter.Size = NumberSequence.new(spec.size)
+			emitter.Transparency = NumberSequence.new(spec.transparency)
+			emitter.Squash = NumberSequence.new(spec.squash)
+			emitter.Orientation = Enum.ParticleOrientation.VelocityParallel
+			emitter.Lifetime = NumberRange.new(spec.lifetime * 0.8, spec.lifetime)
+			emitter.Speed = NumberRange.new(spec.speed * 0.9, spec.speed)
+			emitter.Acceleration = Vector3.new(wind.X, 0, wind.Z)
+			emitter.EmissionDirection = Enum.NormalId.Bottom
+			emitter.SpreadAngle = Vector2.new(3, 3)
+			emitter.LightEmission = 0.3
+			emitter.Rate = 0
+			emitter.Parent = part
+			table.insert(layers, { part = part, emitter = emitter, spec = spec })
+		end
+		addFrameHook(ctx, function(t: number)
+			local camera = Workspace.CurrentCamera
+			if not (camera and folder.Parent) then
+				return
+			end
+			local amount = math.clamp((t - startT) / math.max(fadeIn, 0.01), 0, 1)
+			for _, layer in layers do
+				-- Un poco a barlovento de la cámara, para que las gotas inclinadas lleguen a ella.
+				layer.part.Position = camera.CFrame.Position
+					+ Vector3.new(-wind.X * 0.5, layer.spec.height, -wind.Z * 0.5)
+				layer.emitter.Rate = layer.spec.rate * amount
+			end
+		end)
+	end)
+
+	-- lightning { side?, thunderDelay?, strength?, bolt? }: destello doble que sube Brightness y ExposureCompensation, tronco
+	-- en zigzag al horizonte por delante de la cámara (nunca al oeste ni al sur: si la cámara mira ahí, hacia la luna) y
+	-- trueno. "side" (-1 a 1) abre el rayo a un lado, "strength" (1) escala el destello y bolt = false lo deja sin tronco.
+	sequencer.registerHandler("lightning", function(event, ctx)
+		local state = stateOf(ctx)
+		table.insert(state.flashes, { start = event.t, strength = event.strength or 1 })
+		if not state.flashHook then
+			state.flashHook = true
+			-- Va después de night (se registró antes): suma el destello a la luz de ese cuadro.
+			addFrameHook(ctx, function(t: number)
+				local level = 0
+				for _, flash in state.flashes do
+					level = math.max(level, pulseAt(t - flash.start) * flash.strength)
+				end
+				if level > 0 then
+					Lighting.Brightness += STORM.flash.brightness * level
+					Lighting.ExposureCompensation += STORM.flash.exposure * level
+				end
+			end)
+		end
+		local camera = Workspace.CurrentCamera
+		local distance = rng:NextNumber(STORM.bolt.minDist, STORM.bolt.maxDist)
+		if camera and event.bolt ~= false then
+			local origin = camera.CFrame.Position
+			local look = camera.CFrame.LookVector
+			local flat = Vector3.new(look.X, 0, look.Z)
+			local azimuth = math.deg(math.atan2(look.X, look.Z)) % 360
+			-- Oeste (el Lobby) y sur (tierra lejana): se sustituye por la dirección de la luna, al este.
+			if flat.Magnitude < 0.1 or (azimuth > 130 and azimuth < 310) then
+				local info = ShipwreckSet.course()
+				flat = if info then Vector3.new(info.direction.X, 0, info.direction.Z) else Vector3.new(1, 0, 0)
+			end
+			local side: number = event.side or rng:NextNumber(-1, 1)
+			local direction = (CFrame.Angles(0, -math.rad(side * STORM.bolt.spread), 0) * flat.Unit)
+			spawnBolt(stormFolder(state), Vector3.new(origin.X, 0, origin.Z) + direction * distance)
+		end
+		local delay: number = event.thunderDelay or (0.4 + (distance - STORM.bolt.minDist) / 150 * 0.8)
+		task.delay(delay, function()
+			if state.alive then
+				Sfx.playLocal("Thunder", STORM.thunderVolume)
+			end
+		end)
+	end)
+
 	sequencer.addHooks({
 		finish = function(_, ctx)
 			local state: Shared? = ctx._shipwreck
@@ -1084,12 +1436,15 @@ function ShipwreckSet.install(sequencer: typeof(Sequencer))
 			end
 			ctx._shipwreck = nil
 			ctx.frameHooks = nil
+			state.alive = false
 			if state.gulls then
 				state.gulls:Destroy()
 			end
-			if state.night then
-				ShipwreckSet.restoreNight()
+			if state.fx then
+				state.fx:Destroy()
 			end
+			-- Siempre (salte, aborte o acabe): devuelve la luz, la niebla, el mar y el viento.
+			ShipwreckSet.restoreNight()
 		end,
 	})
 end
@@ -1107,9 +1462,13 @@ end
 
 -- Coloca el barco con el puente, las gaviotas y un avatar de prueba (un R15 sin ropa) en el segundo options.t de la escena
 -- (14 por defecto: 252 studs de la salida), sin escena ni cámara. Con options.night = true pone también la luz de la
--- noche tal como estaría en options.nightT segundos (0 por defecto; 21 es casi oscuro). OJO: en modo edición la luz se
+-- noche tal como estaría en options.nightT segundos (0 por defecto; 21 es casi oscuro). Con options.storm = true pone la
+-- tormenta (niebla, luz, mar y viento) como en options.t (o nightT). OJO: en modo edición la luz se
 -- queda en el place; clearPreview() la devuelve. Devuelve la carpeta.
-function ShipwreckSet.preview(parent: Instance?, options: { t: number?, night: boolean?, nightT: number? }?): Folder
+function ShipwreckSet.preview(
+	parent: Instance?,
+	options: { t: number?, night: boolean?, nightT: number?, storm: boolean? }?
+): Folder
 	ShipwreckSet.clearPreview()
 	ShipwreckSet.setCourse()
 	local t = if options and options.t then options.t else PREVIEW_SECONDS
@@ -1125,7 +1484,12 @@ function ShipwreckSet.preview(parent: Instance?, options: { t: number?, night: b
 	local gulls = makeGulls(folder)
 	updateGulls(gulls, t)
 
-	if options and options.night then
+	-- storm = true: la luz, la niebla, el mar y el viento de la tormenta como estarían en options.t (con la rampa de 3 s a los
+	-- STORM.seaFrom s); implica la noche. clearPreview() lo devuelve.
+	if options and options.storm then
+		ShipwreckSet.setStorm(STORM.seaFrom, 3)
+		ShipwreckSet.applyNight(options.nightT or t, nil, NIGHT_DEEP_AT_STORM)
+	elseif options and options.night then
 		ShipwreckSet.applyNight(options.nightT or 0)
 	end
 
