@@ -876,6 +876,12 @@ return {
 	["¡Fuego!"] = "Fire!",
 	["¡Aguanten!"] = "Hold on!",
 	["¡Lo logramos!"] = "We did it!",
+	-- Subtítulos de la versión normal de la batalla de la manada.
+	["El mandril ruge y el guerrero responde."] = "The mandrill roars and the warrior answers.",
+	["Flechas y bolas de fuego abren el combate."] = "Arrows and fireballs open the fight.",
+	["El torbellino y el hielo rompen sus filas."] = "The whirlwind and the ice break their ranks.",
+	["El médico cura al equipo mientras llueven flechas."] = "The medic heals the crew as arrows rain down.",
+	["¡La manada huye!"] = "The pack flees!",
 	["¡FUM!"] = "FWOOM!",
 	["¡WHOOSH!"] = "WHOOSH!",
 	["¡CRASH!"] = "CRASH!",

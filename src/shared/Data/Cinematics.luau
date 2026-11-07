@@ -1116,6 +1116,15 @@ local function addBattleFade(events: EventList, reel: boolean, total: number)
 	})
 end
 
+local BATTLE_CAPTIONS = {
+	{ t = 0.3, seconds = 2.2, text = Strings.later("Una manada baja de la selva…") },
+	{ t = 2.7, seconds = 1.9, text = Strings.later("El mandril ruge y el guerrero responde.") },
+	{ t = 4.8, seconds = 1.9, text = Strings.later("Flechas y bolas de fuego abren el combate.") },
+	{ t = 7.0, seconds = 2.0, text = Strings.later("El torbellino y el hielo rompen sus filas.") },
+	{ t = 9.2, seconds = 2.0, text = Strings.later("El médico cura al equipo mientras llueven flechas.") },
+	{ t = 11.4, seconds = 1.6, text = Strings.later("¡La manada huye!") },
+}
+
 -- La batalla. "comic" es la variante para vídeo: sin franjas negras, con viñetas, fondos de puntos y de líneas,
 -- onomatopeyas y bocadillos cortos de la tripulación (Cinematics/Comic). "reel" es la misma acción (mismos monos,
 -- habilidades y tiempos) con otro montaje: cámaras y capa cómic pensadas para la banda vertical 9:16.
@@ -1161,6 +1170,10 @@ local function battleScene(variant: string): Scene
 		bubble(12.7, "cazador", Strings.later("¡Lo logramos!"), 1.0)
 	else
 		table.insert(events, { t = 0, kind = "letterbox" })
+		-- Subtítulos narrativos que acompañan la acción (misma línea de tiempo que `battleAction`).
+		for _, line in BATTLE_CAPTIONS do
+			table.insert(events, { t = line.t, kind = "caption", text = line.text, seconds = line.seconds })
+		end
 	end
 	local total = if reel then BATTLE_SECONDS + REEL_TAIL_SECONDS else BATTLE_SECONDS
 	addBattleFade(events, reel, total)
