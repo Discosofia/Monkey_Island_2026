@@ -7,6 +7,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -125,7 +127,11 @@ function ArenaRoleCards.new(
 	end
 
 	local function update(selected: string?, allowed: ((roleId: string) -> boolean)?)
+		-- En el Juego de pelota la ventaja de combate no cuenta: sale su habilidad única.
+		local ball = ArenaModes.current() == "Ballgame"
 		for roleId, card in cards do
+			local ability = if ball then Ballgame.Abilities[roleId] else nil
+			card.edge.Text = if ability then T(ability.name) else T(Roles[roleId].edge)
 			local canPick = allowed == nil or allowed(roleId)
 			card.stroke.Enabled = selected == roleId
 			card.button.BackgroundColor3 = if canPick then CARD_COLOR else DISABLED_COLOR

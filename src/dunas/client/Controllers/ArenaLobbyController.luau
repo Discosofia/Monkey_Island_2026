@@ -21,6 +21,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -238,6 +240,14 @@ function ArenaLobbyController:Start()
 		return if typeof(roleId) == "string" then roleId else ""
 	end, compact)
 
+	-- Juego de pelota: ni armas, armadura ni amuleto cuentan; solo la habilidad única del rol.
+	local abilityInfo = Widgets.label("", rightPane)
+	abilityInfo.Name = "BallAbility"
+	abilityInfo.LayoutOrder = 3
+	abilityInfo.Size = UDim2.new(1, 0, 0, rowHeight * 2)
+	abilityInfo.TextWrapped = true
+	abilityInfo.TextColor3 = SECONDARY_TEXT
+
 	-- "¡Listo!" y cuántos lo están.
 	local ready = Widgets.button(T("✅ ¡Listo!"), leftPane)
 	ready.Name = "Ready"
@@ -296,7 +306,17 @@ function ArenaLobbyController:Start()
 		roleCards.update(if typeof(myRole) == "string" then myRole else nil, function(roleId)
 			return myTeam == nil or myRole == roleId or Arena.roleAllowed(player, myTeam, roleId)
 		end)
-		gear.update()
+		local ball = ArenaModes.current() == "Ballgame"
+		gear.frame.Visible = not ball
+		abilityInfo.Visible = ball
+		if ball then
+			local ability = if typeof(myRole) == "string" then Ballgame.Abilities[myRole] else nil
+			abilityInfo.Text = if ability
+				then T(ability.name) .. "\n" .. T(ability.description)
+				else T("Elige un rol para ver su habilidad")
+		else
+			gear.update()
+		end
 
 		local isReady = player:GetAttribute("ArenaReady") == true
 		local canReady = phase == "Waiting" and myTeam ~= nil

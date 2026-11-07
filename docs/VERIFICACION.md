@@ -6340,6 +6340,17 @@ Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/B
 5. [ ] Juega un partido con ambos y fíjate en el golpe del cliente con lag.
    ✅ El golpe con alcance 7,5 no se siente de más ni se rechaza en el servidor.
 
+## 164. Ventana de equipo del Juego de pelota (06-11-2026)
+
+1. [ ] Entra a una partida de Juego de pelota y mira la ventana de equipo y rol.
+   ✅ Cada rol muestra su habilidad única (Yugo, Salto, Viento, Paso) bajo el nombre, no su ventaja de combate.
+2. [ ] Elige un rol.
+   ✅ Debajo sale el nombre y la descripción de su habilidad; no hay Arma, Armadura ni Amuleto.
+3. [ ] Compra y pon una pieza de equipo (p. ej. Jaguar +15 de vida) en Captura la bandera y luego juega una de pelota.
+   ✅ En pelota la vida máxima y la velocidad son las base del rol (sin la pieza); al volver a Captura la bandera la pieza cuenta otra vez.
+4. [ ] Entra a Captura la bandera.
+   ✅ Todo sigue como antes (ventajas y equipo de arena).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

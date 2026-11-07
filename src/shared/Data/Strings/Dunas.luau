@@ -9,6 +9,7 @@ return {
 	-- HUD: línea de la fase, bajo la barra de Roblox.
 	["Elige tu equipo"] = "Pick your team",
 	["Esperando a los equipos"] = "Waiting for the teams",
+	["Elige un rol para ver su habilidad"] = "Pick a role to see its ability",
 	["Esperando a los equipos · {time}"] = "Waiting for the teams · {time}",
 	["⚔️ La batalla empieza en {seconds}"] = "⚔️ The battle starts in {seconds}",
 	["⚡ ¡Muerte súbita! La siguiente captura gana"] = "⚡ Sudden death! Next capture wins",

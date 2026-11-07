@@ -10,8 +10,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local ArenaGear = require(ReplicatedStorage.Shared.Data.ArenaGear)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -45,9 +47,12 @@ local function applyHealth(player: Player, refill: boolean)
 	end
 end
 
--- Ventajas de "roleId" con el equipo que "player" lleva puesto para ese rol.
+-- Ventajas de "roleId" con el equipo que "player" lleva puesto para ese rol. En el Juego de pelota el equipo
+-- comprado no cuenta (solo vale la habilidad única del rol).
 local function publishPerks(player: Player, roleId: string)
-	local gear = ArenaGear.perksOf(roleId, ArenaShop.loadout(player, roleId))
+	local gear = if ArenaModes.current() == "Ballgame"
+		then {}
+		else ArenaGear.perksOf(roleId, ArenaShop.loadout(player, roleId))
 	for name, value in Progression.computePerks(roleId, {}, {}, nil, gear) do
 		player:SetAttribute(`Perk_{name}`, value)
 	end
@@ -127,6 +132,16 @@ function ArenaRoleService:Start()
 		if typeof(roleId) == "string" and Roles[roleId] then
 			publishPerks(player, roleId)
 			applyHealth(player, true)
+		end
+	end)
+	-- Al cambiar de modo, el equipo deja de contar (o vuelve a contar) para quien ya tiene rol.
+	Workspace:GetAttributeChangedSignal("ArenaMode"):Connect(function()
+		for _, player in Players:GetPlayers() do
+			local roleId = player:GetAttribute("Role")
+			if typeof(roleId) == "string" and Roles[roleId] then
+				publishPerks(player, roleId)
+				applyHealth(player, false)
+			end
 		end
 	end)
 	Players.PlayerAdded:Connect(onPlayer)
