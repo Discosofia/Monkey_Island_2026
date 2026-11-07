@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -119,6 +120,13 @@ local function registerMovement()
 			return 1 + Ballgame.LightStep.SpeedBonus
 		end
 		return nil
+	end)
+	-- Juego de pelota: se corre más para llegar a las jugadas (Ballgame.Player.SpeedFactor).
+	Movement.addModifier("BallgameRun", function(_player: Player): number?
+		if ArenaModes.current() ~= "Ballgame" then
+			return nil
+		end
+		return Ballgame.Player.SpeedFactor
 	end)
 	-- Ventaja MoveSpeed del equipo (vale 1 si no hay).
 	Movement.addModifier("MoveSpeed", function(player: Player): number?

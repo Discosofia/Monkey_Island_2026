@@ -404,6 +404,7 @@ local function halt()
 	replayWinner = nil
 	replayWaiting = {}
 	BallService.setActive(false)
+	Workspace.Gravity = BallgameData.Player.WorldGravity
 end
 
 function Ballgame.stop()
@@ -420,6 +421,7 @@ end
 function Ballgame.start(ctx: Types.Context)
 	halt()
 	savedCtx = ctx
+	Workspace.Gravity = BallgameData.Player.Gravity
 	resetScores()
 	resetRays()
 	resetRound()

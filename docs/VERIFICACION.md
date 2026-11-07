@@ -6322,6 +6322,24 @@ Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/B
    ✅ La pelota pasa por el aro, suena `BallRingPass` y entra la repetición, sin raya para el rival. Si no se oye, mira la distancia al aro (alcance 90) y la Salida.
    ✅ `BallRing` emboca y entra en repetición.
 
+## 163. Juego de pelota: física y golpe más permisivos (06-11-2026)
+
+### 163.1 En Studio, con el bot (*Prueba*, en Dunas, partido de pelota)
+
+1. [ ] Empieza un partido y salta y corre un rato.
+   ✅ Andas a ~22 studs/s y corres a ~32; el salto dura algo más que antes. Al acabar el partido, `Workspace.Gravity` vuelve a 196.2 (y en captura la bandera es la de siempre).
+2. [ ] Devuelve la pelota del bot 10 veces seguidas con distintas alturas (rodilla, cadera, codo).
+   ✅ Se puede mantener el peloteo; el anillo avisa a tiempo y un golpe flojo sigue siendo una devolución que cruza la red.
+3. [ ] Golpea con Perfecto desde la cadera.
+   ✅ El tiro no se sale de la cancha sin querer (la gravedad de la pelota es 34 y los golpes se bajaron ~10 %). Si se queda corto o largo, ajusta `Hit.Speed` en `Data/Ballgame`.
+4. [ ] Usa el Salto de jaguar (Cazador).
+   ✅ Sube ~14 studs, el doble de un salto normal.
+
+### 163.2 En Studio, con 2 jugadores (*Prueba → Clientes y servidores*)
+
+5. [ ] Juega un partido con ambos y fíjate en el golpe del cliente con lag.
+   ✅ El golpe con alcance 7,5 no se siente de más ni se rechaza en el servidor.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

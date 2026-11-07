@@ -9,8 +9,9 @@ local Roles = require(script.Parent.Roles)
 local Ballgame = {}
 
 -- Gravedad (studs/s²). Más que la de Roblox (196) no: la pelota tiene que flotar lo bastante para que una
--- jugada de cadera dure un segundo y medio y se vea venir. Con 70, un bote desde 10 studs tarda ~0,53 s.
-Ballgame.Gravity = 70
+-- jugada de cadera dure un segundo y medio y se vea venir. Con 34, un bote desde 10 studs tarda ~0,77 s
+-- (con 70 eran ~0,53 s: costaba mantenerla en el aire). Se afina jugando.
+Ballgame.Gravity = 34
 -- Arrastre del aire, lineal: la velocidad pierde este porcentaje por segundo (5 %). Casi nada, pero frena
 -- los tiros largos de 140 studs/s para que no crucen la cancha sin pasar por ninguna mano.
 Ballgame.AirDrag = 0.05
@@ -41,6 +42,16 @@ Ballgame.MaxSpeed = 140
 -- Los botes con velocidad normal menor que esto no emiten el evento "bounce" (no cuentan para las reglas).
 Ballgame.MinBounceSpeed = 3
 
+-- Física de los jugadores durante el partido. Gravity: Workspace.Gravity mientras dura (el servidor de Dunas la
+-- pone al empezar y la devuelve a WorldGravity al parar; el salto de Humanoid.JumpHeight sube lo
+-- mismo pero tarda más en caer). SpeedFactor: multiplica la velocidad al andar y al correr (LocomotionController).
+-- Valores de partida: con 130 el salto normal (7,2 studs) dura ~0,6 s en vez de ~0,5 s.
+Ballgame.Player = {
+	Gravity = 130,
+	WorldGravity = 196.2,
+	SpeedFactor = 1.25,
+}
+
 -- Saque (BallService.serve): la pelota sale del centro del pasillo, a esta altura, con un lob suave hacia el
 -- campo del equipo que recibe. Horizontal y Vertical en studs/s; SideSpeed, el desvío máximo a los lados.
 Ballgame.Serve = {
@@ -68,27 +79,27 @@ Ballgame.Net = {
 -- Pitch: ángulo de salida (grados sobre la horizontal). Speed: rapidez final (studs/s) por zona y calidad; el golpe
 -- FIJA la velocidad de la pelota, no la suma.
 Ballgame.Hit = {
-	Reach = 5.5, -- distancia máxima jugador-pelota para poder golpear (studs)
-	ContactDist = 2.6, -- distancia a la que se considera contacto (para medir el tiempo hasta él)
-	PerfectSeconds = 0.15,
-	GoodSeconds = 0.35,
-	CooldownSeconds = 0.45, -- por jugador
+	Reach = 7.5, -- distancia máxima jugador-pelota para poder golpear (studs)
+	ContactDist = 3.2, -- distancia a la que se considera contacto (para medir el tiempo hasta él)
+	PerfectSeconds = 0.22,
+	GoodSeconds = 0.55,
+	CooldownSeconds = 0.35, -- por jugador
 	BallCooldownSeconds = 0.15, -- entre cualquier par de golpes sobre la pelota
-	PassiveContactDist = 2.2, -- roce sin pulsar
+	PassiveContactDist = 3, -- roce sin pulsar
 	PassiveSpeed = 12,
 	Pitch = { Knee = 22, Hip = 35, Elbow = 55 } :: { [string]: number },
 	Speed = {
-		Knee = { Perfect = 58, Good = 44, Weak = 16 },
-		Hip = { Perfect = 78, Good = 56, Weak = 16 },
-		Elbow = { Perfect = 52, Good = 40, Weak = 16 },
+		Knee = { Perfect = 52, Good = 40, Weak = 28 },
+		Hip = { Perfect = 70, Good = 50, Weak = 28 },
+		Elbow = { Perfect = 47, Good = 36, Weak = 28 },
 	} :: { [string]: { [string]: number } },
 	FootSpeed = 10, -- la falta por pie solo patea flojo
-	RingLeadSeconds = 0.5, -- el anillo de aviso aparece cuando falta esto o menos para el contacto
+	RingLeadSeconds = 0.7, -- el anillo de aviso aparece cuando falta esto o menos para el contacto
 	-- Límites de la altura de la pelota respecto al HumanoidRootPart (studs) que separan las zonas.
 	ZoneFoot = -2.2,
 	ZoneKnee = -0.6,
 	ZoneHip = 1.4,
-	ZoneElbow = 3.5,
+	ZoneElbow = 4.5,
 	WalkSpeed = 16, -- velocidad con la que se amplía el alcance por el lag del servidor
 }
 
@@ -145,10 +156,10 @@ Ballgame.Yoke = {
 	ExpireSeconds = 5,
 }
 
--- Salto de jaguar: velocidad vertical (studs/s) que se da al personaje; con la gravedad de Roblox (196) sube
--- unos 14 studs, el triple de un salto normal.
+-- Salto de jaguar: velocidad vertical (studs/s) que se da al personaje; con la gravedad del partido
+-- (Ballgame.Player.Gravity, 130) sube unos 14 studs, el doble de un salto normal.
 Ballgame.JaguarLeap = {
-	VerticalSpeed = 75,
+	VerticalSpeed = 60,
 }
 
 -- Viento: Seconds, lo que dura el efecto tras lanzarlo; en ese tiempo, cada golpe propio deja la pelota curvando
