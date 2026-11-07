@@ -44,8 +44,8 @@ local Seasons: { Season } = {
 		name = "El Despertar del Volcán",
 		icon = "🌋",
 		color = Color3.fromRGB(255, 120, 50),
-		-- Provisional (lunes): la fecha de verdad se pone antes de publicar (docs/LANZAMIENTO.md).
-		startsAt = utc(2026, 10, 19),
+		-- Termina el 5 de diciembre de 2026 a las 00:00 UTC: 30 días (Config.Season.Days) desde el 5 de noviembre.
+		startsAt = utc(2026, 11, 5),
 		-- Contenido de la temporada (grupo G11 del plan): trajes y armas de fuego azul y azufre (G11a);
 		-- mascotas, marcos y estelas (G11b); emotes (G11c); los tres grados de la Llama primal (N1, N15, N30);
 		-- títulos, números, estallidos y nidos en el resto (G11d). Un premio premium en cada nivel.
