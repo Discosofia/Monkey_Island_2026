@@ -166,6 +166,11 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		Remotes.Notify:FireClient(player, "📆 Semana siguiente: semanales nuevas")
 	end,
 	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
+	-- Repite la cinemática de bienvenida «Naufragio» (Fase 25, G6a) aunque ya la haya visto: ShipwreckController
+	-- reacciona al atributo. No la marca de nuevo.
+	CineShipwreck = function(player)
+		player:SetAttribute("ShipwreckReplay", ((player:GetAttribute("ShipwreckReplay") :: number?) or 0) + 1)
+	end,
 	-- Todas las armaduras de cada rol, con su arma del mismo nivel, en copias del personaje.
 	GearShowcase = GearShowcase.toggle,
 	-- Mejor equipo guardado del rol al grado siguiente (0–4), para ver cómo se luce.

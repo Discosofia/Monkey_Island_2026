@@ -86,6 +86,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
 		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
+		{ id = "CineShipwreck", label = "🚢 Naufragio" },
 		{ id = "GrantCosmetic", label = "🎁 Dar/quitar el siguiente cosmético" },
 		{ id = "ShopNextDay", label = "🛒 Tienda de cosméticos: día siguiente" },
 		{ id = "FakePurchase", label = "🧾 Compra de prueba (siguiente producto)" },

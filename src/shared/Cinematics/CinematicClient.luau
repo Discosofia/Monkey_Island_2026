@@ -7,7 +7,7 @@
 -- HUD (menos el ScreenGui de la cinemática), reproduce la escena con el Sequencer (con seek si llega tarde) y
 -- al acabar (+0,4 s) lo devuelve todo y avisa al servidor con CinematicDone(id, vista_entera).
 -- El botón «Saltar» sale si la escena ya está en cinematicsSeen del atributo Progress, o si es skippable
--- (en las locales, siempre).
+-- (en las locales, siempre); con noSkip en la escena (el Naufragio) no sale nunca.
 --
 -- Escenas locales (CinematicClient.playLocal, Fase 25 G3a): las lanza el propio cliente, sin servidor y sin
 -- CinematicDone (la eclosión del huevo del Lobby). args = { anchor?, context? (tabla libre que los handlers
@@ -372,15 +372,29 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 		end)
 	end
 
+	-- Escenas cuya cámara se calcula al empezar (scene.prepare, el Naufragio: depende de dónde está la luna).
+	local playScene: any = scene
+	local prepare = (scene :: any).prepare
+	if typeof(prepare) == "function" then
+		local ok, camera = pcall(prepare)
+		if ok and typeof(camera) == "table" then
+			playScene = table.clone(scene :: any)
+			playScene.camera = camera
+		else
+			warn(`CinematicClient: falla prepare de {id}: {camera}`)
+		end
+	end
+
 	local handle = Sequencer.play(
-		scene :: any,
+		playScene,
 		{ anchor = resolveAnchor(scene, params), onFinished = onFinished, data = params.context }
 	)
 	entry = { id = id, handle = handle, stoppedByServer = false, isLocal = isLocal }
 	active = entry
 
 	-- Botón Saltar (abajo a la derecha, dentro del ScreenGui de la cinemática: se borra solo al terminar).
-	if gui and handle.isPlaying() and (isLocal or hasSeen(id) or (scene :: any).skippable == true) then
+	local noSkip = (scene :: any).noSkip == true
+	if gui and handle.isPlaying() and not noSkip and (isLocal or hasSeen(id) or (scene :: any).skippable == true) then
 		local skip = Widgets.button(T("Saltar"), gui)
 		skip.Name = "Skip"
 		skip.AnchorPoint = Vector2.new(1, 1)
@@ -409,6 +423,21 @@ end
 -- escena desconocida o una cinemática de servidor en marcha): quien llama hace entonces su versión sin cámara.
 function CinematicClient.playLocal(id: string, args: { [string]: any }?): boolean
 	return run(id, workspace:GetServerTimeNow(), args, true)
+end
+
+-- ¿Ya vio el jugador esta escena entera? (cinematicsSeen del atributo Progress; false mientras el perfil no ha cargado).
+function CinematicClient.hasSeen(id: string): boolean
+	return hasSeen(id)
+end
+
+-- Tarjeta de espera del lado cliente, para una escena local que no pasa por ArrivalService (el Naufragio del Lobby): sale
+-- ya y se quita con fundido al empezar la escena (playLocal) o con CinematicClient.releaseHold. Tope de seguridad de 25 s.
+function CinematicClient.holdScreen()
+	startHold(false)
+end
+
+function CinematicClient.releaseHold(fadeSeconds: number?)
+	releaseHold(fadeSeconds or 0.3)
 end
 
 -- Pose de arma de un maniquí: «WeaponCarry» (Data/PlayerAnimations): brazo derecho abierto y adelantado con el arma en

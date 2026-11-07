@@ -18,6 +18,9 @@
 --   Voyage ............................... 5,6   (amanecer real; ver sus valores de luz)
 --   Rescue ............................... 6,1   (amanecer: la escena es «Rescate al amanecer»)
 --   EggHatch ............................. sin hora (Lobby: tiene su hora fija y ningún controlador de ciclo)
+--   Shipwreck ............................ 18,8  (noche cerrada con luna roja baja y grande; Lobby sin ciclo de día: ShipwreckSet
+--                                                 pone y devuelve la hora y la luz del Lobby él mismo, evento night; la última
+--                                                 toma de G6c, justo antes de amanecer, irá a ~5,3)
 --   Prueba ............................... 14,0  (tarde clara; no lleva luces propias)
 --   Boss_OrangutanDelManglar, Boss_ChimpanceCaudillo, Boss_GorilaAlbino y sus _Comic ... 18,8 (luz de relleno de SceneLight)
 --   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
@@ -25,7 +28,9 @@
 --   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
 
 local Bosses = require(script.Parent.Bosses)
+local CameraPath = require(script.Parent.Parent.Cinematics.CameraPath)
 local Config = require(script.Parent.Parent.Config)
+local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local Strings = require(script.Parent.Parent.Strings)
@@ -36,6 +41,8 @@ export type Scene = {
 	freeze: boolean,
 	waitTerrain: { Vector3 }?, -- puntos (relativos al anchor) cuyo terreno debe estar cargado antes de empezar (streaming)
 	skippable: boolean?, -- se puede saltar aunque no se haya visto entera (sin él, solo si ya está vista)
+	noSkip: boolean?, -- nunca se puede saltar, ni siquiera vista (el Naufragio)
+	prepare: (() -> { { t: number, pos: Vector3, look: Vector3, fov: number? } })?, -- calcula la cámara justo antes de empezar (el Naufragio)
 	anchor: string?,
 	hour: number?, -- hora del día de la escena (0-24); ver la cabecera
 	actors: { [string]: { [string]: any } },
@@ -1768,6 +1775,91 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 	}
 end
 
+-- Naufragio (G6a), en el Lobby y de noche, en coordenadas absolutas del mundo (sin anchor). El barco (ShipwreckSet) navega
+-- 21 s con la proa hacia la luna roja, al este del Lobby (rumbo y emplazamiento: ShipwreckSet.ROUTE); la cámara va en su
+-- marco (x a proa, y arriba, z a estribor, origen en el pivote) y se muestrea cada SHIPWRECK_STEP s con el movimiento del
+-- barco, así viaja pegada a él. Un solo vuelo continuo POR BABOR (z negativo del marco; con el barco rumbo al este, babor es
+-- el sur): apertura desde detrás mirando a proa y la luna, giro hacia el norte, pasada de proa a popa por fuera de la borda
+-- (z = -20 a -14, a 6 de los contenedores y a 3 del costado del puente) mirando al puente, entrada por el cristal del costado
+-- de babor y, dentro, detrás del avatar (2,4 studs atrás, 0,35 a su derecha, a la altura de sus ojos,
+-- ShipwreckSet.AVATAR_EYE) mirando a proa por el cristal con la luna.
+-- REGLA: la cámara NUNCA mira hacia el oeste (azimut 222° a 318° con elevación < 25°: enseñaría el barco encallado del Lobby
+-- a 400-500 studs) ni al sur (azimut 120° a 240° con elevación < 12°); ShipwreckSet.checkLook lo comprueba en preview() y
+-- también que la cámara no salga de x 270 a 590 y z -170 a 170.
+-- Medidas del barco: puente a popa (x de -32 a -26, z de -12 a 12, suelo en y 19,98, techo subido 1,2 con ShipwreckSet:
+-- 24,7), cristal de delante en x = -25,95 y los de los costados en z = ±11,85 (y de 21,2 a 23,7); contenedores en x de -20 a
+-- -8 y de 3 a 15 hasta y = 23,5; grúa en x de 21 a 33; castillo a popa de x = -36,5. Ningún punto muestreado cada 0,25 s
+-- queda a menos de 0,6 de un sólido (comprobado con cajas; ShipwreckSet.checkCamera lo repite con GetPartBoundsInRadius en
+-- preview()).
+-- Azimut/elevación de la mirada en el mundo y posición de la cámara (x, z), con la luna a 93,6°, rumbo +11,6° y la ruta
+-- centrada en (430, 40) (la recta se corre a x 333 a 580): t = 0: 64°/-18° en (272, 18); 2: 55°/-18° en (298, -2); 4: 44°/-17°
+-- en (331, -22); 6: 20°/-17° en (384, -30); 8: 351°/-13° en (434, -30); 10: 336°/-8° en (454, -18); 11: 333°/-6° en
+-- (460, -12); 12: 335°/-5° en (461, -1); 13: 342°/-5° en (467, 5); 14: 347°/-3° en (476, 7); 15: 356°/-1° en (482, 9);
+-- 16: 9°/0° en (490, 9); 17: 29°/2° en (502, 15); 18: 103°/1° en (515, 20); 19: 104°/1° en (526, 18); 21: 102°/1° en (550, 13).
+-- Los dos últimos puntos miran a proa con la inclinación que deja la luna en el tercio de arriba del cuadro (elevación - 8°,
+-- entre 0 y 6°; calculada en shipwreckCamera); los ángulos entre el eje de la cámara y la luna (t = 0, 8, 14 y 19) salen de
+-- ShipwreckSet.cameraMoonAngles(scene.prepare(), { 0, 8, 14, 19 }). Los números son de arranque: se tocan aquí.
+local SHIPWRECK_SECONDS = 21
+local SHIPWRECK_STEP = 0.25
+local SHIPWRECK_HOUR = ShipwreckSet.HOUR -- 18,8: noche con estrellas y la luna baja (G6c, justo antes de amanecer: ~5,3)
+
+local SHIPWRECK_CAMERA: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {
+	{ t = 0, pos = Vector3.new(-52, 41, -50), look = Vector3.new(14, 14, 0), fov = 55 },
+	{ t = 4, pos = Vector3.new(-34, 41, -78), look = Vector3.new(15, 12, 0), fov = 54 },
+	{ t = 8, pos = Vector3.new(20, 30, -65), look = Vector3.new(-5, 14, 0), fov = 52 },
+	-- Las miradas de 11 y 12,5 se giran unos 8° a proa: con las de antes la Isla Calavera (oeste) asomaba por el borde izquierdo.
+	{ t = 11, pos = Vector3.new(6, 27, -42), look = Vector3.new(-17, 21, 0), fov = 42 },
+	{ t = 12.5, pos = Vector3.new(-12, 24.5, -27), look = Vector3.new(-23, 21.5, 0), fov = 44 },
+	{ t = 14, pos = Vector3.new(-18, 23.2, -20), look = Vector3.new(-27, 22, 0), fov = 44 },
+	{ t = 15.2, pos = Vector3.new(-26, 22.9, -16.5), look = Vector3.new(-29, 22.8, -4), fov = 44 },
+	-- Pasa el cristal del costado de babor del puente (z = -11,85, banda de y 21,2 a 23,7) entre este punto y el siguiente.
+	{ t = 16.2, pos = Vector3.new(-29, 22.9, -14.5), look = Vector3.new(-29, 22.9, -6), fov = 45 },
+	{ t = 16.9, pos = Vector3.new(-29.8, 23, -8), look = Vector3.new(-28.5, 23.2, -1), fov = 48 },
+}
+
+-- Final desde fuera (corte en SHIPWRECK_CUT): detrás y encima del puente, mirando a proa por encima de su techo, con la luna roja
+-- baja sobre el mar, el mástil a la derecha y las gaviotas. Desde dentro el techo tapaba la luna (el borde del cristal queda a
+-- ~10° de elevación y la luna está a 12°). Posiciones en el marco del barco; yaw a estribor y pitch en grados. Hace un avance lento.
+local SHIPWRECK_CUT = 17.4
+local SHIPWRECK_FINAL = {
+	{ t = SHIPWRECK_CUT, pos = Vector3.new(-47, 26.2, -13), yaw = 4, pitch = 5, fov = 58 },
+	{ t = 21, pos = Vector3.new(-43, 26.6, -12), yaw = 4, pitch = 5, fov = 54 },
+}
+
+-- La cámara en el mundo. Fija antes el rumbo del barco hacia la luna (ShipwreckSet.setCourse), porque el marco del barco
+-- depende de él, y baja o sube la mirada de los dos últimos puntos para encuadrar la luna.
+local function shipwreckCamera(): { { t: number, pos: Vector3, look: Vector3, fov: number? } }
+	ShipwreckSet.setCourse(SHIPWRECK_HOUR)
+	-- Dos tramos separados por un corte: así la curva del primero no se tuerce hacia el segundo.
+	local keys = table.clone(SHIPWRECK_CAMERA)
+	local finalKeys = {}
+	for _, key in SHIPWRECK_FINAL do
+		local yaw, pitch = math.rad(key.yaw), math.rad(key.pitch)
+		table.insert(finalKeys, {
+			t = key.t,
+			pos = key.pos,
+			fov = key.fov,
+			look = key.pos + Vector3.new(
+				10 * math.cos(pitch) * math.cos(yaw),
+				10 * math.sin(pitch),
+				10 * math.cos(pitch) * math.sin(yaw)
+			),
+		})
+	end
+	local points: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {}
+	local t = 0
+	while t < SHIPWRECK_SECONDS + 0.01 do
+		local pos, look, fov = CameraPath.sampleTimed(if t < SHIPWRECK_CUT then keys else finalKeys, t)
+		local frame = ShipwreckSet.frameAt(t)
+		table.insert(
+			points,
+			{ t = t, pos = frame:PointToWorldSpace(pos), look = frame:PointToWorldSpace(look), fov = fov }
+		)
+		t += SHIPWRECK_STEP
+	end
+	return points
+end
+
 local Cinematics: { [string]: Scene } = {
 	-- Batallas contra un jefe (G5b): solo para grabar; las lanza el panel de pruebas con ArrivalService.play y un stage.
 	Battle_Boss_OrangutanDelManglar = bossBattleScene("OrangutanDelManglar", "normal"),
@@ -2182,6 +2274,44 @@ local Cinematics: { [string]: Scene } = {
 			events = events,
 		}
 	end)(),
+
+	-- Naufragio (G6a): la bienvenida del Lobby, solo la primera vez que alguien entra al juego (la lanza el cliente,
+	-- ShipwreckController, y no se puede saltar nunca). De noche: el barco navega con gaviotas y la cámara vuela hasta el
+	-- puente de mando, donde está el avatar del jugador. Termina en negro (la tormenta y la revelación del barco encallado, G6b y G6c).
+	Shipwreck = {
+		duration = SHIPWRECK_SECONDS,
+		audience = "Self",
+		freeze = false,
+		skippable = false,
+		noSkip = true,
+		hour = SHIPWRECK_HOUR,
+		actors = {
+			ship = {
+				kind = "prop",
+				build = function()
+					local ship = ShipwreckSet.buildShip()
+					ship:PivotTo(ShipwreckSet.poseAt(0))
+					return ship
+				end,
+			},
+		},
+		-- La cámara depende de la luna (rumbo del barco): CinematicClient la pide a prepare justo antes de empezar.
+		camera = {},
+		prepare = shipwreckCamera,
+		events = {
+			{ t = 0, kind = "letterbox" },
+			-- La luz del mundo baja cada cuadro: luna clara al principio, noche cerrada a los 19 s y casi oscuro a los 21 s.
+			{ t = 0, kind = "night", midAt = 19, deepAt = 21, hour = SHIPWRECK_HOUR },
+			-- Sin luz pegada a la cámara y con muy poca exposición: quemaban el casco blanco. La luna es el ambiente y una luz
+			-- muy suave en el palo del barco (ShipwreckSet).
+			{ t = 0, kind = "exposure", value = 0.3, tint = Color3.fromRGB(225, 235, 255) },
+			{ t = 0, kind = "shipSail" },
+			{ t = 0, kind = "shipAvatar" },
+			{ t = 0, kind = "birds", seconds = 15 },
+			-- Placeholder hasta G6b: a negro al final.
+			{ t = 19, kind = "fade", seconds = 2, toBlack = true },
+		},
+	},
 
 	-- Escena de prueba del motor: un maniquí guerrero camina hacia la cámara delante del jugador.
 	Prueba = {

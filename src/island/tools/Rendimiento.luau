@@ -914,6 +914,21 @@ local function main(copia: Instance): string
 				modelo:Destroy()
 			end)
 		end
+		-- Gaviota e interior del puente de la escena «Shipwreck» (Fase 25, G6a): soldados a su cuerpo y a su zócalo.
+		if pasa("Gull") then
+			intentar("Gull", function()
+				local modelo = (require(copia.GullModel) :: any).build({ glow = true })
+				fila("Gull (naufragio)", medir(modelo, fusionSoldada), tope("Gull", "Gull", M.Gull))
+				modelo:Destroy()
+			end)
+		end
+		if pasa("Bridge") then
+			intentar("Bridge", function()
+				local modelo = (require(copia.BridgeModel) :: any).build()
+				fila("Bridge (naufragio)", medir(modelo, fusionSoldada), tope("Bridge", "Bridge", M.Bridge))
+				modelo:Destroy()
+			end)
+		end
 		for _, id in claves(PlotStructures) do
 			if pasa(id) then
 				for nivel = 1, 3 do

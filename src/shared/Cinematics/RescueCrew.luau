@@ -65,7 +65,7 @@ end
 -- Los personajes de los jugadores en Roblox actual unen sus piezas con AnimationConstraint (las mueve el Animator y
 -- la física), que no sirven para una postura estática soldada a un helicóptero. Se cambian por Motor6D con las
 -- mismas piezas y marcos, de nombre igual (Root, Waist, RightHip…), y la postura se pone con Transform.
-local function toMotors(rig: Model)
+function RescueCrew.toMotors(rig: Model)
 	for _, descendant in rig:GetDescendants() do
 		if descendant:IsA("AnimationConstraint") then
 			local motor = Instance.new("Motor6D")
@@ -79,6 +79,8 @@ local function toMotors(rig: Model)
 		end
 	end
 end
+
+local toMotors = RescueCrew.toMotors
 
 -- Posición de reposo de la pieza 1 respecto a la pieza 0 de una articulación.
 local function restFrame(motor: Motor6D): CFrame
@@ -140,8 +142,8 @@ local function addPart(
 	return part
 end
 
--- Deja el rig quieto y sin colisiones, listo para soldarlo.
-local function freeze(rig: Model)
+-- Deja el rig quieto y sin colisiones, listo para soldarlo (también lo usa Cinematics/ShipwreckSet).
+function RescueCrew.freeze(rig: Model)
 	for _, descendant in rig:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			descendant.Anchored = false
@@ -162,6 +164,8 @@ local function freeze(rig: Model)
 		end)
 	end
 end
+
+local freeze = RescueCrew.freeze
 
 -- Sienta "rig" (con su HumanoidRootPart) en la plaza "seatPos" del helicóptero: cadera sobre el cojín, mirando a -Z,
 -- con las piernas dobladas (o con la rodilla en "kneeAngle" radianes). Devuelve las medidas del rig (para el volante

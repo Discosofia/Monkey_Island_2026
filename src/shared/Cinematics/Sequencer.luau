@@ -9,7 +9,8 @@
 --             actors = { … }, anchor? }
 --   Las posiciones de la cámara y de los eventos son relativas a ctx.anchor (CFrame, por defecto identidad).
 --   ctx es una tabla libre de quien llama (también la ven los handlers): anchor, onFinished(completed),
---   seeking (lo pone el Sequencer mientras hace seek) y lo que quieran guardar los handlers (ctx.actors…).
+--   seeking (lo pone el Sequencer mientras hace seek), frameHooks (lista de funciones (t) que los handlers añaden y
+--   corren cada cuadro tras colocar la cámara) y lo que quieran guardar los handlers (ctx.actors…).
 
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -157,6 +158,20 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 		end
 	end
 
+	-- Funciones por cuadro de los handlers (ctx.frameHooks, lista de (t) -> ()): corren justo después de colocar la
+	-- cámara, así lo que se mueve con el reloj de la escena (un barco) va sincronizado con ella.
+	local function runFrameHooks()
+		local list = context.frameHooks
+		if list then
+			for _, fn in table.clone(list) do
+				local ok, err = pcall(fn, elapsed)
+				if not ok then
+					warn(`Sequencer: falla una función por cuadro: {err}`)
+				end
+			end
+		end
+	end
+
 	local function finish(completed: boolean)
 		if not playing then
 			return
@@ -224,6 +239,7 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 			fireDue()
 			context.seeking = false
 			placeCamera()
+			runFrameHooks()
 		end,
 	}
 	run = {
@@ -235,6 +251,9 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 			elapsed = math.min(elapsed + dt, scene.duration)
 			placeCamera()
 			fireDue()
+			if playing then
+				runFrameHooks()
+			end
 			if playing and elapsed >= scene.duration then
 				finish(true)
 			end
@@ -253,6 +272,7 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 	end
 	placeCamera()
 	fireDue() -- los eventos de t = 0 salen ya, sin esperar al primer cuadro
+	runFrameHooks()
 	return handle
 end
 

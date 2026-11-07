@@ -2463,6 +2463,8 @@ local Config = {
 			Buildable = 25, -- construible de la Isla
 			Helicopter = 65, -- helicóptero de rescate (Fase 25, G3b): 60 bloques de diseño (cabina hueca con cojines), sale unos segundos en la escena «Rescue»
 			Lifeboat = 25, -- lancha de rescate (Fase 25, G4b): 20 piezas de diseño (flotadores, consola, motor, mástil); sale en la escena «Voyage». Tope = piezas + 5, aún sin medir con Rendimiento
+			Gull = 13, -- gaviota voxel de la escena «Shipwreck» (Fase 25, G6a): 10 piezas (cuerpo, cabeza, pico, 2 ojos, cola, 2 alas y 2 puntas). Tope = piezas + 3, sin medir con Rendimiento
+			Bridge = 59, -- interior del puente de mando de la escena «Shipwreck» (Fase 25, G6a): 53 piezas de diseño (cáscara, consola, timón, silla, mesa). Tope = piezas + 6, sin medir con Rendimiento
 			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III
 			Monkey = 14, -- mono en juego (ya unido con UnionAsync); 10 + 4 piezas sueltas de acento (ojos, marcas de alfa)
 			Boss = 40, -- jefe en juego (ya unido); 30 + 10 piezas sueltas de acento (cristales de fase)

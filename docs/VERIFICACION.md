@@ -6351,6 +6351,17 @@ Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/B
 4. [ ] Entra a Captura la bandera.
    ✅ Todo sigue como antes (ventajas y equipo de arena).
 
+## 165. Reel del ataque de la manada (06-11-2026)
+
+Se prueba en CapCut con los borradores `reel-ataque-es-v2` y `reel-ataque-en-v1`.
+
+1. [ ] Abre CapCut y los dos proyectos `reel-ataque-…`.
+   ✅ Abren sin error; duran 16,5 s en 1080×1920; el cómic llena el cuadro y el último corte es la portada.
+2. [ ] Genera la voz desde la pista `voz` (texto a voz; «Narrador» en español, «hype guy» en inglés) y pon música de la biblioteca de CapCut (-10 dB).
+   ✅ Cada frase cae sobre su plano; «¡Aguanten juntos!» no pisa a «Primal Banana Islands.»
+3. [ ] Exporta a 1080×1920, 30 fps, sin marca de agua, y anota los minutos de retoque.
+   ✅ Objetivo: 5 min o menos.
+
 ## 166. Fase 25 G5b: batallas montadas contra jefes (07-11-2026)
 
 Las 6 escenas (`Battle_Boss_<id>` con `_Comic` y `_Reel`, para el Orangután del Manglar y el Caudillo) se probaron en el Studio de la Isla con un jugador: sin errores de Luau, maniquíes a 0,19 studs del suelo, cámaras sin atravesar el terreno ni quedar a menos de 12 studs de un maniquí, y los monos reales de la zona ocultos mientras dura la escena. Se vieron en grabación (normal, cómic y reel) y el usuario las aprobó. Se lanzan con las órdenes de «🛠️ Pruebas»: «🥊 Batalla jefe», «🥊 Batalla jefe cómic» y «🥊 Batalla jefe reel» (cada una alterna entre los dos jefes).
@@ -6394,6 +6405,46 @@ Las 6 escenas (`Battle_Boss_<id>` con `_Comic` y `_Reel`, para el Orangután del
     ✅ Igual que en Studio; el terreno de la cima del Caudillo (y ≈ 156) carga antes de empezar (a veces el snap deja la Y de la rejilla si el suelo tarda).
 14. [ ] En el teléfono emulado (o real), lanza el cómic y el reel.
     ✅ Las ventanas, los bocadillos y las onomatopeyas caben en la pantalla y en la banda 9:16.
+
+## 167. Fase 25 G6a: cinemática «Naufragio» del Lobby (07-11-2026)
+
+Se probó en el Studio del Lobby solo en modo edición con `ShipwreckSet.preview()` (barco, aves, puente, luna roja y rampa de luz, con capturas) y con los diagnósticos de código (pares coplanares, cámara fuera de sólidos, mirada sin enseñar el oeste: 0 avisos). **No se ha probado en Play.** Es una escena local del Lobby de 21 s (de noche, con luna roja llena en el horizonte) que acaba en negro hasta G6b y G6c. Se repite con «🚢 Naufragio» de «🛠️ Pruebas» (no la marca como vista).
+
+### Antes de probar la primera entrada
+1. [ ] Restaura tu perfil con el script de §10.0 (o borra `cinematicsSeen.Shipwreck`).
+   ✅ El perfil ya no tiene `Shipwreck` en `cinematicsSeen` (una prueba cortada la marcó).
+
+### Con un jugador en Play (Studio del Lobby)
+2. [ ] Entra al Lobby con el perfil limpio, sin tocar nada.
+   ✅ Sale la tarjeta del logo («Preparando la isla…»), después la escena sola, sin botón «Saltar», con los controles y el HUD apagados y sin los carteles flotantes del mundo («Play in the Laboratory», el marcador del huevo) ni las mascotas.
+3. [ ] Mira la escena de principio a fin.
+   ✅ De noche, con la luna roja llena baja sobre el horizonte; el carguero «Esperanza» navega intacto (el casco cerrado, sin humo), seis gaviotas vuelan a su alrededor; la cámara empieza detrás y a babor, mirando hacia adelante, y baja hasta el puente; entra por el cristal de babor, pasa por el interior de la cabina junto a tu avatar y, tras un corte (a los 17,4 s), termina fuera, detrás y encima del puente, mirando a proa con la luna roja entera sobre el mar, el mástil a la derecha y las gaviotas (el techo ya no la tapa). Nunca se ve el Lobby, el barco encallado ni la Isla Calavera; la silueta lejana de las Dunas (arco y cactus) sí puede asomar por el borde en los primeros segundos y por el cristal de babor (no se ha tapado). Sin cartel flotante sobre el avatar.
+4. [ ] Fíjate en el suelo de la cubierta y del puente.
+   ✅ Sin parpadeo (z-fighting).
+5. [ ] Fíjate en la luz.
+   ✅ Empieza con luna clara y baja de forma continua hasta casi oscuro hacia los 19 a 21 s; el casco blanco queda gris azulado, no blanco quemado; el interior del puente se lee (timón, mesa con la carta, tu avatar) a los 15 a 17 s, sin las paredes blancas quemadas (luces de faroles 0,4 y de pantalla 0,2; con 0,55 o más se queman). Si el avatar queda demasiado oscuro, sube el brillo de los faroles a 0,45.
+6. [ ] Al acabar (a los 21 s, en negro).
+   ✅ La luz del Lobby vuelve a la de atardecer (17,6) con el cielo y la luna de antes; el barco, las gaviotas y el avatar clonado desaparecen; el HUD, los carteles y las mascotas vuelven; tu personaje real está donde estaba. Al acabar entera, `cinematicsSeen.Shipwreck` queda marcada.
+7. [ ] Sal y vuelve a entrar.
+   ✅ La escena no vuelve a salir sola. «🚢 Naufragio» la repite igual y no vuelve a marcarla.
+8. [ ] Sal a mitad de la escena (cierra el Play a los 10 s) y vuelve a entrar.
+   ✅ Como no se vio entera, sale otra vez.
+9. [ ] Apaga el ajuste «Cinemáticas» y entra con el perfil limpio.
+   ✅ No sale la escena ni la tarjeta y no se marca como vista.
+
+### Casos límite
+10. [ ] Con avatar R6 y con avatar R15 con muchos accesorios, lanza «🚢 Naufragio».
+    ✅ No falla; el avatar clonado se ve de pie en el puente, con su ropa, mirando a proa.
+11. [ ] Lanza la escena y mira el rendimiento en el teléfono emulado.
+    ✅ Fluida (el barco son 561 piezas más puente y gaviotas); la tarjeta, la letterbox y todo caben.
+12. [ ] En el Lobby con otro jugador al lado, lanza la escena.
+    ✅ Solo la ve quien la lanza; el otro sigue con el Lobby y no ve el barco ni la noche.
+13. [ ] Con el idioma en inglés.
+    ✅ La tarjeta de espera dice «Preparing the island…» (no hay frases nuevas en esta tanda).
+
+### Juego publicado
+14. [ ] Publica el Lobby y repite 2, 3 y 6 con el juego publicado.
+    ✅ Igual que en Studio.
 
 ## Cuando termines
 
