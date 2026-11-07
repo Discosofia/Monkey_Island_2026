@@ -6944,6 +6944,77 @@ CLIPS.Cat = function(d)
 				},
 			},
 		},
+		-- Salto (Fase 25, G7a): se agacha, se lanza con las manos al frente y las patas de atrás
+		-- estiradas, planea con el lomo recto y cae amortiguando con las manos. El arco lo da el
+		-- movimiento de la escena; el clip solo sube el cuerpo un poco.
+		Jump = {
+			length = 0.95,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.2,
+					amp = CAT_LEGS_STILL,
+					Body = { 10, 0, 0, 0, -0.28, 0.1 },
+					FL = { -30, 0, 0 },
+					FR = { -30, 0, 0 },
+					FL2 = { 50, 0, 0 },
+					FR2 = { 50, 0, 0 },
+					BL = { 40, 0, 0 },
+					BR = { 40, 0, 0 },
+					BL2 = { -75, 0, 0 },
+					BR2 = { -75, 0, 0 },
+					Head = { -8, 0, 0 },
+					Tail = { -10, 0, 0 },
+				},
+				{
+					t = 0.42,
+					amp = CAT_LEGS_STILL,
+					Body = { -12, 0, 0, 0, 0.22, -0.3 },
+					FL = { 80, 0, -6 },
+					FR = { 80, 0, 6 },
+					FL2 = { -20, 0, 0 },
+					FR2 = { -20, 0, 0 },
+					BL = { -62, 0, 0 },
+					BR = { -62, 0, 0 },
+					BL2 = { 12, 0, 0 },
+					BR2 = { 12, 0, 0 },
+					Head = { 6, 0, 0 },
+					Tail = { 6, 0, 0 },
+				},
+				{
+					t = 0.68,
+					amp = CAT_LEGS_STILL,
+					Body = { 6, 0, 0, 0, 0.08, -0.2 },
+					FL = { 95, 0, -4 },
+					FR = { 95, 0, 4 },
+					FL2 = { -6, 0, 0 },
+					FR2 = { -6, 0, 0 },
+					BL = { -20, 0, 0 },
+					BR = { -20, 0, 0 },
+					BL2 = { -30, 0, 0 },
+					BR2 = { -30, 0, 0 },
+					Head = { -4, 0, 0 },
+					Tail = { -2, 0, 0 },
+				},
+				{
+					t = 0.8,
+					amp = CAT_LEGS_STILL,
+					Body = { 8, 0, 0, 0, -0.18, 0 },
+					FL = { 8, 0, 0 },
+					FR = { 8, 0, 0 },
+					FL2 = { 30, 0, 0 },
+					FR2 = { 30, 0, 0 },
+					BL = { 28, 0, 0 },
+					BR = { 28, 0, 0 },
+					BL2 = { -55, 0, 0 },
+					BR2 = { -55, 0, 0 },
+					Head = { -6, 0, 0 },
+					Tail = { -8, 0, 0 },
+				},
+				{ t = 0.95 },
+			},
+		},
 	}
 end
 
@@ -7008,6 +7079,8 @@ CLIPS.Dog = function(d)
 	local function sitWith(extra: Key): Key
 		return with(SIT, extra)
 	end
+	-- Echado: lo que baja el cuerpo para apoyar la quilla en el suelo (igual que el Labrador).
+	local lieDrop = d.bodyY - d.halfHeight - d.ground
 	return {
 		-- Trote: el cuerpo bota dos veces por zancada, la cabeza cabecea y las orejas rebotan (suena
 		-- con el reloj de las zancadas, encima del seno de las patas).
@@ -7084,6 +7157,270 @@ CLIPS.Dog = function(d)
 				sitWith({ t = 8.5 }),
 				sitWith({ t = 9.2 }),
 				{ t = 10 },
+			},
+		},
+		-- Salto (Fase 25, G7a): como el del felino pero con las orejas echadas atrás y la cola recta.
+		Jump = {
+			length = 0.95,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.2,
+					amp = DOG_STILL,
+					Body = { 9, 0, 0, 0, -0.22, 0.1 },
+					FL = { -28, 0, 0 },
+					FR = { -28, 0, 0 },
+					FL2 = { 45, 0, 0 },
+					FR2 = { 45, 0, 0 },
+					BL = { 38, 0, 0 },
+					BR = { 38, 0, 0 },
+					BL2 = { -70, 0, 0 },
+					BR2 = { -70, 0, 0 },
+					Head = { -8, 0, 0 },
+					EarL = { -10, 0, -8 },
+					EarR = { -10, 0, 8 },
+					Tail = { -6, 0, 0 },
+				},
+				{
+					t = 0.42,
+					amp = DOG_STILL,
+					Body = { -10, 0, 0, 0, 0.2, -0.3 },
+					FL = { 75, 0, -5 },
+					FR = { 75, 0, 5 },
+					FL2 = { -20, 0, 0 },
+					FR2 = { -20, 0, 0 },
+					BL = { -58, 0, 0 },
+					BR = { -58, 0, 0 },
+					BL2 = { 12, 0, 0 },
+					BR2 = { 12, 0, 0 },
+					Head = { 5, 0, 0 },
+					EarL = { -55, 0, -14 },
+					EarR = { -55, 0, 14 },
+					Tail = { 5, 0, 0 },
+				},
+				{
+					t = 0.68,
+					amp = DOG_STILL,
+					Body = { 6, 0, 0, 0, 0.06, -0.2 },
+					FL = { 90, 0, -3 },
+					FR = { 90, 0, 3 },
+					FL2 = { -6, 0, 0 },
+					FR2 = { -6, 0, 0 },
+					BL = { -18, 0, 0 },
+					BR = { -18, 0, 0 },
+					BL2 = { -28, 0, 0 },
+					BR2 = { -28, 0, 0 },
+					Head = { -3, 0, 0 },
+					EarL = { -35, 0, -10 },
+					EarR = { -35, 0, 10 },
+					Tail = { -2, 0, 0 },
+				},
+				{
+					t = 0.8,
+					amp = DOG_STILL,
+					Body = { 7, 0, 0, 0, -0.15, 0 },
+					FL = { 8, 0, 0 },
+					FR = { 8, 0, 0 },
+					FL2 = { 28, 0, 0 },
+					FR2 = { 28, 0, 0 },
+					BL = { 26, 0, 0 },
+					BR = { 26, 0, 0 },
+					BL2 = { -50, 0, 0 },
+					BR2 = { -50, 0, 0 },
+					Head = { -4, 0, 0 },
+					Tail = { -6, 0, 0 },
+				},
+				{ t = 0.95 },
+			},
+		},
+		-- Dar la pata: sentado, levanta la mano derecha hacia la del jugador y la sacude; la cabeza
+		-- sube hacia él y la cola barre el suelo.
+		GivePaw = {
+			length = 6.4,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				sitWith({ t = 0.9 }),
+				sitWith({ t = 1.4, Head = { -4 - s, 0, 0 } }),
+				sitWith({
+					t = 2,
+					FR = { 82 - s, 0, -6 },
+					FR2 = { 22, 0, 0 },
+					Head = { -10 - s, 0, 6 },
+					EarL = { 4, 0, -6 },
+					EarR = { 4, 0, 6 },
+				}),
+				sitWith({
+					t = 2.5,
+					FR = { 82 - s, 0, -6 },
+					FR2 = { 22, 0, 0 },
+					Head = { -10 - s, 0, 6 },
+					EarL = { 4, 0, -6 },
+					EarR = { 4, 0, 6 },
+					waves = { Tail = sweep, FR = { x = 7, speed = 11 } },
+				}),
+				sitWith({
+					t = 4.4,
+					FR = { 82 - s, 0, -6 },
+					FR2 = { 22, 0, 0 },
+					Head = { -10 - s, 0, 6 },
+					EarL = { 4, 0, -6 },
+					EarR = { 4, 0, 6 },
+					waves = { Tail = sweep, FR = { x = 7, speed = 11 } },
+				}),
+				sitWith({ t = 5, Head = { -4 - s, 0, 0 } }),
+				sitWith({ t = 5.6 }),
+				{ t = 6.4 },
+			},
+		},
+		-- Echado: se tumba con las manos al frente, apoya la cabeza entre ellas, deja caer las orejas y
+		-- respira despacio, con la cola quieta (dormido); luego levanta la cabeza y se pone en pie.
+		LieDown = {
+			length = 12,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				{
+					t = 1.1,
+					amp = DOG_STILL,
+					Body = { 0, 0, 0, 0, -lieDrop, 0 },
+					FL = { 72, 0, 0 },
+					FR = { 72, 0, 0 },
+					FL2 = { 12, 0, 0 },
+					FR2 = { 12, 0, 0 },
+					BL = { 80, 0, -8 },
+					BR = { 80, 0, 8 },
+					BL2 = { -150, 0, 0 },
+					BR2 = { -150, 0, 0 },
+					Head = { 4, 0, 0 },
+				},
+				{
+					t = 2.4,
+					amp = with(DOG_STILL, { Head = 0 }),
+					Body = { 0, 0, 0, 0, -lieDrop, 0 },
+					FL = { 72, 0, 0 },
+					FR = { 72, 0, 0 },
+					FL2 = { 12, 0, 0 },
+					FR2 = { 12, 0, 0 },
+					BL = { 80, 0, -8 },
+					BR = { 80, 0, 8 },
+					BL2 = { -150, 0, 0 },
+					BR2 = { -150, 0, 0 },
+					Head = { -18, 0, 8 },
+					EarL = { 0, 0, -26 },
+					EarR = { 0, 0, 26 },
+					Tail = { 4, 0, 0 },
+				},
+				{
+					t = 10,
+					amp = with(DOG_STILL, { Head = 0 }),
+					Body = { 0, 0, 0, 0, -lieDrop, 0 },
+					FL = { 72, 0, 0 },
+					FR = { 72, 0, 0 },
+					FL2 = { 12, 0, 0 },
+					FR2 = { 12, 0, 0 },
+					BL = { 80, 0, -8 },
+					BR = { 80, 0, 8 },
+					BL2 = { -150, 0, 0 },
+					BR2 = { -150, 0, 0 },
+					Head = { -18, 0, 8 },
+					EarL = { 0, 0, -26 },
+					EarR = { 0, 0, 26 },
+					Tail = { 4, 0, 0 },
+					waves = { Body = { py = 0.014, speed = 2.2 }, Head = { x = 1.5, speed = 2.2 } },
+				},
+				{
+					t = 10.9,
+					amp = DOG_STILL,
+					Body = { 0, 0, 0, 0, -lieDrop, 0 },
+					FL = { 72, 0, 0 },
+					FR = { 72, 0, 0 },
+					FL2 = { 12, 0, 0 },
+					FR2 = { 12, 0, 0 },
+					BL = { 80, 0, -8 },
+					BR = { 80, 0, 8 },
+					BL2 = { -150, 0, 0 },
+					BR2 = { -150, 0, 0 },
+					Head = { -6, 0, 0 },
+				},
+				{ t = 12 },
+			},
+		},
+		-- Mordisco: se agacha, se lanza hacia delante con la cabeza adelantada y las orejas atrás,
+		-- sacude la cabeza como si tirara de la presa y vuelve.
+		Bite = {
+			length = 1.1,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.22,
+					amp = DOG_STILL,
+					Body = { 10, 0, 0, 0, -0.2, 0.15 },
+					FL = { -25, 0, 0 },
+					FR = { -25, 0, 0 },
+					FL2 = { 40, 0, 0 },
+					FR2 = { 40, 0, 0 },
+					BL = { 35, 0, 0 },
+					BR = { 35, 0, 0 },
+					BL2 = { -65, 0, 0 },
+					BR2 = { -65, 0, 0 },
+					Head = { -8, 0, 0 },
+					EarL = { -30, 0, -10 },
+					EarR = { -30, 0, 10 },
+				},
+				{
+					t = 0.35,
+					amp = DOG_STILL,
+					Body = { -12, 0, 0, 0, 0.12, -0.6 },
+					FL = { 80, 0, -6 },
+					FR = { 80, 0, 6 },
+					FL2 = { -14, 0, 0 },
+					FR2 = { -14, 0, 0 },
+					BL = { -50, 0, 0 },
+					BR = { -50, 0, 0 },
+					BL2 = { 12, 0, 0 },
+					BR2 = { 12, 0, 0 },
+					Head = { 24, 0, 0 },
+					EarL = { -50, 0, -12 },
+					EarR = { -50, 0, 12 },
+				},
+				{
+					t = 0.5,
+					amp = DOG_STILL,
+					Body = { -6, 0, 0, 0, 0.04, -0.55 },
+					FL = { 70, 0, -4 },
+					FR = { 70, 0, 4 },
+					FL2 = { -10, 0, 0 },
+					FR2 = { -10, 0, 0 },
+					BL = { -40, 0, 0 },
+					BR = { -40, 0, 0 },
+					BL2 = { 8, 0, 0 },
+					BR2 = { 8, 0, 0 },
+					Head = { 14, 0, 0 },
+					EarL = { -50, 0, -12 },
+					EarR = { -50, 0, 12 },
+					waves = { Head = { y = 28, z = 10, speed = 30 }, Body = { z = 4, speed = 30 } },
+				},
+				{
+					t = 0.78,
+					amp = DOG_STILL,
+					Body = { -6, 0, 0, 0, 0.04, -0.55 },
+					FL = { 70, 0, -4 },
+					FR = { 70, 0, 4 },
+					FL2 = { -10, 0, 0 },
+					FR2 = { -10, 0, 0 },
+					BL = { -40, 0, 0 },
+					BR = { -40, 0, 0 },
+					BL2 = { 8, 0, 0 },
+					BR2 = { 8, 0, 0 },
+					Head = { 14, 0, 0 },
+					EarL = { -50, 0, -12 },
+					EarR = { -50, 0, 12 },
+					waves = { Head = { y = 28, z = 10, speed = 30 }, Body = { z = 4, speed = 30 } },
+				},
+				{ t = 1.1 },
 			},
 		},
 	}
@@ -7353,6 +7690,12 @@ CLIPS.Ocelote = function(d)
 	}
 end
 
+-- Jaguar de cristal (Fase 25, G7a): el zarpazo del Jaguarundí (se alza y da dos zarpazos). Antes no tenía
+-- ataque propio y PetFollowers le ponía el cabezazo genérico.
+CLIPS.JaguarCristal = function(d)
+	return { Attack = CLIPS.Jaguarundi(d).Attack }
+end
+
 -- Mono X-7: salta con los dos puños en alto y los estrella delante (martillazo).
 CLIPS.X7 = function()
 	local still = { ArmL = 0, ArmR = 0, LegL = 0, LegR = 0 }
@@ -7491,6 +7834,17 @@ CLIPS.Capibara = function()
 			length = 3,
 			keys = { { t = 0 }, with(shake, { t = 0.3 }), with(shake, { t = 2.3 }), { t = 3 } },
 		},
+		-- Salto (Fase 25, G7a): se encoge, se estira en el aire con la cabeza alta y cae pesada.
+		Jump = {
+			length = 0.9,
+			keys = {
+				{ t = 0 },
+				{ t = 0.2, Body = { 8, 0, 0, 0, -0.15, 0 }, Head = { -10, 0, 0 } },
+				{ t = 0.45, Body = { -10, 0, 0, 0, 0.25, -0.2 }, Head = { 12, 0, 0 } },
+				{ t = 0.7, Body = { 6, 0, 0, 0, 0.04, 0 }, Head = { -4, 0, 0 } },
+				{ t = 0.9 },
+			},
+		},
 		Run = {
 			length = 1,
 			loop = true,
@@ -7516,6 +7870,25 @@ CLIPS.Ajolote = function()
 		IdleGills = {
 			length = 4.5,
 			keys = { { t = 0 }, with(flare, { t = 0.5 }), with(flare, { t = 3.6 }), { t = 4.5 } },
+		},
+		-- Salto (Fase 25, G7a): el cuerpo se arquea, la cola ondula y las branquias se abren al caer.
+		Jump = {
+			length = 0.9,
+			keys = {
+				{ t = 0 },
+				{ t = 0.2, Body = { 10, 0, 0, 0, -0.1, 0 }, Head = { -8, 0, 0 }, Tail = { -10, 0, 0 } },
+				{
+					t = 0.45,
+					Body = { -14, 0, 0, 0, 0.22, -0.15 },
+					Head = { 10, 0, 0 },
+					Tail = { 8, 0, 0 },
+					GillL = { 0, 0, -20 },
+					GillR = { 0, 0, 20 },
+					waves = { Tail = { y = 20, speed = 24 } },
+				},
+				{ t = 0.7, Body = { 6, 0, 0, 0, 0.03, 0 }, GillL = { 0, 0, -12 }, GillR = { 0, 0, 12 } },
+				{ t = 0.9 },
+			},
 		},
 		IdleWag = {
 			length = 5,
@@ -7548,7 +7921,25 @@ end
 -- Quetzal: al planear, las plumas largas de la cola ondulan y la cabeza se ladea despacio (además del
 -- planeo de las aves).
 CLIPS.Quetzal = function()
+	-- Alas abiertas y batiendo: el salto de un ave es un aletazo.
+	local flap: Key = {
+		amp = { WingL = 0, WingR = 0 },
+		WingL = { 0, 0, -50 },
+		WingR = { 0, 0, 50 },
+		waves = { WingL = { z = 30, speed = 26 }, WingR = { z = 30, speed = 26, phase = math.pi } },
+	}
 	return {
+		-- Salto (Fase 25, G7a): se agacha, bate las alas al despegar y las deja abiertas al caer.
+		Jump = {
+			length = 0.95,
+			keys = {
+				{ t = 0 },
+				{ t = 0.18, Body = { 8, 0, 0, 0, -0.1, 0 }, Head = { -8, 0, 0 } },
+				with(flap, { t = 0.4, Body = { -10, 0, 0, 0, 0.3, -0.2 }, Head = { 8, 0, 0 } }),
+				with(flap, { t = 0.7, Body = { 4, 0, 0, 0, 0.06, 0 } }),
+				{ t = 0.95 },
+			},
+		},
 		Glide = {
 			length = 1,
 			loop = true,

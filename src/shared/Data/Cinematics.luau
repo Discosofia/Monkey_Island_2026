@@ -2010,12 +2010,7 @@ local function glideAt(t: number): Vector3
 end
 
 -- Un plano: dos extremos con el punto repetido 1 ms después, para que la spline no curve el plano con los vecinos del corte.
-local function pushShot(camera: { CameraPoint }, t0: number, t1: number, a: CameraPoint, b: CameraPoint)
-	table.insert(camera, { t = t0, pos = a.pos, look = a.look, fov = a.fov })
-	table.insert(camera, { t = t0 + 0.001, pos = a.pos, look = a.look, fov = a.fov })
-	table.insert(camera, { t = t1, pos = b.pos, look = b.look, fov = b.fov })
-	table.insert(camera, { t = t1 + 0.001, pos = b.pos, look = b.look, fov = b.fov })
-end
+local pushShot = CameraPath.pushShot -- la cuenta vive en CameraPath, que también encadena tomas (montage)
 
 local function shot(pos: Vector3, look: Vector3, fov: number): CameraPoint
 	return { t = 0, pos = pos, look = look, fov = fov }

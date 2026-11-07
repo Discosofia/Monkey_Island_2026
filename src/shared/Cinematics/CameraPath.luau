@@ -108,4 +108,70 @@ function CameraPath.orbit(center: Vector3, radius: number, height: number, degre
 	return points
 end
 
+-- Hueco entre el final de un plano y el principio del siguiente (corte seco) y desfase del punto repetido.
+CameraPath.CUT_GAP = 0.05
+local CUT_REPEAT = 0.001
+
+-- Añade a "camera" una toma (lista de puntos con t relativo a 0, en orden) empezando en "t0". El primer y el último punto
+-- se repiten 1 ms después, para que la spline no curve el plano con los vecinos del corte. Devuelve el t del final.
+local function appendShot(camera: { Point }, t0: number, shotPoints: { Point }): number
+	local n = #shotPoints
+	for i, p in shotPoints do
+		local t = t0 + (p.t or 0)
+		table.insert(camera, { t = t, pos = p.pos, look = p.look, fov = p.fov })
+		if i == 1 or i == n then
+			table.insert(camera, { t = t + CUT_REPEAT, pos = p.pos, look = p.look, fov = p.fov })
+		end
+	end
+	return t0 + (shotPoints[n].t or 0)
+end
+
+-- Un plano de dos extremos, de t0 a t1 (segundos de la escena), con corte seco.
+function CameraPath.pushShot(camera: { Point }, t0: number, t1: number, a: Point, b: Point)
+	appendShot(camera, t0, {
+		{ t = 0, pos = a.pos, look = a.look, fov = a.fov },
+		{ t = t1 - t0, pos = b.pos, look = b.look, fov = b.fov },
+	})
+end
+
+-- Plano cenital fijo de t0 a t1: la cámara "height" studs sobre "center" mirando hacia abajo. La mirada se desplaza un
+-- poco para que la cámara no quede paralela al vector arriba (se descolocaría el giro).
+function CameraPath.zenith(center: Vector3, height: number, t0: number, t1: number, fov: number?): { Point }
+	local pos = center + Vector3.new(0, height, 0)
+	local look = center + Vector3.new(0, 0, -math.max(0.1, height * 0.02))
+	return { { t = t0, pos = pos, look = look, fov = fov }, { t = t1, pos = pos, look = look, fov = fov } }
+end
+
+-- Plano de t0 a t1 con la cámara detrás de "targetPos", como la ve el jugador: a "distance" studs por detrás y "height"
+-- por encima, mirando en la dirección de "yaw" (grados; mismo giro que el yaw de los actores: 0 mira a -Z).
+function CameraPath.behind(
+	targetPos: Vector3,
+	yaw: number,
+	distance: number,
+	height: number,
+	t0: number,
+	t1: number,
+	fov: number?
+): { Point }
+	local forward = CFrame.Angles(0, math.rad(yaw), 0).LookVector
+	local pos = targetPos - forward * distance + Vector3.new(0, height, 0)
+	return { { t = t0, pos = pos, look = targetPos, fov = fov }, { t = t1, pos = pos, look = targetPos, fov = fov } }
+end
+
+-- Encadena tomas ya construidas (cada una, lista de puntos con t relativo a 0; duran lo que diga su último t) con corte
+-- seco: cada una empieza "cut" segundos (por defecto CUT_GAP) después de acabar la anterior. Devuelve los puntos y la
+-- duración total.
+function CameraPath.montage(shots: { { Point } }, cut: number?): ({ Point }, number)
+	local gap = cut or CameraPath.CUT_GAP
+	local camera: { Point } = {}
+	local t = 0
+	for i, shotPoints in shots do
+		if i > 1 then
+			t += gap
+		end
+		t = appendShot(camera, t, shotPoints)
+	end
+	return camera, t
+end
+
 return CameraPath

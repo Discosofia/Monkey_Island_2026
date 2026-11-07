@@ -6502,6 +6502,23 @@ Escena `Flyover` (42 s, solo para grabar, no sale sola en el juego) con la orden
 12. [ ] Mira el Basecamp durante cualquier cinemática (Sobrevuelo, Llegada, Rescate…).
    ✅ No se ve ningún rótulo del mundo: ni «Free plot» ni «Parcela de …» sobre las parcelas, ni el del tótem. Al acabar la escena vuelven todos (en Play se comprobó: 9 visibles antes y después, ninguno durante). Si algún rótulo de un sitio que sí debe verse en una escena desaparece, hay que excluirlo en `UI/HudHider`.
 
+## 170. Fase 25 G7a: clips de mascota y piezas del motor de cinemáticas (07-11-2026)
+
+Clips nuevos en `PetModels`: `Jump` (familias Cat y Dog, Capibara, Ajolote y Quetzal), `GivePaw`, `LieDown` y `Bite` (perros) y `Attack` del Jaguar de Cristal (el zarpazo del Jaguarundí). Piezas nuevas del motor de cinemáticas: `PetActor` (mascota como actor `prop`, evento `petClip`), `CameraShake` (evento `shake`) y los helpers `zenith`, `behind`, `montage` y `pushShot` en `CameraPath`. En edición, con las poses congeladas con `PetModels.animate`, ya se comprobó el Labrador (GivePaw, LieDown, Bite y Jump), el Beagle (Jump y GivePaw), el Jaguar de Cristal (Jump y Attack) y que existen los Jump de Capibara, Ajolote y Quetzal. Falta el movimiento real de los clips, sus mezclas y las piezas de las escenas (G7b).
+
+1. [ ] En la Isla, en Play, con una mascota Jaguar de Cristal equipada: ataca a un mono.
+   ✅ Hace el zarpazo de pie (antes era el cabezazo genérico) a los 0,35 s del golpe, sin deslizarse ni hundirse. Con Ocelote y Jaguarundi nada ha cambiado.
+2. [ ] En Play, con cualquier perro y gato equipados: haz que salten o sigue al dueño.
+   ✅ Andar, correr y el reposo no cambian. Los clips nuevos no se eligen solos: `Jump`, `GivePaw`, `LieDown` y `Bite` solo suenan desde cinemáticas.
+3. [ ] `PetActor` dentro de una escena (se prueba en G7b; antes se llama a `PetActor.preload`).
+   ✅ Las mascotas de la escena se ven aunque `CinematicClient` oculte las seguidoras, animan sin pisar el suelo y desaparecen al acabar la escena o al saltarla. Si las mallas tardan, la escena arranca como mucho a los 6 s.
+4. [ ] `shake` con la cámara `Scriptable` en Play (se prueba en G7b, por ejemplo en el aterrizaje de un salto).
+   ✅ La cámara tiembla y el temblor decae a cero. Al saltar la escena no queda descolocada.
+5. [ ] `zenith`, `behind` y `montage` (G7b).
+   ✅ El cenital no gira raro (sin gimbal). `behind` queda a la espalda del personaje mirando como el jugador. El montaje corta en seco con 0,05 s de hueco.
+6. [ ] Regresión del `pushShot` movido a `CameraPath`: lanza «🎬 Sobrevuelo» y «🥊 Batalla».
+   ✅ Los cortes salen igual que antes, con la misma duración y los mismos planos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
