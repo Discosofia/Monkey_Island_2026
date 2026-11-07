@@ -70,6 +70,10 @@ function WeatherController:Start()
 			return
 		end
 		task.wait(math.max(0, at - Workspace:GetServerTimeNow()))
+		-- En una cinemática con hora propia el cielo está despejado: sin destello.
+		if typeof(Lighting:GetAttribute("CinematicClockTime")) == "number" then
+			return
+		end
 		local flash = Instance.new("ColorCorrectionEffect")
 		flash.Brightness = 0.6
 		flash.Parent = Lighting

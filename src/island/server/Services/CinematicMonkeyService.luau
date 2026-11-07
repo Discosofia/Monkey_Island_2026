@@ -248,8 +248,77 @@ local function onMonkey(event: { [string]: any }, run: CinematicService.Run)
 	end
 end
 
+-- Radio (studs) en que se esconden los monos reales alrededor de cada punto del evento hideEnemies.
+local HIDE_RADIUS = 200
+
+type HiddenProperty = { instance: Instance, property: string, value: any }
+
+-- hideEnemies { centers = { Vector3 }, radius? }: esconde a los monos reales (etiqueta Enemy) que estén a menos de
+-- "radius" de alguno de esos puntos (mundo, no relativos al anchor) mientras dura la escena: sin cuerpo, cartel ni
+-- partículas. Se repasa cada HIDE_SCAN_SECONDS porque MonkeyService genera monos nuevos al llegar el avatar al claro.
+-- Los de la cinemática (CinematicActor) no llevan la etiqueta Enemy y no se tocan. Al acabar se devuelve cada
+-- propiedad a su valor. Solo esconde: la escena debe llevar freeze para que no ataquen sin verse.
+local HIDE_SCAN_SECONDS = 0.5
+
+local function onHideEnemies(event: { [string]: any }, run: CinematicService.Run)
+	local centers = event.centers :: { Vector3 }
+	local radius: number = event.radius or HIDE_RADIUS
+	local saved: { HiddenProperty } = {}
+	local done: { [Instance]: boolean } = {}
+	local function hide(instance: Instance, property: string, hidden: any)
+		local target: any = instance
+		table.insert(saved, { instance = instance, property = property, value = target[property] })
+		target[property] = hidden
+	end
+	local function hideModel(model: Model)
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") or descendant:IsA("Decal") then
+				hide(descendant, "Transparency", 1)
+			elseif
+				descendant:IsA("BillboardGui")
+				or descendant:IsA("SurfaceGui")
+				or descendant:IsA("ParticleEmitter")
+				or descendant:IsA("Light")
+				or descendant:IsA("Beam")
+				or descendant:IsA("Trail")
+			then
+				hide(descendant, "Enabled", false)
+			end
+		end
+	end
+	local function scan()
+		for _, model in CollectionService:GetTagged("Enemy") do
+			if model:IsA("Model") and not done[model] then
+				local position = model:GetPivot().Position
+				for _, center in centers do
+					if (position - center).Magnitude <= radius then
+						done[model] = true
+						hideModel(model)
+						break
+					end
+				end
+			end
+		end
+	end
+	task.spawn(function()
+		while not run.finished do
+			scan()
+			task.wait(HIDE_SCAN_SECONDS)
+		end
+	end)
+	CinematicService.onEnd(run, function()
+		for _, item in saved do
+			if item.instance.Parent then
+				local target: any = item.instance
+				target[item.property] = item.value
+			end
+		end
+	end)
+end
+
 function CinematicMonkeyService:Start()
 	CinematicService.registerServerEvent("monkey", onMonkey)
+	CinematicService.registerServerEvent("hideEnemies", onHideEnemies)
 end
 
 return CinematicMonkeyService

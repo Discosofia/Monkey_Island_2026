@@ -6519,6 +6519,39 @@ Clips nuevos en `PetModels`: `Jump` (familias Cat y Dog, Capibara, Ajolote y Que
 6. [ ] Regresión del `pushShot` movido a `CameraPath`: lanza «🎬 Sobrevuelo» y «🥊 Batalla».
    ✅ Los cortes salen igual que antes, con la misma duración y los mismos planos.
 
+## 171. Fase 25 G7b: cinemática «Mascotas» de la Isla, normal y reel (07-11-2026)
+
+Escenas `Pets` (40 s) y `Pets_Reel` (15 s, 9:16) en `Data/Cinematics`, a hora fija 17,5, solo para grabar: no salen solas en el juego. Se lanzan con las órdenes «🐾 Mascotas» y «🐾 Mascotas reel» del panel de pruebas de la Isla. Siete mascotas (Jaguar de Cristal, Ocelote, Labrador, Beagle, Capibara, Ajolote y Quetzal) con el avatar en tres sitios: la jungla (claro en (-25, 272)), el manglar (386, 540, con la manada de monos) y la falda de la montaña (-410, -100). Montaje inicial de 4 s con cenital, plano desde atrás y primeros planos. Cuatro frases nuevas, con inglés.
+
+Ya se comprobó en Play con el Studio de la Isla: la escena arranca y recorre jungla, manglar (mascotas y monos) y montaña con el subtítulo «By your side, all the way to the top»; al acabar, el avatar vuelve al Basecamp, la cámara queda en Custom y no sobran actores. Todas las cámaras de `Pets` y `Pets_Reel`, muestreadas cada 0,25 s, están a 1,5 studs o más del suelo y sin troncos delante. Se corrigió una cámara que estaba dentro de un tronco de mangle (x 390 → 395). Lo que sigue va sin probar: graba en OBS a 1080p60 y mira los tiempos en el vídeo.
+
+1. [ ] «🐾 Mascotas» en Play, de 0 a 4 s (el montaje inicial).
+   ✅ Seis cortes secos: la cara del Labrador, el cenital del Beagle echado, los gatos en las piernas del avatar, el plano desde atrás, el salto del Jaguar de Cristal y un general. Si el cenital del Beagle no está a medias (el clip `LieDown` dura 12 s), adelanta su inicio.
+2. [ ] Jungla, de 4 a 14 s.
+   ✅ El avatar se agacha con la pose «Place», que no es una mano tendida; si no encaja, hace falta una animación nueva que publica el usuario. El Labrador da la pata (`GivePaw`). Los gatos se rozan y dan la vuelta. El salto del Jaguar de Cristal sacude la cámara al aterrizar.
+3. [ ] Manglar, de 14 a 27 s.
+   ✅ La capibara y el ajolote saltan junto al agua. La manada llega del oeste (Mandril alfa, 2 Macacos, Babuino y Aullador rojo) sin aparecer de golpe; si el cliente no tiene cargada la zona a 17 s, no se ven llegar, así que hay que comprobarlo con la zona cargada. Los golpes de `Bite` (0,45 s, estimado) y `Attack` (0,35 s) coinciden con los monos que caen con «¡puf!».
+4. [ ] Montaña, de 27 a 37 s.
+   ✅ El Quetzal despega a 30,5 s y planea sobre la cámara hacia 32,6 s sin latigazo de cámara, sin hundirse ni flotar (su suelo inicial no usa snap). El Ocelote salta. La hierba alta no tapa a las mascotas en ningún plano de la montaña: en el vídeo de 07-11-2026 las cubría desde la cámara a 2,4 studs, y ahora las cámaras van a 5-11,5 studs sobre el banco, más cerca y mirando hacia abajo (comprobado en Studio con el grupo colocado; falta verlo en el vídeo). Si aún se ve poco, quita la hierba en esos planos con `Terrain.Decoration`.
+5. [ ] Cartel final y subtítulos.
+   ✅ Sale el título «Tus mascotas, tu manada» (inglés «Your pets, your pack»), el logo y el fundido a negro. Los subtítulos aparecen en pantalla a 4,3 s, 14,4 s y 27,4 s.
+6. [ ] Al acabar «🐾 Mascotas», y también al saltarla (Skip) a medias.
+   ✅ El avatar vuelve donde estaba, la cámara pasa a Custom, las mascotas de la escena desaparecen, los monos de la cinemática desaparecen y vuelve el HUD.
+7. [ ] «🐾 Mascotas reel» en Play (15 s, 9:16).
+   ✅ Montaje de unos 3 s, dar la pata, el manglar con el alfa cayendo, el planeo del Quetzal, el título a 13,3 s y el fundido a 14,7 s. Los fondos son ámbar: el verde se reserva para la curación.
+8. [ ] Frases nuevas: jungla, manglar, montaña y título.
+   ✅ Las cuatro tienen inglés. Al cerrar el grupo se sube con `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` y después `python tools/strings.py --marcar-subidas`.
+9. [ ] Con 2 jugadores y el juego publicado.
+   ✅ La cámara, las mascotas y el avatar solo los ve quien pulsa. Los monos son de servidor: los ve quien esté cerca.
+10. [ ] Copia de perfil `u_8620190944_antesG7b` en `PlayerData_v1_backups` (hecha antes de probar; el perfil no se restauró porque la escena no lo toca).
+   ✅ Se borra si ya no hace falta. El perfil real no cambia con esta escena.
+11. [ ] Con tormenta (`ReplicatedStorage:SetAttribute("Weather", "Storm")` desde el servidor en Play), pulsa «🐾 Mascotas» y míralo entero.
+   ✅ No cae ningún rayo, no hay destello blanco ni trueno durante los 40 s (`WeatherService` no elige como blanco a quien ve una escena: `CinematicService.isPlayingFor`; `WeatherController` ignora el destello con `CinematicClockTime`). Al volver al Basecamp y salir de él, los rayos de la tormenta siguen cayendo con normalidad. Probado en Studio: con tormenta y rayo cada 20 s no cayó ninguno en toda la escena.
+12. [ ] Monos reales de la isla durante «🐾 Mascotas» y «🐾 Mascotas reel» (en Play, grabando).
+   ✅ No se ve ningún mono de la isla (ardillas y capuchinos que andan por la jungla, a 70-100 studs del claro) en ninguno de los tres sitios: el evento `hideEnemies` los esconde (también los que genera `MonkeyService` al llegar el avatar) y la escena lleva `freeze`, así que tampoco atacan ni hacen daño. Solo se ven los monos de la manada de la escena (a partir de 17 s). Al acabar o saltar la escena todos vuelven a verse y a actuar. Probado en Studio: 27-30 monos cercanos ocultos durante la escena y 39 visibles al acabar. La orden ya no usa `noFreeze`: mientras dura, congela a los monos y los jefes de todos los jugadores del servidor y protege a todos.
+13. [ ] Primera ejecución tras abrir Play (con las cachés vacías) y carga de las mallas, con cortes rápidos (montaje de 0 a 4 s y saltos de sitio a 14 s y 27 s).
+   ✅ La escena arranca en pocos segundos (en Studio, con la caché caliente, a 0,7 s de pulsar), nunca se queda en negro, y las mascotas salen con su malla y su textura desde el primer fotograma. En el vídeo de 07-11-2026 (16:09) la primera ejecución de la sesión se quedó en negro los 40 s: `PetActor.preloadAll` y cada `PetActor.build` esperaban a las mallas hasta 6 s cada vez (siete mascotas, hasta 42 s sin interfaz) y `PetModels.preload` no reintenta una malla cuya primera carga falló («Asset content representation is being generated»). Ahora: `preloadAll` espera 6 s como mucho en total, reintenta cada segundo las que no han cargado, baja las texturas con `PreloadAsync` (tope 2,5 s) y marca las mascotas como preparadas para que `build` no espere; una malla que no llega sale a bloques con un aviso en la Salida («PetActor: alguna malla no cargó a tiempo»). Se QUITÓ el fundido de entrada que se probó antes (no se ha podido descartar que dejara la pantalla en negro). NO reproducido el cuelgue en Studio (la caché estaba caliente): hay que grabar justo tras abrir Play. EXCEPCIÓN a propósito: el Jaguar de Cristal no tiene malla en `Data/PetMeshes` (bloques de cristal translúcido), así que siempre se ve a bloques.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

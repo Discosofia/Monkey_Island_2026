@@ -132,6 +132,16 @@ function CinematicService.isRunning(id: string): boolean
 	return false
 end
 
+-- true si "player" ve ahora mismo alguna escena, sea cual sea (WeatherService no le echa rayos en mitad de una).
+function CinematicService.isPlayingFor(player: Player): boolean
+	for _, run in running do
+		if not run.finished and run.audience[player] then
+			return true
+		end
+	end
+	return false
+end
+
 -- true si "player" tiene en marcha la escena "id" (su ejecución propia o una compartida que ve).
 function CinematicService.isRunningFor(id: string, player: Player): boolean
 	return runOf(id, player) ~= nil

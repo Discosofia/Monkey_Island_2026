@@ -888,4 +888,9 @@ return {
 	["¡CRASH!"] = "CRASH!",
 	-- Montaje reel de la batalla (Battle_Pack_Reel).
 	["¡BUM!"] = "BOOM!",
+	-- Cinemática de las mascotas (Pets y Pets_Reel, G7b).
+	["Los amigos más fieles de la isla"] = "The island's most loyal friends",
+	["Y no se rinden ante la manada"] = "And they never back down from the pack",
+	["Siempre a tu lado, hasta la cima"] = "By your side, all the way to the top",
+	["Tus mascotas, tu manada"] = "Your pets, your pack",
 }

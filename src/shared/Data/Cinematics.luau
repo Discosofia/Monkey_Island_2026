@@ -27,6 +27,7 @@
 --   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
 --   Battle_Pack, Battle_Pack_Comic, Battle_Pack_Reel ... 18,8
 --   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
+--   Pets y Pets_Reel ..................... 17,5  (atardecer dorado; sin luces propias: las mascotas se ven con el sol bajo)
 
 local Bosses = require(script.Parent.Bosses)
 local CameraPath = require(script.Parent.Parent.Cinematics.CameraPath)
@@ -35,6 +36,7 @@ local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local MountedRider = require(script.Parent.Parent.Cinematics.MountedRider)
+local PetActor = require(script.Parent.Parent.Cinematics.PetActor)
 local Strings = require(script.Parent.Parent.Strings)
 
 export type Scene = {
@@ -2347,7 +2349,834 @@ local function flyoverScene(comic: boolean): Scene
 	}
 end
 
+-- Mascotas (Fase 25, G7b; 40 s) y Mascotas reel (15 s, 9:16): vídeo de las siete mascotas con el avatar del jugador en tres
+-- sitios de la Isla, solo para grabar (órdenes «🐾 Mascotas» y «🐾 Mascotas reel»). Van en coordenadas del MUNDO (anchor =
+-- CFrame.identity, lo pone DebugService) y la cámara cruza la isla (streamFollowsCamera). Los sitios están medidos con
+-- rayos en el Studio de la Isla (radio 950): JUNGLA, claro llano al sur del Basecamp (Y 12 a 13, árboles fuera de ±30
+-- del centro); MANGLAR, orilla del Orangután (llano al oeste y al sur, el río al NE); MONTAÑA, banco llano de la falda
+-- (Y ~21) con la pared al norte. Todas las alturas de cámara se cuentan sobre el suelo MÁS ALTO de su claro
+-- (surface), con 2 studs de colchón como mínimo. Lo marcado «a medir» no se pudo comprobar sin Studio.
+--
+-- Línea de tiempo de Pets (las coordenadas de cada acción están en petsFullEvents):
+--    0 a 4     Montaje de 6 cortes en la jungla (cara del Labrador, cenital del Beagle, gatos a ras, el avatar visto por
+--              detrás, salto del Jaguar de Cristal de perfil, plano general)
+--    4 a 14    JUNGLA: el avatar se agacha y da la mano al Labrador (GivePaw), el Beagle echado, los gatos se rozan en sus
+--              piernas (IdleRub) y dan la vuelta, salto del Jaguar de Cristal con sacudida al aterrizar
+--   14 a 27    MANGLAR: la capibara y el ajolote saltan junto al agua, llega la manada (5 monos, el Mandril alfa), pelea y
+--              los monos se van con su «¡puf!»
+--   27 a 37    MONTAÑA: el avatar sube la falda, el Ocelote salta entre rocas, el Quetzal despega y planea sobre la cámara
+--   37 a 40    cartel «Tus mascotas, tu manada», logo y fundido a negro
+-- Pets_Reel es lo mismo recortado: montaje de 3 s, dar la pata, mordisco y planeo del Quetzal (cortes de ventana alta,
+-- como Battle_Pack_Reel).
+local PETS_SECONDS = 40
+local PETS_REEL_SECONDS = 15
+local PETS_HOUR = 17.5 -- atardecer dorado, como el Sobrevuelo
+local PET_JUMP_SECONDS = 0.95 -- clip Jump (Cat, Dog, Capibara y Quetzal duran de 0,9 a 0,95 s)
+local PET_ATTACK_HIT = 0.35 -- segundos del inicio de Attack al zarpazo (el Ocelote y el Jaguar de Cristal)
+local PET_BITE_HIT = 0.45 -- segundos del inicio de Bite al mordisco (a medir en Studio)
+local PET_LUNGE_SECONDS = 0.35 -- lo que tarda una mascota en lanzarse hacia un mono
+local PET_WALK_MOVING = 0.4 -- «moving» (0 a 1) de un paseo: mezcla Walk y Run como PetFollowers
+local PET_RUN_MOVING = 1
+local PET_CAPTIONS = {
+	jungle = Strings.later("Los amigos más fieles de la isla"),
+	mangrove = Strings.later("Y no se rinden ante la manada"),
+	mountain = Strings.later("Siempre a tu lado, hasta la cima"),
+	title = Strings.later("Tus mascotas, tu manada"),
+}
+
+-- Altura (x, alto sobre el suelo más alto del claro, z) en el mundo. El colchón de las cámaras sale de aquí.
+local function surface(top: number): (number, number, number) -> Vector3
+	return function(x: number, height: number, z: number): Vector3
+		return Vector3.new(x, top + height, z)
+	end
+end
+local jungle = surface(13) -- el llano sube a 13 como mucho
+local mangrove = surface(14) -- 12 a 14
+local mountain = surface(22) -- el banco ronda los 21 (a medir)
+
+-- Giro (grados, como el yaw de los actores: 0 mira a -Z) para ir de un punto a otro.
+local function yawBetween(from: Vector3, to: Vector3): number
+	return math.deg(math.atan2(-(to.X - from.X), -(to.Z - from.Z)))
+end
+
+local JUNGLE_AVATAR = Vector3.new(-25, 12.5, 272)
+local JUNGLE_RING = 2.4 -- radio de la vuelta de los gatos alrededor del avatar
+
+-- Punto de la vuelta de los gatos alrededor del avatar (grados desde +X hacia +Z).
+local function ringPoint(degrees: number): Vector3
+	local a = math.rad(degrees)
+	return Vector3.new(
+		JUNGLE_AVATAR.X + math.cos(a) * JUNGLE_RING,
+		JUNGLE_AVATAR.Y,
+		JUNGLE_AVATAR.Z + math.sin(a) * JUNGLE_RING
+	)
+end
+
+-- Quetzal (montaña): sale del banco, despega y planea hasta pasar a ~6 studs sobre la cámara (PET_OVERHEAD_CAM).
+local Q_FROM = Vector3.new(-414, 21.1, -96) -- en el suelo (sin snap: vuela; a medir)
+local Q_MID = Vector3.new(-409, 24, -94.3) -- donde acaba el despegue
+local Q_TO = Vector3.new(-376, 38, -83)
+local Q_TAKEOFF_SECONDS = 0.9
+local Q_BODY_LIFT = 1.2 -- de sus pies al centro del cuerpo (adonde mira la cámara)
+local Q_YAW = yawBetween(Q_MID, Q_TO)
+local Q_GLIDE_PITCH =
+	math.deg(math.atan((Q_TO.Y - Q_MID.Y) / Vector3.new(Q_TO.X - Q_MID.X, 0, Q_TO.Z - Q_MID.Z).Magnitude))
+local PET_OVERHEAD_CAM = mountain(-396, 4, -92.3) -- a 2,5 studs al lado del camino del Quetzal (nunca mira en vertical); a 4 studs, sobre la hierba
+
+-- Dónde está el Quetzal (sus pies) en el segundo t, con el despegue en jumpAt y un planeo de glideSeconds.
+local function quetzalAt(t: number, jumpAt: number, glideSeconds: number): Vector3
+	local takeoffEnd = jumpAt + Q_TAKEOFF_SECONDS
+	if t <= jumpAt then
+		return Q_FROM
+	elseif t < takeoffEnd then
+		return Q_FROM:Lerp(Q_MID, (t - jumpAt) / Q_TAKEOFF_SECONDS)
+	end
+	return Q_MID:Lerp(Q_TO, math.clamp((t - takeoffEnd) / glideSeconds, 0, 1))
+end
+
+type Spot = { pos: Vector3, yaw: number }
+
+local function spot(x: number, y: number, z: number, yaw: number): Spot
+	return { pos = Vector3.new(x, y, z), yaw = yaw }
+end
+
+-- Jungla: el avatar mira al este, hacia el Labrador; los gatos, en su vuelta; el Beagle, echado al noroeste.
+local PET_JUNGLE: { [string]: Spot } = {
+	avatar = { pos = JUNGLE_AVATAR, yaw = -90 },
+	labrador = spot(-22.2, 12.5, 272, 90),
+	beagle = spot(-31, 12.5, 264, 170),
+	ocelote = { pos = ringPoint(140), yaw = yawBetween(ringPoint(140), JUNGLE_AVATAR) },
+	jaguar = { pos = ringPoint(250), yaw = yawBetween(ringPoint(250), JUNGLE_AVATAR) },
+}
+-- Orilla del manglar donde juegan la capibara y el ajolote (a medir: el río está a x ≥ 410, z ≤ 520).
+local PET_WATER: { [string]: Spot } = {
+	capibara = spot(400, 13, 531, 180),
+	ajolote = spot(404.5, 13, 527.5, 200),
+}
+-- Manglar: la fila de combate de cara a los monos, que llegan del oeste.
+local PET_LINE: { [string]: Spot } = {
+	avatar = spot(392, 13, 542.5, 90),
+	labrador = spot(382.5, 13, 546, 90),
+	jaguar = spot(381, 13, 543.5, 90),
+	ocelote = spot(381, 13, 541, 90),
+	beagle = spot(382.5, 13, 538.5, 90),
+	capibara = spot(386, 13, 548, 90),
+	ajolote = spot(386, 13, 536, 90),
+}
+-- Hasta dónde se lanza cada una contra los monos (a ~4,5 studs de ellos).
+local PET_LUNGE: { [string]: Vector3 } = {
+	labrador = Vector3.new(377.8, 13, 547.4),
+	beagle = Vector3.new(377.8, 13, 537.6),
+	jaguar = Vector3.new(377.3, 13, 542.8),
+	ocelote = Vector3.new(377.3, 13, 540.8),
+	capibara = Vector3.new(376, 13, 544.2),
+}
+-- Montaña, al llegar (el banco llano de x -420 a -395 y z -112 a -88) y al terminar la subida, de cara a la pared.
+local PET_CLIMB_START: { [string]: Spot } = {
+	avatar = spot(-404, 21, -96, 35),
+	labrador = spot(-402.5, 21, -98.5, 35),
+	beagle = spot(-406, 21, -94.5, 35),
+	jaguar = spot(-400, 21, -96.5, 35),
+	ocelote = spot(-408, 21, -98, 35),
+	capibara = spot(-399.5, 21, -100, 35),
+	ajolote = spot(-407, 21, -91.5, 35),
+}
+local PET_SUMMIT: { [string]: Spot } = {
+	avatar = spot(-411, 21, -106, 20),
+	labrador = spot(-408.5, 21, -103.5, 20),
+	beagle = spot(-413.5, 21, -103.8, 20),
+	jaguar = spot(-407, 21, -107.5, 20),
+	ocelote = spot(-409.5, 21, -101.5, 20),
+	capibara = spot(-405, 21, -104, 20),
+	ajolote = spot(-415, 21, -107, 20),
+}
+local PET_SPECIES = {
+	labrador = "Labrador",
+	beagle = "Beagle",
+	jaguar = "JaguarCristal",
+	ocelote = "Ocelote",
+	capibara = "Capibara",
+	ajolote = "Ajolote",
+	quetzal = "Quetzal",
+}
+-- La manada del manglar: el Mandril alfa y cuatro más, en fila a ~5 studs de las mascotas (x, z donde frenan).
+local PET_MONKEY_START_X = 350
+local PET_MONKEYS = {
+	{ name = "alfa", species = "Mandril", alpha = true, x = 372.5, z = 541.8 },
+	{ name = "macaco1", species = "Macaco", alpha = false, x = 373.5, z = 545.8 },
+	{ name = "babuino", species = "Babuino", alpha = false, x = 373.2, z = 538.2 },
+	{ name = "aullador", species = "AulladorRojo", alpha = false, x = 374, z = 549 },
+	{ name = "macaco2", species = "Macaco", alpha = false, x = 374, z = 535.6 },
+}
+
+local function petsActors(): { [string]: { [string]: any } }
+	-- Dónde empieza cada una al comenzar la escena (el resto de sitios se ponen con eventos move a t = 0 s).
+	local starts: { [string]: Spot } = table.clone(PET_JUNGLE)
+	for name, start in PET_WATER do
+		starts[name] = start
+	end
+	starts.quetzal = { pos = Q_FROM, yaw = Q_YAW }
+	local actors: { [string]: { [string]: any } } = {
+		avatar = { kind = "localPlayer", pos = JUNGLE_AVATAR, yaw = PET_JUNGLE.avatar.yaw, snap = true },
+	}
+	for name, species in PET_SPECIES do
+		local start = starts[name]
+		actors[name] = {
+			kind = "prop",
+			build = PetActor.propBuilder(species, nil, start.pos, start.yaw, name == "quetzal"),
+		}
+	end
+	return actors
+end
+
+-- Escritor de los eventos de la escena: petClip y move de las mascotas, anim y move del avatar, monkey del servidor.
+-- Recuerda dónde está cada actor (para el giro de un paseo). Los nombres de actor son los de PET_SPECIES y «avatar».
+type PetWriter = {
+	add: (event: { t: number, kind: string, [string]: any }) -> (),
+	clip: (t: number, actor: string, name: string | boolean, loop: boolean?, moving: number?) -> (),
+	walk: (t: number, actor: string, pos: Vector3, seconds: number, moving: number?, yaw: number?) -> (),
+	put: (t: number, actor: string, pos: Vector3, yaw: number) -> (),
+	jump: (t: number, actor: string, to: Vector3?, yaw: number?) -> (),
+	strike: (t: number, actor: string, name: string, lunge: Vector3?) -> (),
+	monkey: (t: number, name: string, fields: { [string]: any }) -> (),
+	anim: (t: number, action: string, seconds: number) -> (),
+	avatarWalk: (t: number, pos: Vector3, seconds: number, yaw: number) -> (),
+}
+
+local function petWriter(events: EventList): PetWriter
+	local where: { [string]: Vector3 } = { quetzal = Q_FROM }
+	for name, start in PET_JUNGLE do
+		where[name] = start.pos
+	end
+	for name, start in PET_WATER do
+		where[name] = start.pos
+	end
+	local function add(event: { t: number, kind: string, [string]: any })
+		table.insert(events, event)
+	end
+	-- name = clip a poner (loop: en bucle) o false para quitarlo; moving = cuánto anda (0 a 1) hasta el próximo cambio.
+	local function clip(t: number, actor: string, name: string | boolean, loop: boolean?, moving: number?)
+		add({ t = t, kind = "petClip", actor = actor, clip = name, loop = loop, moving = moving })
+	end
+	-- Paseo en línea recta: anda (Walk o Run según moving) y se para al llegar. yaw = el giro con que llega.
+	local function walk(t: number, actor: string, pos: Vector3, seconds: number, moving: number?, yaw: number?)
+		clip(t, actor, false, nil, moving or PET_WALK_MOVING)
+		add({
+			t = t,
+			kind = "move",
+			actor = actor,
+			pos = pos,
+			yaw = yaw or yawBetween(where[actor] or pos, pos),
+			seconds = seconds,
+			easing = Enum.EasingStyle.Linear,
+		})
+		clip(t + seconds, actor, false, nil, 0)
+		where[actor] = pos
+	end
+	-- Cambio de sitio de golpe (entre un claro y el siguiente, justo antes del corte de cámara).
+	local function put(t: number, actor: string, pos: Vector3, yaw: number)
+		if actor ~= "avatar" then
+			clip(t, actor, false, nil, 0)
+		end
+		add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
+		where[actor] = pos
+	end
+	-- Salto: el clip Jump y, si lleva destino, el desplazamiento de lo que dura (el clip mueve el cuerpo, no el sitio).
+	local function jump(t: number, actor: string, to: Vector3?, yaw: number?)
+		clip(t, actor, "Jump")
+		if to then
+			add({
+				t = t,
+				kind = "move",
+				actor = actor,
+				pos = to,
+				yaw = yaw or yawBetween(where[actor] or to, to),
+				seconds = PET_JUMP_SECONDS,
+				easing = Enum.EasingStyle.Linear,
+			})
+			where[actor] = to
+		end
+	end
+	-- Ataque (Bite, Attack): el clip y, si lleva destino, un salto corto hacia el mono.
+	local function strike(t: number, actor: string, name: string, lunge: Vector3?)
+		clip(t, actor, name)
+		if lunge then
+			add({
+				t = t,
+				kind = "move",
+				actor = actor,
+				pos = lunge,
+				yaw = yawBetween(where[actor] or lunge, lunge),
+				seconds = PET_LUNGE_SECONDS,
+			})
+			where[actor] = lunge
+		end
+	end
+	local function monkey(t: number, name: string, fields: { [string]: any })
+		local event: { [string]: any } = { t = t, kind = "monkey", server = true, name = name }
+		for field, value in fields do
+			event[field] = value
+		end
+		add(event :: any)
+	end
+	-- Gesto del avatar (PlayerAnimations: Place, Point, Cheer…).
+	local function anim(t: number, action: string, seconds: number)
+		add({ t = t, kind = "anim", actor = "avatar", action = action, seconds = seconds })
+	end
+	local function avatarWalk(t: number, pos: Vector3, seconds: number, yaw: number)
+		anim(t, "Walk", seconds)
+		add({
+			t = t,
+			kind = "move",
+			actor = "avatar",
+			pos = pos,
+			yaw = yaw,
+			seconds = seconds,
+			easing = Enum.EasingStyle.Linear,
+		})
+		where.avatar = pos
+	end
+	return {
+		add = add,
+		clip = clip,
+		walk = walk,
+		put = put,
+		jump = jump,
+		strike = strike,
+		monkey = monkey,
+		anim = anim,
+		avatarWalk = avatarWalk,
+	}
+end
+
+-- Pone a todos los de `names` en sus sitios de `spots` (un claro nuevo).
+local function putGroup(w: PetWriter, t: number, spots: { [string]: Spot }, names: { string })
+	for _, name in names do
+		w.put(t, name, spots[name].pos, spots[name].yaw)
+	end
+end
+
+-- Montaje de la jungla (los primeros segundos de las dos versiones): cada una en su postura de reposo y el Jaguar de
+-- Cristal salta en jumpAt hacia el oeste y vuelve a su sitio.
+local function petMontage(w: PetWriter, jumpAt: number)
+	w.clip(0, "labrador", "IdleSit", true)
+	w.clip(0, "beagle", "LieDown", true)
+	w.clip(0, "ocelote", "IdleRub", true)
+	w.clip(0, "jaguar", "IdleRub", true)
+	local home = PET_JUNGLE.jaguar
+	w.jump(jumpAt, "jaguar", Vector3.new(-29.5, 12.5, 268.8))
+	w.walk(jumpAt + PET_JUMP_SECONDS + 0.1, "jaguar", home.pos, 1, PET_WALK_MOVING, home.yaw)
+	w.clip(jumpAt + PET_JUMP_SECONDS + 1.2, "jaguar", "IdleRub", true)
+end
+
+-- Despegue y planeo del Quetzal: Jump con el despegue hasta Q_MID, Glide en bucle y una línea recta nariz arriba hasta
+-- Q_TO (pasa sobre PET_OVERHEAD_CAM a un 40 % del planeo).
+local function petQuetzal(w: PetWriter, jumpAt: number, glideSeconds: number)
+	local takeoffEnd = jumpAt + Q_TAKEOFF_SECONDS
+	w.clip(jumpAt, "quetzal", "Jump")
+	w.add({
+		t = jumpAt,
+		kind = "move",
+		actor = "quetzal",
+		pos = Q_MID,
+		yaw = Q_YAW,
+		pitch = 25,
+		seconds = Q_TAKEOFF_SECONDS,
+		easing = Enum.EasingStyle.Linear,
+	})
+	w.clip(takeoffEnd, "quetzal", "Glide", true)
+	w.add({
+		t = takeoffEnd,
+		kind = "move",
+		actor = "quetzal",
+		pos = Q_TO,
+		yaw = Q_YAW,
+		pitch = Q_GLIDE_PITCH,
+		seconds = glideSeconds,
+		easing = Enum.EasingStyle.Linear,
+	})
+end
+
+-- La manada llega del oeste corriendo (aparece en arrivalAt - runSeconds - 0,2 y frena en arrivalAt) y las mascotas
+-- pelean. Tiempos relativos a `a` = el momento en que frena. Los golpes caen PET_BITE_HIT o PET_ATTACK_HIT tras empezar
+-- el clip (el mono se queja entonces); el alfa cae el último. withTail = false deja fuera la vuelta a la fila y el
+-- Cheer (en el reel el corte a la montaña llega justo después).
+local function petFight(w: PetWriter, a: number, runSeconds: number, withTail: boolean)
+	for _, member in PET_MONKEYS do
+		local at = Vector3.new(PET_MONKEY_START_X, 0, member.z)
+		w.monkey(
+			a - runSeconds - 0.2,
+			member.name,
+			{ species = member.species, alpha = member.alpha, at = at, yaw = -90, action = "Idle" }
+		)
+		w.monkey(
+			a - runSeconds,
+			member.name,
+			{ move = { pos = Vector3.new(member.x, 0, member.z), seconds = runSeconds, yaw = -90 } }
+		)
+	end
+	w.anim(a - 0.9, "Point", 1.5)
+	w.monkey(a + 0.1, "alfa", { action = "Roar" })
+	-- Primera ronda: los perros muerden, los gatos arañan y el alfa se defiende.
+	w.strike(a + 0.4, "labrador", "Bite", PET_LUNGE.labrador)
+	w.monkey(a + 0.4 + PET_BITE_HIT, "aullador", { action = "Hurt" })
+	w.monkey(a + 1.4, "aullador", { action = "Die" })
+	w.strike(a + 0.6, "beagle", "Bite", PET_LUNGE.beagle)
+	w.monkey(a + 0.6 + PET_BITE_HIT, "babuino", { action = "Hurt" })
+	w.monkey(a + 1.6, "babuino", { action = "Die" })
+	w.monkey(a + 0.9, "alfa", { action = "Attack" })
+	w.strike(a + 0.8, "jaguar", "Attack", PET_LUNGE.jaguar)
+	w.monkey(a + 0.8 + PET_ATTACK_HIT, "alfa", { action = "Hurt" })
+	w.strike(a + 1.0, "ocelote", "Attack", PET_LUNGE.ocelote)
+	w.monkey(a + 1.0 + PET_ATTACK_HIT, "alfa", { action = "Hurt" })
+	w.monkey(a + 1.2, "macaco1", { action = "Attack" })
+	-- La capibara embiste y el ajolote salta (sacudida suave al chocar).
+	w.walk(a + 1.5, "capibara", PET_LUNGE.capibara, 0.7, PET_RUN_MOVING, 90)
+	w.add({ t = a + 2.1, kind = "shake", amp = 0.15, seconds = 0.4 })
+	w.monkey(a + 2.15, "alfa", { action = "Hurt" })
+	w.jump(a + 1.55, "ajolote", Vector3.new(381.5, 13, 537.8), 90)
+	w.jump(a + 2.6, "ajolote", PET_LINE.ajolote.pos, 90)
+	-- Segunda ronda: los perros repiten desde donde están y los gatos remachan al alfa.
+	w.strike(a + 1.5, "labrador", "Bite")
+	w.monkey(a + 1.5 + PET_BITE_HIT, "macaco1", { action = "Hurt" })
+	w.monkey(a + 2.4, "macaco1", { action = "Die" })
+	w.strike(a + 1.7, "beagle", "Bite")
+	w.monkey(a + 1.7 + PET_BITE_HIT, "macaco2", { action = "Hurt" })
+	w.monkey(a + 2.65, "macaco2", { action = "Die" })
+	w.strike(a + 1.9, "jaguar", "Attack")
+	w.monkey(a + 1.9 + PET_ATTACK_HIT, "alfa", { action = "Hurt" })
+	w.strike(a + 2.1, "ocelote", "Attack")
+	w.monkey(a + 2.1 + PET_ATTACK_HIT, "alfa", { action = "Hurt" })
+	w.monkey(a + 3.0, "alfa", { action = "Die" })
+	if withTail then
+		for _, name in { "labrador", "beagle", "jaguar", "ocelote", "capibara" } do
+			w.walk(a + 3.3, name, PET_LINE[name].pos, 0.8, PET_WALK_MOVING, 90)
+		end
+		w.anim(a + 3.3, "Cheer", 1.6)
+	end
+end
+
+local PET_ALL = { "avatar", "labrador", "beagle", "jaguar", "ocelote", "capibara", "ajolote" }
+
+-- Los eventos de Pets (40 s). Cortes de cámara en petsCamera (mismos segundos).
+local function petsFullEvents(w: PetWriter)
+	petMontage(w, 2.85)
+	-- JUNGLA (4 a 14): el avatar se agacha (Place) con la mano tendida, el Labrador da la pata (GivePaw dura 6,4 s).
+	w.anim(5.4, "Place", 3.4)
+	w.clip(5.9, "labrador", "GivePaw")
+	-- Los gatos dan la vuelta pegados a sus piernas; el Ocelote vuelve a rozarse y el Jaguar de Cristal se va a saltar.
+	w.walk(8.0, "ocelote", ringPoint(200), 1.3)
+	w.walk(9.3, "ocelote", ringPoint(260), 1.3)
+	w.clip(10.6, "ocelote", "IdleRub", true)
+	w.walk(8.0, "jaguar", ringPoint(310), 1.2)
+	w.walk(9.3, "jaguar", Vector3.new(-31.5, 12.5, 269.5), 1.4)
+	w.jump(11.5, "jaguar", Vector3.new(-28, 12.5, 269.5), -90)
+	w.add({ t = 11.5 + PET_JUMP_SECONDS - 0.1, kind = "shake", amp = 0.18, seconds = 0.45 }) -- al aterrizar
+	-- MANGLAR (14 a 27): todos a la fila; la capibara y el ajolote juegan junto al agua y luego se unen a ella.
+	putGroup(w, 13.96, PET_LINE, { "avatar", "labrador", "beagle", "jaguar", "ocelote" })
+	w.jump(14.3, "capibara", Vector3.new(398, 13, 531.2))
+	w.jump(14.8, "ajolote", Vector3.new(402.4, 13, 528.6))
+	w.walk(15.5, "capibara", Vector3.new(403.5, 13, 534), 1, PET_RUN_MOVING)
+	w.jump(16.0, "ajolote", Vector3.new(399.2, 13, 530.4))
+	w.walk(17.2, "capibara", PET_LINE.capibara.pos, 2.2, PET_RUN_MOVING, 90)
+	w.walk(17.2, "ajolote", PET_LINE.ajolote.pos, 2.2, 0.8, 90)
+	petFight(w, 19.6, 2.4, true)
+	-- MONTAÑA (27 a 37): sube la falda el avatar con las mascotas, el Ocelote salta, el Quetzal despega y planea.
+	putGroup(w, 26.96, PET_CLIMB_START, PET_ALL)
+	w.put(26.96, "quetzal", Q_FROM, Q_YAW)
+	w.avatarWalk(27.4, PET_SUMMIT.avatar.pos, 5, 35)
+	for _, name in { "labrador", "beagle", "jaguar", "capibara", "ajolote" } do
+		w.walk(27.8, name, PET_SUMMIT[name].pos, 4.6, PET_WALK_MOVING, 30)
+	end
+	w.jump(28.5, "ocelote", Vector3.new(-410.5, 21, -101))
+	w.jump(29.8, "ocelote", Vector3.new(-412.5, 21, -103.8))
+	petQuetzal(w, 30.5, 3)
+	w.jump(33.7, "ocelote", PET_SUMMIT.ocelote.pos, 25)
+	w.anim(35.3, "Point", 1.7)
+end
+
+-- Los eventos de Pets_Reel (15 s). Cortes en petsReelCuts.
+local function petsReelEvents(w: PetWriter)
+	petMontage(w, 2.45)
+	-- Dar la pata (3 a 5,4).
+	w.anim(2.6, "Place", 3)
+	w.clip(2.9, "labrador", "GivePaw")
+	-- Mordisco (5,4 a 9,9): todos a la fila de golpe, la manada llega a 6,7 y cae el alfa a 9,7.
+	putGroup(w, 5.26, PET_LINE, PET_ALL)
+	petFight(w, 6.7, 1.6, false)
+	-- Planeo del Quetzal (9,9 a 15): el grupo ya está en lo alto, de cara a la pared.
+	putGroup(w, 9.86, PET_SUMMIT, PET_ALL)
+	w.put(9.86, "quetzal", Q_FROM, Q_YAW)
+	petQuetzal(w, 10.1, 2.1)
+	w.anim(13.4, "Point", 1.5)
+end
+
+local function still(pos: Vector3, look: Vector3, seconds: number, fov: number, posB: Vector3?, lookB: Vector3?)
+	return {
+		{ t = 0, pos = pos, look = look, fov = fov },
+		{ t = seconds, pos = posB or pos, look = lookB or look, fov = fov },
+	}
+end
+
+-- Plano con la cámara fija y la mirada siguiendo al Quetzal de t0 a t1 (pasa por encima): se muestrea cada 0,3 s.
+local function pushOverhead(
+	camera: { CameraPoint },
+	t0: number,
+	t1: number,
+	jumpAt: number,
+	glideSeconds: number,
+	fov: number
+)
+	local steps = math.ceil((t1 - t0) / 0.3)
+	for i = 0, steps do
+		local t = t0 + (t1 - t0) * i / steps
+		local look = quetzalAt(t, jumpAt, glideSeconds) + Vector3.new(0, Q_BODY_LIFT, 0)
+		if i == 0 then
+			table.insert(camera, { t = t0 - 0.001, pos = PET_OVERHEAD_CAM, look = look, fov = fov })
+		end
+		table.insert(camera, { t = t, pos = PET_OVERHEAD_CAM, look = look, fov = fov })
+		if i == steps then
+			table.insert(camera, { t = t1 + 0.001, pos = PET_OVERHEAD_CAM, look = look, fov = fov })
+		end
+	end
+end
+
+-- La cámara de Pets: montaje de 6 cortes de 0,5 a 0,8 s (0 a 4) y después 4 o 6 tomas por claro. Las posiciones son de
+-- diseño: a medir en Studio con rayos (colchón de 2 studs sobre el suelo y ningún tronco delante).
+local function petsCamera(): { CameraPoint }
+	local camera = (
+		CameraPath.montage({
+			-- 1. Primer plano de la cara del Labrador (IdleSit, mira al avatar), de perfil a ~4,5 studs. Coordenadas absolutas
+			-- medidas en Studio con las mascotas colocadas: la versión anterior (a 2,5 studs, mirando al lomo) solo enseñaba
+			-- el hombro. El avatar queda al borde del cuadro: el perro le mira.
+			still(Vector3.new(-24.6, 15, 267.4), Vector3.new(-23.5, 14.9, 272), 0.6, 38, Vector3.new(-24.2, 15, 268.4)),
+			-- 2. Picado fuerte de tres cuartos del Beagle echado (con cara y orejas; el cenital puro solo enseñaba el lomo).
+			still(
+				Vector3.new(-33, 16.8, 268.6),
+				Vector3.new(-31, 13.8, 264.9),
+				0.55,
+				50,
+				Vector3.new(-32.4, 16.2, 267.7)
+			),
+			-- 3. Los dos gatos rozándose en las piernas del avatar, desde atrás a la izquierda y baja (el Jaguar de Cristal a
+			-- la izquierda, el Ocelote junto a las piernas y el Labrador al fondo). Antes, las piernas llenaban el cuadro.
+			still(
+				Vector3.new(-31.8, 14.4, 277.4),
+				Vector3.new(-26.4, 13.9, 272.4),
+				0.65,
+				48,
+				Vector3.new(-30.2, 14.3, 276.2)
+			),
+			-- 4. El avatar «como lo ve el jugador», con las mascotas alrededor.
+			CameraPath.behind(Vector3.new(-25, 15.8, 272), PET_JUNGLE.avatar.yaw, 7, 2.2, 0, 0.8, 58),
+			-- 5. El Jaguar de Cristal salta de perfil.
+			still(jungle(-27.5, 2.4, 279), jungle(-27.7, 1.8, 269.3), 0.65, 42, jungle(-26.5, 2.4, 279)),
+			-- 6. Plano general (el mismo con que empieza la toma de la jungla).
+			still(jungle(-6, 3.2, 288), jungle(-26, 1.2, 272), 0.5, 62, jungle(-8, 3.2, 286.5)),
+		}) :: any
+	) :: { CameraPoint }
+	-- JUNGLA. General lenta; primer plano de la mano y la pata; a ras del roce; salto de perfil.
+	local groupLook = jungle(-26.5, 1.2, 270.5)
+	pushShot(camera, 4.05, 6.55, shot(jungle(-8, 3.2, 286.5), groupLook, 62), shot(jungle(-12, 3, 283), groupLook, 52))
+	pushShot(
+		camera,
+		6.6,
+		8.55,
+		shot(jungle(-22.4, 2.2, 277), jungle(-23.2, 1.3, 272), 42),
+		shot(jungle(-22.8, 2.2, 276.2), jungle(-23.2, 1.3, 272), 36)
+	)
+	pushShot(
+		camera,
+		8.6,
+		11,
+		shot(jungle(-19.5, 2.2, 276), jungle(-25.5, 1.2, 272.4), 48),
+		shot(jungle(-20.5, 2.2, 275), jungle(-25.8, 1.2, 271.6), 46)
+	)
+	pushShot(
+		camera,
+		11.05,
+		13.95,
+		shot(jungle(-34, 2.4, 281), jungle(-31.2, 1.8, 269.6), 44),
+		shot(jungle(-26, 2.4, 281), jungle(-28.4, 1.8, 269.6), 44)
+	)
+	-- MANGLAR. El juego junto al agua (desde el oeste, con el río a la izquierda); la fila y la manada que llega (desde
+	-- el sur); lateral del mordisco; contrapicado del salto del ajolote; cenital de la melé; el avatar por detrás.
+	pushShot(
+		camera,
+		14,
+		17.35,
+		shot(mangrove(381, 3.5, 524), mangrove(402, 1.2, 529.5), 52),
+		shot(mangrove(384, 3.2, 525), mangrove(403, 1.2, 529.5), 48)
+	)
+	pushShot(
+		camera,
+		17.4,
+		19.75,
+		shot(mangrove(394, 3.5, 565), mangrove(378, 1, 543), 60),
+		-- x = 395: en 390 hay un tronco de mangle (Mapa.Vegetacion.Mangle.Trunk), medido en el Studio de la Isla.
+		shot(mangrove(395, 3.5, 563), mangrove(377, 1, 543), 58)
+	)
+	pushShot(
+		camera,
+		19.8,
+		21.05,
+		shot(mangrove(388, 2.2, 556), mangrove(380, 1, 543), 44),
+		shot(mangrove(386.5, 2.2, 555), mangrove(379.5, 1, 543), 40)
+	)
+	pushShot(
+		camera,
+		21.1,
+		22.25,
+		shot(mangrove(391, 1.9, 530), mangrove(386, 3, 536), 52),
+		shot(mangrove(390, 1.9, 531), mangrove(386, 3.4, 536), 52)
+	)
+	local melee = CameraPath.zenith(Vector3.new(378, 14.5, 541.5), 24, 22.3, 24.15, 55)
+	pushShot(camera, 22.3, 24.15, melee[1], melee[2])
+	-- El avatar (en x = 392) visto desde 3 studs por detrás de él, mirando a la fila y a donde llegaron los monos.
+	local watching = CameraPath.behind(Vector3.new(386, 15.2, 542.5), PET_LINE.avatar.yaw, 9, 2.4, 24.2, 27, 54)
+	pushShot(camera, 24.2, 27, watching[1], watching[2])
+	-- MONTAÑA. General baja con la pared al fondo; la cámara en el banco y la mirada tras el Quetzal que pasa sobre ella;
+	-- primer plano del Ocelote; plano final abierto, que sube despacio.
+	pushShot(
+		camera,
+		27.05,
+		30.45,
+		shot(mountain(-401.5, 6.5, -94), mountain(-406.5, 0.8, -100.5), 62),
+		shot(mountain(-402, 6.5, -94.5), mountain(-409, 1, -103), 58)
+	)
+	pushOverhead(camera, 30.5, 33.55, 30.5, 3, 60)
+	pushShot(
+		camera,
+		33.6,
+		35.15,
+		shot(mountain(-404, 5.2, -98.5), mountain(-410, 1.2, -103), 44),
+		shot(mountain(-405, 5.2, -99.5), mountain(-410.5, 1.4, -103), 40)
+	)
+	pushShot(
+		camera,
+		35.2,
+		PETS_SECONDS,
+		shot(mountain(-402, 8, -95.5), mountain(-409.5, 1.5, -104.5), 55),
+		shot(mountain(-400, 11.5, -92), mountain(-410, 3.5, -107), 58)
+	)
+	return camera
+end
+
+-- Los cortes de Pets_Reel (9:16): cada plano y su ventana salen del mismo dato (como battleReelCuts). `width` = studs
+-- que caben en la banda a la distancia del sujeto. Posiciones de diseño: a medir en Studio.
+local function petsReelCuts(): { ReelCut }
+	local lift = Vector3.new(0, Q_BODY_LIFT, 0)
+	return {
+		-- Montaje de 3 s en la jungla.
+		{
+			t0 = 0,
+			t1 = 0.55,
+			shape = "reelTall",
+			bg = "speed",
+			-- Los tres primeros, con los encuadres medidos en Studio (los mismos que el montaje de Pets).
+			pos = Vector3.new(-24.6, 15, 267.4),
+			subject = Vector3.new(-23.5, 14.9, 272),
+			width = 4,
+		},
+		{
+			t0 = 0.6,
+			t1 = 1.15,
+			shape = "reelTop",
+			bg = "halftone",
+			pos = Vector3.new(-33, 16.8, 268.6),
+			subject = Vector3.new(-31, 13.8, 264.9),
+			width = 5,
+		},
+		{
+			t0 = 1.2,
+			t1 = 1.75,
+			shape = "reelDiagR",
+			bg = "flat",
+			pos = Vector3.new(-31.8, 14.4, 277.4),
+			subject = Vector3.new(-26.4, 13.9, 272.4),
+			width = 6.5,
+		},
+		{
+			t0 = 1.8,
+			t1 = 2.35,
+			shape = "reelSlant",
+			bg = "speed",
+			pos = Vector3.new(-32, 17.7, 272),
+			subject = Vector3.new(-24, 15.2, 272),
+			width = 9,
+		},
+		{
+			t0 = 2.4,
+			t1 = 3,
+			shape = "reelTall",
+			bg = "halftone",
+			pos = jungle(-27.5, 2.4, 279),
+			subject = Vector3.new(-27.7, 14.8, 269.2),
+			width = 7,
+		},
+		-- Dar la pata (el Labrador, GivePaw desde 2,9) y el grupo.
+		{
+			t0 = 3.05,
+			t1 = 4.5,
+			shape = "reelTop",
+			bg = "flat",
+			pos = jungle(-22.4, 2.2, 277),
+			subject = jungle(-23.6, 1.3, 272),
+			width = 4.5,
+		},
+		{
+			t0 = 4.55,
+			t1 = 5.35,
+			shape = "reelDiagL",
+			bg = "halftone",
+			pos = jungle(-8, 3.2, 286.5),
+			subject = jungle(-26.5, 1.2, 270.5),
+			width = 16,
+		},
+		-- Manglar: la manada llega (6,7), mordiscos y zarpazos, el alfa cae (9,7).
+		{
+			t0 = 5.4,
+			t1 = 6.75,
+			shape = "reelTall",
+			bg = "speed",
+			pos = mangrove(394, 3.5, 565),
+			subject = mangrove(378, 1, 543),
+			width = 30,
+		},
+		{
+			t0 = 6.8,
+			t1 = 8.15,
+			shape = "reelDiagR",
+			bg = "flat",
+			pos = mangrove(388, 2.2, 556),
+			subject = mangrove(379.5, 1, 543),
+			width = 12,
+		},
+		{
+			t0 = 8.2,
+			t1 = 9.9,
+			shape = "reelTop",
+			bg = "halftone",
+			pos = Vector3.new(381, 24, 553),
+			subject = Vector3.new(376, 14.6, 542),
+			width = 14,
+		},
+		-- Montaña: despega el Quetzal (10,1), planea sobre la cámara y el grupo mira la pared.
+		{
+			t0 = 9.95,
+			t1 = 11.35,
+			shape = "reelTall",
+			bg = "speed",
+			pos = mountain(-403, 6, -89.5),
+			subject = Q_FROM + lift,
+			subjectB = quetzalAt(11.3, 10.1, 2.1) + lift,
+			width = 10,
+		},
+		{
+			t0 = 11.4,
+			t1 = 13,
+			shape = "reelSlant",
+			bg = "flat",
+			pos = PET_OVERHEAD_CAM,
+			subject = quetzalAt(11.4, 10.1, 2.1) + lift,
+			subjectB = quetzalAt(13, 10.1, 2.1) + lift,
+			width = 12,
+		},
+		{
+			t0 = 13.05,
+			t1 = PETS_REEL_SECONDS,
+			shape = "reelDiagL",
+			bg = "halftone",
+			pos = mountain(-402, 8, -95.5),
+			subject = mountain(-409.5, 1.5, -104.5),
+			width = 14,
+		},
+	}
+end
+
+-- Narración y cartel final del reel: tres frases en la esquina de abajo a la izquierda y la última arriba, con el
+-- nombre del juego bajo en la zona segura.
+local function addPetsReelText(events: EventList)
+	local function narration(t: number, text: string, corner: string, seconds: number)
+		table.insert(
+			events,
+			{ t = t, kind = "bubble", balloon = "narration", corner = corner, text = text, seconds = seconds }
+		)
+	end
+	narration(3.1, PET_CAPTIONS.jungle, "BL", 2.1)
+	narration(5.6, PET_CAPTIONS.mangrove, "BL", 3)
+	narration(10, PET_CAPTIONS.mountain, "BL", 2.8)
+	narration(13.1, PET_CAPTIONS.title, "TL", 1.8)
+	addReelTitle(events, 13.3)
+end
+
+local function petsScene(reel: boolean): Scene
+	local events: EventList = {}
+	local w = petWriter(events)
+	local camera: { CameraPoint }
+	if reel then
+		petsReelEvents(w)
+		local cuts = petsReelCuts()
+		camera = cutShots(battleReelShots(cuts))
+		addReelPanels(events, cuts, Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196))
+		addPetsReelText(events)
+		addBattleFade(events, true, PETS_REEL_SECONDS)
+	else
+		petsFullEvents(w)
+		camera = petsCamera()
+		table.insert(events, { t = 0, kind = "letterbox" })
+		table.insert(events, { t = 4.3, kind = "caption", text = PET_CAPTIONS.jungle, seconds = 3.2 })
+		table.insert(events, { t = 14.4, kind = "caption", text = PET_CAPTIONS.mangrove, seconds = 3.6 })
+		table.insert(events, { t = 27.4, kind = "caption", text = PET_CAPTIONS.mountain, seconds = 3.6 })
+		-- Cartel final, logo del juego y fundido a negro.
+		table.insert(events, { t = 37, kind = "title", text = PET_CAPTIONS.title, seconds = 1.6 })
+		table.insert(events, {
+			t = 38.6,
+			kind = "logo",
+			text = Strings.later("Primal Banana Islands"),
+			sub = Strings.later("Monkey Survival"),
+			seconds = 1,
+		})
+		table.insert(events, { t = 39.2, kind = "fade", seconds = 0.8, toBlack = true })
+	end
+	local petIds: { string } = {}
+	for _, species in PET_SPECIES do
+		table.insert(petIds, species)
+	end
+	-- Los monos reales de la isla (ardillas y capuchinos a 70-100 studs del claro de la jungla) se esconden en los tres
+	-- sitios mientras dura la escena; por eso lleva freeze: sin él, atacarían al avatar sin verse.
+	table.insert(events, {
+		t = 0,
+		kind = "hideEnemies",
+		server = true,
+		centers = { JUNGLE_AVATAR, PET_LINE.avatar.pos, PET_CLIMB_START.avatar.pos },
+		radius = 200,
+	})
+	return {
+		duration = if reel then PETS_REEL_SECONDS else PETS_SECONDS,
+		audience = "Self",
+		freeze = true,
+		skippable = true,
+		hour = PETS_HOUR,
+		streamFollowsCamera = true,
+		-- El claro de la jungla (donde empieza la escena) con su terreno cargado antes de poner a nadie.
+		waitTerrain = { JUNGLE_AVATAR, PET_JUNGLE.beagle.pos, PET_JUNGLE.labrador.pos },
+		-- Las mallas de las siete mascotas, cargadas antes de construirlas (PetActor.build espera si no).
+		prepare = function()
+			PetActor.preloadAll(petIds)
+			return camera
+		end,
+		actors = petsActors(),
+		camera = camera,
+		events = events,
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
+	-- Mascotas (G7b): solo para grabar; las lanzan «🐾 Mascotas» y «🐾 Mascotas reel» del panel de pruebas.
+	Pets = petsScene(false),
+	Pets_Reel = petsScene(true),
+
 	-- Batallas contra un jefe (G5b): solo para grabar; las lanza el panel de pruebas con ArrivalService.play y un stage.
 	Battle_Boss_OrangutanDelManglar = bossBattleScene("OrangutanDelManglar", "normal"),
 	Battle_Boss_OrangutanDelManglar_Comic = bossBattleScene("OrangutanDelManglar", "comic"),

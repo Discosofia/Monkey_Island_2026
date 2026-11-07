@@ -4,7 +4,8 @@
 --   dummy        rig R15 vestido con el equipo del juego (ArmorModels.wear + WeaponTools.build, como Portada).
 --                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap? }
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
---   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca.
+--   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca (y se le devuelve su sitio
+--                al acabar). snap = true: la Y de pos y de cada `move` sale de un rayo al Terrain, como en un maniquí.
 --   boss         el modelo del jefe que ya está en el mundo, buscado por su atributo "Boss" (def.id opcional).
 --   prop         lo que devuelva def.build(anchor, ctx) (un Model con lo que haga falta). Puede usar
 --                Cinematics/MountedRider.build(mountId, character?, { pose? }): una montura con su jinete sentado.
@@ -137,14 +138,35 @@ local function snapToTerrain(anchor: CFrame, pos: Vector3): Vector3
 	return anchor:PointToObjectSpace(Vector3.new(world.X, hit.Position.Y, world.Z))
 end
 
+-- Altura de la raíz sobre el suelo de un rig R15 (cadera más media raíz).
+local function liftOf(model: Model): number
+	local root = model:FindFirstChild("HumanoidRootPart")
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if root and root:IsA("BasePart") then
+		return (if humanoid then humanoid.HipHeight else 2) + root.Size.Y / 2
+	end
+	return 0
+end
+
+-- Apunta dónde estaba "model" antes de que la escena lo moviera, para devolverlo en Actors.cleanup.
+local function remember(ctx: Sequencer.Context, model: Model)
+	local restore = ctx._restore
+	if not restore then
+		restore = {}
+		ctx._restore = restore
+	end
+	if not restore[model] then
+		restore[model] = model:GetPivot()
+	end
+end
+
 -- Coloca "model" de pie en "ground" (relativo a anchor), girado "yaw" grados, por su raíz (no por la caja,
 -- para que el arma y el traje no lo levanten del suelo).
 local function place(model: Model, anchor: CFrame, ground: Vector3, yaw: number)
 	local root = model:FindFirstChild("HumanoidRootPart")
-	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if root and root:IsA("BasePart") then
 		model.PrimaryPart = root
-		local lift = (if humanoid then humanoid.HipHeight else 2) + root.Size.Y / 2
+		local lift = liftOf(model)
 		model:SetAttribute("CinematicLift", lift)
 		model:PivotTo(anchor * CFrame.new(ground + Vector3.new(0, lift, 0)) * CFrame.Angles(0, math.rad(yaw), 0))
 	else
@@ -239,8 +261,19 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 	elseif def.kind == "localPlayer" then
 		local player = Players.LocalPlayer
 		local character = if player then player.Character else nil
-		if character and def.pos then
-			place(character, anchor, def.pos, def.yaw or 0)
+		if character then
+			-- El jugador es nuestro solo prestado: se anota para devolverle su sitio y quitarle las marcas al acabar, y se le
+			-- pone la altura de su raíz (CinematicLift) para que un `move` lo deje de pie. snap = true: cada `move` apoya
+			-- sus pies en el Terrain, como un maniquí.
+			ctx._player = character
+			character:SetAttribute("CinematicLift", liftOf(character))
+			if def.snap then
+				character:SetAttribute("CinematicSnap", true)
+			end
+			if def.pos then
+				remember(ctx, character)
+				place(character, anchor, if def.snap then snapToTerrain(anchor, def.pos) else def.pos, def.yaw or 0)
+			end
 		end
 		return character
 	elseif def.kind == "boss" then
@@ -280,6 +313,12 @@ function Actors.cleanup(ctx: Sequencer.Context)
 			end
 		end
 		ctx._restore = nil
+	end
+	local player = ctx._player
+	if player then
+		player:SetAttribute("CinematicSnap", nil)
+		player:SetAttribute("CinematicLift", nil)
+		ctx._player = nil
 	end
 	local list = ctx._created
 	if list then

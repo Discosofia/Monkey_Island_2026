@@ -133,6 +133,18 @@ local function runFlyover(player: Player, sceneId: string)
 	end
 end
 
+-- Lanza las mascotas "sceneId" (Pets o Pets_Reel; Fase 25, G7b) solo para "player", con el anchor en el origen del mundo.
+local function runPets(player: Player, sceneId: string)
+	local started = CinematicService.play(sceneId, {
+		audience = { player },
+		anchor = CFrame.identity,
+		-- Sin noFreeze: la escena congela a los monos reales (escondidos con hideEnemies) y protege al avatar.
+	})
+	if not started then
+		Remotes.Notify:FireClient(player, "🐾 La escena de las mascotas ya está en marcha")
+	end
+end
+
 -- «🥊 Batalla jefe» (Fase 25, G5b): la tripulación contra un jefe quieto, solo para grabar. Cada versión (normal, cómic
 -- y reel) rota por su cuenta entre los jefes de BATTLE_BOSSES. ArrivalService aparta al personaje real, monta al jefe
 -- (StageBoss, carpeta «BatallaJefe») antes de la espera y lo borra al acabar. Con un jefe real vivo del mismo id no
@@ -898,6 +910,13 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	CineFlyoverComic = function(player)
 		runFlyover(player, "Flyover_Comic")
+	end,
+	-- «🐾 Mascotas» y «🐾 Mascotas reel» (Fase 25, G7b): las siete mascotas con el avatar en tres sitios de la isla.
+	CinePets = function(player)
+		runPets(player, "Pets")
+	end,
+	CinePetsReel = function(player)
+		runPets(player, "Pets_Reel")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)
