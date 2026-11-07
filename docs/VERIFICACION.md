@@ -6318,7 +6318,7 @@ Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/B
 
 ### 162.4 Fallo conocido, fuera de 27f
 
-11. [ ] Comando de depuración «⭕ Tiro al aro» (lados −z y +z), corregido el 06-11-2026: sale por encima del talud (antes salía de dentro y la pelota rozaba el anillo), calcula la vertical con el arrastre y marca al jugador como último en tocar (sin eso `onRingPass` ignoraba la embocada).
+11. [x] Comando de depuración «⭕ Tiro al aro» (lados −z y +z), corregido el 06-11-2026: sale por encima del talud (antes salía de dentro y la pelota rozaba el anillo), calcula la vertical con el arrastre y marca al jugador como último en tocar (sin eso `onRingPass` ignoraba la embocada).
    ✅ La pelota pasa por el aro, suena `BallRingPass` y entra la repetición, sin raya para el rival. Si no se oye, mira la distancia al aro (alcance 90) y la Salida.
    ✅ `BallRing` emboca y entra en repetición.
 
