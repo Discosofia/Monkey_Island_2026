@@ -27,7 +27,9 @@ local BallgameMode = require(script.Parent.Parent.Modes.Ballgame)
 local DUMMY_HEALTH = 300
 -- BallRing: la pelota sale de aquí (x local, y) hacia el centro del aro, con esta velocidad en X.
 local RING_SHOT_X = -12
-local RING_SHOT_Y = 12
+-- Por encima del talud (en z = centerZ su superficie está a y ≈ 13,9): si saliera de dentro, BallSim la empujaría
+-- fuera y la dejaría a más de 2,2 del centro del aro, que es lo que roza la piedra.
+local RING_SHOT_Y = 18
 local RING_SHOT_SPEED = 40
 -- BallPlace «center»: altura (local) a la que se deja la pelota en el centro.
 local CENTER_PLACE_HEIGHT = 2
@@ -123,10 +125,31 @@ local nextRingSide = -1
 -- Lanza la pelota desde x = RING_SHOT_X hacia el centro del aro del lado "zSign", para probar el pase.
 local function shootAtRing(zSign: number)
 	local ring = BallService.layout().ring
-	local time = -RING_SHOT_X / RING_SHOT_SPEED
-	local gravity = Ballgame.Gravity
-	-- Vertical para que el centro llegue a la altura del aro al cabo de "time" (la gravedad lo baja).
-	local vy = (ring.centerY - RING_SHOT_Y + 0.5 * gravity * time * time) / time
+	local gravity, airDrag = Ballgame.Gravity, Ballgame.AirDrag
+	-- Altura del centro al cruzar x = 0 (mismas cuentas que BallSim: gravedad y arrastre lineal), según la vertical.
+	local function heightAtRing(vy0: number): number
+		local step = 1 / 240
+		local drag = 1 - airDrag * step
+		local x, y, vx, vy = RING_SHOT_X, RING_SHOT_Y, RING_SHOT_SPEED, vy0
+		while x < 0 do
+			vy = (vy - gravity * step) * drag
+			vx *= drag
+			x += vx * step
+			y += vy * step
+		end
+		return y
+	end
+	-- Bisección: la vertical para que el centro llegue a la altura del aro.
+	local low, high = 0, 120
+	for _ = 1, 40 do
+		local mid = (low + high) / 2
+		if heightAtRing(mid) < ring.centerY then
+			low = mid
+		else
+			high = mid
+		end
+	end
+	local vy = (low + high) / 2
 	BallService.setActive(true)
 	BallService.place(Vector3.new(RING_SHOT_X, RING_SHOT_Y, zSign * ring.centerZ), Vector3.new(RING_SHOT_SPEED, vy, 0))
 end
@@ -190,12 +213,13 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		BallService.place(Vector3.new(n[1], n[2], n[3]), Vector3.new(n[4] or 0, n[5] or 0, n[6] or 0))
 	end,
 	-- Lado del aro (-1 o 1); sin argumento, alterna.
-	BallRing = function(_player, arg)
+	BallRing = function(player, arg)
 		-- El panel manda el lado como texto ("-1" o "1").
 		local side = if typeof(arg) == "string" then tonumber(arg) else arg
 		local zSign = if side == -1 or side == 1 then side else nextRingSide
 		nextRingSide = -zSign
 		shootAtRing(zSign)
+		BallgameMode.debugToucher(teamOfPlayer(player)) -- sin esto la embocada no cuenta ni hay repetición
 	end,
 	-- Golpe forzado (Fase 26d): "zona calidad" (Foot, Knee, Hip, Elbow / Perfect, Good, Weak, Passive); por defecto
 	-- Hip Perfect, hacia donde mira el jugador. Se salta distancia, mitad y enfriamientos.

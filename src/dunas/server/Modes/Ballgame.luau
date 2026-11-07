@@ -536,6 +536,16 @@ function Ballgame.debugHold()
 	end
 end
 
+-- Un tiro de depuración al aro (BallRing) nadie lo ha tocado: sin «último en tocar» la embocada no cuenta ni hay
+-- repetición. Lo deja como si lo hubiera golpeado "team", con el vuelo limpio.
+function Ballgame.debugToucher(team: string)
+	if state == "Live" then
+		lastToucher = team
+		flightClean = true
+		waitingServe = false
+	end
+end
+
 -- ¿La pelota espera el primer golpe del saque lento?
 function Ballgame.debugWaitingServe(): boolean
 	return waitingServe
