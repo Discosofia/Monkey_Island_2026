@@ -5066,6 +5066,22 @@ Motor de cinemáticas en tiempo real: `src/shared/Cinematics/*` (`CameraPath`, `
 10. [ ] Mira la Salida durante la escena de prueba por el aviso `ContentId rbxassetid://203785492 failed due to: Asset type does not match requested type`.
    ✅ Si sale también sin lanzar ninguna escena, ya existía antes de G1 y no es de la cinemática. Si solo sale al lanzarla, se anota aparte. Este aviso ya salió en pruebas de otras fases (V9, A3, W2) sin identificar: su origen sigue sin saberse.
 
+## 138. Fase 20 Q7b-1 a Q7b-3: armas del Guerrero, el Cazador y el Mago de rangos I a III con malla (05-11-2026)
+
+Guerrero: el **Garrote de piedra** (I), la **Maza de hueso** (II) y el **Mazo de hueso grueso** (III). Cazador: el **Arco** (I), el **Arco reforzado** (II) y el **Arco de liana** (III). Mago: el **Bastón mágico** (I), el **Bastón dorado** (II) y el **Bastón de plata** (III). Todos se rehicieron con escalones (sin bolas, cilindros ni cuñas; las bolas son capas apiladas con `blob`, nuevo en `stepKit`; las palas de los arcos se curvan en tramos desplazados, como el Arco de brasas) y pasan a malla: 522, 1.384 y 1.398 triángulos el Guerrero, 916, 1.114 y 1.352 el Cazador, 768, 1.002 y 1.480 el Mago, de 35 a 96 piezas a 3 (6 el Arco de liana, cuyos cristales y gema son de cristal y quedan sueltos; 8, 4 y 4 los bastones, que dejan suelto el cristal de neón). El detalle sube por rango: el I es lo más limpio (pintura, ataduras, borlas), el II lleva hueso, placas y púas, y el III plata, liana, hojas y gemas. Probado en Edit: malla y bloques coinciden por pares y con un avatar de brazos finos (0,8 × 1,1 × 1,0) y otro ancho (1,3 × 1,0 × 1,3); construidas antes de que lleguen las mallas salen en bloques y se reconstruyen a las mallas; `Rendimiento` sin alertas. Sin probar en Play. Se quitó el código muerto de las ramas `lava` y `volcanic` del arco.
+
+Los metales (oro y plata) se ven algo más claros en la malla que en los bloques, porque la malla es de plástico liso. Aviso para las armas siguientes: las piezas con alguna dimensión menor de 0,07 studs que sobresalen de un bloque grueso se pierden en la malla sin avisar (la cuerda, las plumas, los cordones y las hojas desaparecían); las que deben ir pintadas (grietas, costuras, grabados) sí van finas, y las que tienen que verse, a 0,08 o más.
+
+### Se prueba en Play, en la Isla
+1. [ ] Fabrica (o dátelas con los comandos de depuración) y equipa las armas de rangos I a III del Guerrero (Garrote de piedra, Maza de hueso, Mazo de hueso grueso) del Cazador (Arco, Arco reforzado, Arco de liana) y del Mago (Bastón mágico, Bastón dorado, Bastón de plata).
+   ✅ Cada una sale con su forma escalonada y en unos segundos pasa a malla sin soltarse de la mano; no queda un instante sin arma.
+2. [ ] Míralas de frente, de espaldas y de cerca, con un avatar de brazos finos y otro ancho.
+   ✅ Se leen las lascas y cinturones rojos del Garrote, las púas y el collar de la Maza, los cóndilos, la plata y la liana del Mazo, y en los arcos las bandas pintadas, las placas de hueso, las vueltas de liana y la cuerda, y en los bastones las garras en cruz, las bandas de oro, las vueltas de liana y el colmillo; salen de la mano en el mismo sitio que antes y no atraviesan el brazo.
+3. [ ] Pega con cada una y cambia de arma varias veces nada más entrar.
+   ✅ Sin parpadeos, sin armas duplicadas en la mochila ni errores en la Salida.
+4. [ ] Mira las tres en el Armario, en la tienda y en el Lobby con `WeaponLook`.
+   ✅ Se ven con la forma nueva, sin errores.
+
 ## 139. Fase 25 G2: apariciones de los jefes (05-11-2026)
 
 Cada jefe tiene su escena de aparición (`Boss_<id>` en `Data/Cinematics`, 6 s): la cámara llega de frente a la cara del jefe, sale el cartel con su nombre y un subtítulo en el tercio de abajo, el rugido suena a 1,0 s (evento de servidor `bossRoar`) y la escena acaba con un fundido a negro. El jefe queda congelado mientras dura para todos; la primera vez se ve entera y después se puede saltar. La lanza `IslandBossHooks.spawnBoss`, que usan el reloj de partida y «👑 Siguiente jefe». El «🎬 Plató» monta el decorado del tráiler con un jefe quieto y lanza la escena solo para quien pulsa. Ya probado en el Studio de la Isla con copia del perfil: los cuatro jefes con «Siguiente jefe» (congelado y sin perder vida, rugido a 1,0 s y no al aparecer, cartel con nombre y subtítulo, `cinematicsSeen` guarda los cuatro), la cámara de frente hacia t≈3,6 s en los cuatro, Saltar en la segunda vez, el ajuste «Cinemáticas» apagado y el Plató con Caudillo, Albino y Orangután. Esta sección es lo que falta.
@@ -5121,22 +5137,6 @@ Cada jefe tiene su escena de aparición (`Boss_<id>` en `Data/Cinematics`, 6 s):
     ✅ Se oye el rugido real a 1,0 s de la escena y no al aparecer el jefe. Hoy solo se ha comprobado el track de animación, no el sonido en el cliente: si no suena, se anota.
 20. [ ] En el juego publicado, pulsa «👑 Siguiente jefe» con cada uno de los cuatro jefes, y repite uno después de reconectar.
     ✅ Las cuatro escenas se ven, saltan y acaban igual que en Studio; tras reconectar, el jefe ya muestra Saltar porque `cinematicsSeen` quedó guardado.
-
-## 138. Fase 20 Q7b-1 a Q7b-3: armas del Guerrero, el Cazador y el Mago de rangos I a III con malla (05-11-2026)
-
-Guerrero: el **Garrote de piedra** (I), la **Maza de hueso** (II) y el **Mazo de hueso grueso** (III). Cazador: el **Arco** (I), el **Arco reforzado** (II) y el **Arco de liana** (III). Mago: el **Bastón mágico** (I), el **Bastón dorado** (II) y el **Bastón de plata** (III). Todos se rehicieron con escalones (sin bolas, cilindros ni cuñas; las bolas son capas apiladas con `blob`, nuevo en `stepKit`; las palas de los arcos se curvan en tramos desplazados, como el Arco de brasas) y pasan a malla: 522, 1.384 y 1.398 triángulos el Guerrero, 916, 1.114 y 1.352 el Cazador, 768, 1.002 y 1.480 el Mago, de 35 a 96 piezas a 3 (6 el Arco de liana, cuyos cristales y gema son de cristal y quedan sueltos; 8, 4 y 4 los bastones, que dejan suelto el cristal de neón). El detalle sube por rango: el I es lo más limpio (pintura, ataduras, borlas), el II lleva hueso, placas y púas, y el III plata, liana, hojas y gemas. Probado en Edit: malla y bloques coinciden por pares y con un avatar de brazos finos (0,8 × 1,1 × 1,0) y otro ancho (1,3 × 1,0 × 1,3); construidas antes de que lleguen las mallas salen en bloques y se reconstruyen a las mallas; `Rendimiento` sin alertas. Sin probar en Play. Se quitó el código muerto de las ramas `lava` y `volcanic` del arco.
-
-Los metales (oro y plata) se ven algo más claros en la malla que en los bloques, porque la malla es de plástico liso. Aviso para las armas siguientes: las piezas con alguna dimensión menor de 0,07 studs que sobresalen de un bloque grueso se pierden en la malla sin avisar (la cuerda, las plumas, los cordones y las hojas desaparecían); las que deben ir pintadas (grietas, costuras, grabados) sí van finas, y las que tienen que verse, a 0,08 o más.
-
-### Se prueba en Play, en la Isla
-1. [ ] Fabrica (o dátelas con los comandos de depuración) y equipa las armas de rangos I a III del Guerrero (Garrote de piedra, Maza de hueso, Mazo de hueso grueso) del Cazador (Arco, Arco reforzado, Arco de liana) y del Mago (Bastón mágico, Bastón dorado, Bastón de plata).
-   ✅ Cada una sale con su forma escalonada y en unos segundos pasa a malla sin soltarse de la mano; no queda un instante sin arma.
-2. [ ] Míralas de frente, de espaldas y de cerca, con un avatar de brazos finos y otro ancho.
-   ✅ Se leen las lascas y cinturones rojos del Garrote, las púas y el collar de la Maza, los cóndilos, la plata y la liana del Mazo, y en los arcos las bandas pintadas, las placas de hueso, las vueltas de liana y la cuerda, y en los bastones las garras en cruz, las bandas de oro, las vueltas de liana y el colmillo; salen de la mano en el mismo sitio que antes y no atraviesan el brazo.
-3. [ ] Pega con cada una y cambia de arma varias veces nada más entrar.
-   ✅ Sin parpadeos, sin armas duplicadas en la mochila ni errores en la Salida.
-4. [ ] Mira las tres en el Armario, en la tienda y en el Lobby con `WeaponLook`.
-   ✅ Se ven con la forma nueva, sin errores.
 
 ## 140. Fase 25 G2b: estilo cómic de las cinemáticas (05-11-2026)
 
@@ -6282,6 +6282,44 @@ Durante el partido de Juego de pelota cada jugador lleva un equipo solo cosméti
 
 8. [ ] Juega una partida con 5v5 en el teléfono.
    ✅ El equipo se lee a la distancia de juego y los FPS no caen de forma sostenida con 10 jugadores equipados.
+
+## 162. Fase 27f: repetición del aro, sonidos y celebración del Juego de pelota (06-11-2026)
+
+Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/Ballgame`) y todos los clientes ven los últimos 2,2 s de la pelota a cámara lenta (`BallReplayController`: cámara lateral al aro, estela, rótulo «Repetición» y botón «Saltar»), con confeti y plumas del color del equipo y un cartel (`Shared/PartyFx`, `Data/Ballgame.Celebration`). El punto y la victoria se dan al terminar: cuando todos avisan con `BallReplayDone` (acaba o salta la repetición) o a los 9 s (`Config.Arena.Ballgame.Replay.MaxSeconds`). Con «Cinemáticas» apagado solo sale el cartel y el sonido. `BallSfxController` pone los sonidos de golpe, bote, aro, raya y embocada (`Data/Sounds`, claves `Ball*`, ids provisionales). Ya probado en Play en el Studio de Dunas con un jugador (Solo): la embocada entra en repetición con `ArenaPhase` en Battle y llegan los resultados con el ganador correcto a los 7,6 s; saltar con el botón y con `BallReplayDone` también; las 8 rayas y el fin por tiempo siguen como antes; `Rendimiento` sin alertas (confeti 20/40/60 de 40/90/160); capturas del encuadre (aro y pelota en cuadro) y de los resultados, sin el segundo cartel «¡Aro! Gana…», que se quitó. Se probó sin copia del perfil (DataStore bloqueado en edición). Esta sección es lo que falta.
+
+### 162.1 En Play, en Dunas (Juego de pelota, panel «Pruebas»: «Solo»)
+
+1. [ ] Emboca un tiro y mira la repetición entera sin tocar nada.
+   ✅ La cámara va al lado del aro y se ven pelota y aro (también en el aro del lado de z negativa); sale la celebración con confeti del color del equipo y el cartel con su fanfarria; después se abren los resultados con el ganador correcto y sin segundo cartel encima.
+2. [ ] Repite y pulsa «Saltar» en mitad de la repetición.
+   ✅ Va directo a los resultados, sin fanfarria ni confeti a medias, y la cámara vuelve a la normal.
+3. [ ] Apaga «Cinemáticas» en Ajustes y emboca otra vez.
+   ✅ No hay cámara lenta, solo el cartel y el sonido, y los resultados salen enseguida.
+4. [ ] Deja que acabe el tiempo y haz que se llegue a 8 rayas.
+   ✅ Ambos finales siguen igual que antes y no hay repetición.
+5. [ ] Escucha un partido entero.
+   ✅ Suenan golpe, bote en suelo, aro, raya y embocada sin saturarse en una racha de botes; `BallRay` suena al abrir los resultados tras el aro (el punto se suma al acabar la repetición). Los ids de `Data/Sounds` son provisionales: sustituye `BallFanfare`, `BallHit` y `BallBounceFloor` por ids del Creator Store (aviso `ContentId rbxassetid://203785492` en la Salida).
+6. [ ] Mira la Salida.
+   ✅ Sin errores de Lua.
+
+### 162.2 En Studio, con 2 jugadores (*Prueba → Clientes y servidores*, en Dunas)
+
+7. [ ] Emboca con dos clientes: uno salta la repetición y el otro no.
+   ✅ Los resultados llegan solo cuando el segundo termina o a los 9 s; el que saltó espera sin quedarse atascado.
+8. [ ] Emboca y sal con uno en mitad de la repetición.
+   ✅ La partida no se queda esperando al que se fue: acaba con el ganador correcto.
+9. [ ] Emboca con un cliente que no avisa (ciérrale la ventana de la repetición o espera sin tocar).
+   ✅ A los 9 s llegan los resultados.
+
+### 162.3 En el teléfono (emulador o dispositivo real, en Dunas)
+
+10. [ ] Emboca desde el teléfono.
+   ✅ El botón «Saltar» se pulsa bien, la repetición se ve entera y los FPS no caen con el confeti.
+
+### 162.4 Fallo conocido, fuera de 27f
+
+11. [ ] El comando de depuración «BallRing» (`shootAtRing`) no emboca: la pelota pasa a 1,4 del centro y `BallSim` no emite `ringPass`, así que el rival se lleva una raya. Con `BallPlace "-12 12 43.4 20 37.7 0"` sí emboca. Revisar el atajo (velocidad en X de 40).
+   ✅ `BallRing` emboca y entra en repetición.
 
 ## Cuando termines
 

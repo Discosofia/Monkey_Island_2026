@@ -68,13 +68,18 @@ local function makePart(name: string, shape: Enum.PartType): Part
 	return part
 end
 
+-- El modelo de la pelota (sin padre). BallReplayController lo usa para su copia de la repetición.
+local function newBallPart(): Part
+	local newBall = makePart("Ball", Enum.PartType.Ball)
+	newBall.Size = Vector3.one * (2 * RADIUS)
+	newBall.Color = Data.BallColor
+	newBall.Material = Data.BallMaterial
+	return newBall
+end
+
 local function ensureParts()
 	if ball == nil then
-		local newBall = makePart("Ball", Enum.PartType.Ball)
-		newBall.Size = Vector3.one * (2 * RADIUS)
-		newBall.Color = Data.BallColor
-		newBall.Material = Data.BallMaterial
-		ball = newBall
+		ball = newBallPart()
 	end
 	if shadow == nil then
 		local newShadow = makePart("BallShadow", Enum.PartType.Cylinder)
@@ -244,6 +249,11 @@ function BallController.predictedState(): BallSim.State?
 	return copy
 end
 
+-- Una pelota nueva igual a la del juego, sin padre ni simulación (la repetición del aro la mueve a mano).
+function BallController.newBall(): Part
+	return newBallPart()
+end
+
 -- La pelota que se dibuja (para colgarle el anillo de tiempo); nil si no se ve.
 function BallController.part(): Part?
 	if ball and ball.Parent then
@@ -258,7 +268,7 @@ function BallController:Start()
 		if typeof(event) == "table" and event.kind == "hit" then
 			onHitEvent(event)
 		end
-		-- TODO 26g: sonidos y avisos del HUD (bote, aro, muro del fondo, fuera).
+		-- Los sonidos de los eventos: BallSfxController; los avisos de raya: BallgameHUD.
 	end)
 	ReplicatedStorage:GetAttributeChangedSignal("BallActive"):Connect(onActiveChanged)
 	RunService.RenderStepped:Connect(onRender)

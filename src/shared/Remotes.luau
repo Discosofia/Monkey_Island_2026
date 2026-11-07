@@ -318,6 +318,12 @@ local Remotes = {
 	-- mira. El servidor valida alcance, mitad y enfriamiento (BallHitService) y avisa del golpe por BallEvent con
 	-- { kind = "hit", userId, zone, quality, pos, vel } (pos y vel locales de la cancha; vel, la velocidad final).
 	BallHit = remoteEvent("BallHit"),
+	-- Servidor -> todos (Dunas, Fase 27f): la repetición de la embocada. Una tabla { samples = { Vector3 } (posiciones
+	-- LOCALES de la cancha, la última con la pelota en el aro), hz = muestras por segundo, zSign = aro (-1 | 1),
+	-- team = equipo que anotó }. Cliente -> servidor: BallReplayDone, sin argumentos, cuando acaba o salta la
+	-- repetición (BallReplayController); el servidor da la partida por ganada cuando todos avisan o pasa el tope.
+	BallReplay = remoteEvent("BallReplay"),
+	BallReplayDone = remoteEvent("BallReplayDone"),
 }
 
 return Remotes

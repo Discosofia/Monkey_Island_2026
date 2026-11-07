@@ -3,6 +3,8 @@
 -- primero que pase la pelota por el aro, o el que más rayas tenga al acabar el tiempo (con empate, muerte súbita:
 -- la siguiente raya gana). La pelota (BallService) y el golpe (BallHitService) ya existen; aquí solo se escuchan sus
 -- eventos y se decide quién anota. Todo va en coordenadas LOCALES de la cancha (Shared/CourtGeometry).
+-- El aro gana al instante, pero la victoria se da al acabar la repetición a cámara lenta (estado "Replay", Fase 27f):
+-- la partida queda congelada, los clientes la reproducen (BallReplay) y avisan al acabar (BallReplayDone).
 -- Los avisos para el HUD (26g): atributos BallgameCall / BallgameCallTeam / BallgameCallSeq de ReplicatedStorage.
 
 local Players = game:GetService("Players")
@@ -27,7 +29,7 @@ type RingAttempt = { team: string, minDist: number, rim: boolean }
 
 local Ballgame = {}
 
-local state = "Idle" -- Idle | Live | Pause | Over
+local state = "Idle" -- Idle | Live | Pause | Replay (repetición del aro, Fase 27f) | Over
 local savedCtx: Types.Context? = nil
 local bounces: { [string]: number } = { Jaguar = 0, Quetzal = 0 }
 local lastToucher: string? = nil
@@ -43,6 +45,11 @@ local heartbeat: RBXScriptConnection? = nil
 -- el primer golpe o roce (waitingServe).
 local slowServe = false
 local waitingServe = false
+-- Repetición del aro (Fase 27f): quién gana al acabar, a quién se espera (los jugadores que la recibieron y no han
+-- avisado) y un número por repetición para que un tope viejo no cierre la siguiente.
+local replayWinner: string? = nil
+local replayWaiting: { [Player]: boolean } = {}
+local replayId = 0
 
 local function now(): number
 	return Workspace:GetServerTimeNow()
@@ -109,9 +116,11 @@ local function endMatch(winner: string, call: string)
 	end
 	state = "Over"
 	BallService.setActive(false)
-	-- Sin Notify: el banner del HUD (BallgameCall) ya dice «¡Aro! Gana …» y el de ArenaMatchService.finish
-	-- anuncia al ganador; con los dos carteles el segundo borraba al primero.
-	announce(call, winner, false)
+	-- Sin Notify: el de ArenaMatchService.finish anuncia al ganador. El aro (Fase 27f) tampoco lleva el banner
+	-- del HUD: la repetición ya celebró con su propio cartel y el segundo salía tapado por los resultados.
+	if call ~= "Ring" then
+		announce(call, winner, false)
+	end
 	local ctx = savedCtx
 	if ctx then
 		ctx.finish(winner)
@@ -246,14 +255,73 @@ local function onOut(event: any)
 	end
 end
 
-local function onRingPass()
+-- Cierra la repetición del aro: ahora sí se da la victoria (marcador y fin de partida como antes de la repetición).
+local function finishReplay(id: number)
+	if state ~= "Replay" or id ~= replayId then
+		return
+	end
+	local winner = replayWinner
+	replayWinner = nil
+	replayWaiting = {}
+	if winner == nil then
+		return
+	end
+	setScore(winner, Arena.score(winner) + 1)
+	endMatch(winner, "Ring")
+end
+
+-- ¿Han avisado ya todos los que recibieron la repetición (y siguen en la partida)?
+local function checkReplayDone()
+	if state ~= "Replay" then
+		return
+	end
+	for player in replayWaiting do
+		if player.Parent == Players then
+			return
+		end
+	end
+	finishReplay(replayId)
+end
+
+-- Embocada: gana quien tocó la pelota por última vez, pero la victoria espera a la repetición a cámara lenta. La
+-- partida queda congelada (pelota apagada y estado "Replay": no entran golpes, rayas ni el final por tiempo).
+local function onRingPass(event: any)
 	local toucher = lastToucher
 	if state ~= "Live" or toucher == nil then
 		return
 	end
 	ringAttempt = nil
-	setScore(toucher, Arena.score(toucher) + 1)
-	endMatch(toucher, "Ring")
+	local replay = Config.Arena.Ballgame.Replay
+	local samples = BallService.recentTrack(replay.Seconds, replay.SendHz)
+	state = "Replay"
+	BallService.setActive(false)
+	replayId += 1
+	local id = replayId
+	replayWinner = toucher
+	replayWaiting = {}
+	for _, player in Players:GetPlayers() do
+		replayWaiting[player] = true
+	end
+	Remotes.BallReplay:FireAllClients({
+		samples = samples,
+		hz = replay.SendHz,
+		zSign = if typeof(event.zSign) == "number" and event.zSign < 0 then -1 else 1,
+		team = toucher,
+	})
+	-- Tope del servidor: si alguien no avisa, la partida se cierra igual.
+	task.delay(replay.MaxSeconds, function()
+		finishReplay(id)
+	end)
+	checkReplayDone() -- sin jugadores presentes (solo bots), no hay nadie a quien esperar
+end
+
+-- Aviso de un cliente de que acabó o saltó la repetición. Fuera del estado "Replay" no cuenta.
+local function onReplayDone(player: Player)
+	if state ~= "Replay" or not replayWaiting[player] then
+		return
+	end
+	replayWaiting[player] = nil
+	checkReplayDone()
 end
 
 local function onBallEvent(event: any)
@@ -270,7 +338,7 @@ local function onBallEvent(event: any)
 	elseif kind == "out" then
 		onOut(event)
 	elseif kind == "ringPass" then
-		onRingPass()
+		onRingPass(event)
 	elseif kind == "ringRim" then
 		local attempt = ringAttempt
 		if attempt then
@@ -332,6 +400,9 @@ local function halt()
 	state = "Idle"
 	savedCtx = nil
 	waitingServe = false
+	replayId += 1 -- anula el tope de una repetición en curso
+	replayWinner = nil
+	replayWaiting = {}
 	BallService.setActive(false)
 end
 
@@ -361,6 +432,14 @@ function Ballgame.start(ctx: Types.Context)
 	table.insert(disconnects, BallHitService.onHit(onHit))
 	table.insert(disconnects, BallService.onEvent(onBallEvent))
 	heartbeat = RunService.Heartbeat:Connect(onHeartbeat)
+	local doneConnection = Remotes.BallReplayDone.OnServerEvent:Connect(onReplayDone)
+	local leavingConnection = Players.PlayerRemoving:Connect(function()
+		task.defer(checkReplayDone) -- al salir ya no está en Players.GetPlayers; se mira en el siguiente turno
+	end)
+	table.insert(disconnects, function()
+		doneConnection:Disconnect()
+		leavingConnection:Disconnect()
+	end)
 	Remotes.Notify:FireAllClients(
 		T("¡Que empiece el partido! Primero a {n} rayas o el aro"),
 		{ n = Config.Arena.Ballgame.RaysToWin }
@@ -368,7 +447,9 @@ function Ballgame.start(ctx: Types.Context)
 end
 
 function Ballgame.tick(ctx: Types.Context, phase: Arena.Phase)
-	if state == "Over" then
+	-- Con la repetición del aro en curso la partida está congelada: ni tiempo ni abandono la cierran (lo hace
+	-- finishReplay, y la victoria es del que embocó).
+	if state == "Over" or state == "Replay" then
 		return
 	end
 	if Ballgame.abandoned(ctx) then

@@ -180,6 +180,19 @@ Ballgame.Calls = {
 	Ring = Strings.later("¡Aro! Gana {icon} {name}"),
 } :: { [string]: string }
 
+-- Celebración del aro (Fase 27f; Dunas/Client/BallReplayController): confeti y plumas con la paleta del equipo que
+-- anota (Jaguar, rojo y amarillo; Quetzal, jade y negro). PerSecond: piezas por segundo (el tope de vivas es
+-- Config.Budgets.BallgameConfetti); Fall: segundos que tardan en caer; Height: altura sobre el suelo de la que salen.
+Ballgame.Celebration = {
+	PerSecond = 30,
+	Fall = NumberRange.new(1.6, 2.4),
+	Height = 26,
+	Palettes = {
+		Jaguar = { Color3.fromRGB(215, 55, 40), Color3.fromRGB(250, 205, 60) },
+		Quetzal = { Color3.fromRGB(40, 175, 120), Color3.fromRGB(25, 25, 28) },
+	} :: { [string]: { Color3 } },
+}
+
 -- Apariencia: hule casi negro con un tono marrón; la sombra se aclara con la altura hasta ShadowMaxHeight.
 Ballgame.BallColor = Color3.fromRGB(34, 28, 30)
 Ballgame.BallMaterial = Enum.Material.SmoothPlastic

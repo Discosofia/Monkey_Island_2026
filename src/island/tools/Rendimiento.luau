@@ -1847,6 +1847,23 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
+		-- Confeti de la celebración del aro (Dunas, Fase 27f): sale hasta el tope de piezas vivas de Budgets.BallgameConfetti.
+		linea("")
+		linea(
+			"Celebración del aro del Juego de pelota (Dunas): confeti y plumas vivos a la vez, acotados por Config.Budgets.BallgameConfetti."
+		)
+		linea("")
+		linea("| Calidad | Confeti | Tope Vfx |")
+		linea("|---|---|---|")
+		for _, calidad in calidades do
+			linea(`| {nombres[calidad]} | {B.BallgameConfetti[calidad]} | {V[calidad]} |`)
+			if B.BallgameConfetti[calidad] > V[calidad] then
+				alerta(
+					`Confeti del aro en calidad {nombres[calidad]}: {B.BallgameConfetti[calidad]} piezas (tope {V[calidad]})`
+				)
+			end
+		end
+		linea("")
 		linea(
 			"Las marcas siempre llegan al tope del pool con esa ráfaga (por eso el pool las acota) y la pulpa al suyo; el peor caso mezcla las dos. Los efectos de los jefes comparten el mismo tope Vfx (sección 9), pero los impactos de armas de ráfaga no suelen coincidir con un pisotón o una lluvia de rocas."
 		)

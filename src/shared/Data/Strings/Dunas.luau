@@ -67,6 +67,7 @@ return {
 	["¡Contra su propio muro! Raya para {icon} {name}"] = "Against their own wall! Point for {icon} {name}",
 	["¡Pelota parada! Raya para {icon} {name}"] = "Ball stopped! Point for {icon} {name}",
 	["¡Aro! Gana {icon} {name}"] = "Ring! {icon} {name} wins",
+	["Repetición"] = "Replay",
 	["No llegó el otro equipo: vuelven al Lobby"] = "The other team didn't show up: back to the Lobby",
 	["Un equipo se ha quedado vacío: se espera a más jugadores"] = "A team is empty: waiting for more players",
 	["🧪 Falta el otro equipo: usa el panel de pruebas para empezar solo"] = "🧪 The other team is missing: use the test panel to start alone",

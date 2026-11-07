@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local BallSim = require(ReplicatedStorage.Shared.BallSim)
+local Config = require(ReplicatedStorage.Shared.Config)
 local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
 local Data = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -31,6 +32,29 @@ local needsSend = true
 local listeners: { (event: BallSim.Event) -> () } = {}
 local cachedLayout: CourtGeometry.Layout? = nil
 local cachedFormat = -1
+-- Buffer circular de las últimas posiciones (Fase 27f, repetición del aro): una por fotograma mientras la pelota está
+-- activa. bufferTimes[i] es el os.clock() de la muestra i y bufferPositions[i] su posición local.
+local bufferTimes: { number } = {}
+local bufferPositions: { Vector3 } = {}
+local bufferHead = 0 -- índice de la última muestra escrita
+local bufferCount = 0
+
+local function bufferCapacity(): number
+	return math.ceil(Config.Arena.Ballgame.Replay.BufferSeconds * 70) -- 70 > 60 fotogramas/s: cabe también con fotogramas más rápidos
+end
+
+local function clearBuffer()
+	bufferHead = 0
+	bufferCount = 0
+end
+
+local function record()
+	local capacity = bufferCapacity()
+	bufferHead = bufferHead % capacity + 1
+	bufferTimes[bufferHead] = os.clock()
+	bufferPositions[bufferHead] = state.pos
+	bufferCount = math.min(bufferCount + 1, capacity)
+end
 
 -- Las medidas de la cancha del formato en curso.
 function BallService.layout(): CourtGeometry.Layout
@@ -80,6 +104,9 @@ function BallService.setActive(value: boolean)
 	ReplicatedStorage:SetAttribute("BallActive", value)
 	accumulator = 0
 	needsSend = true
+	if value then
+		clearBuffer()
+	end
 end
 
 function BallService.isActive(): boolean
@@ -91,6 +118,45 @@ function BallService.place(localPos: Vector3, localVel: Vector3?)
 	state = BallSim.new(localPos, localVel)
 	accumulator = 0
 	needsSend = true
+	clearBuffer() -- el salto de posición no se interpola en la repetición
+end
+
+-- La trayectoria de los últimos "seconds" segundos muestreada a "hz" (posiciones LOCALES, la última es la actual). La
+-- repetición del aro (Fase 27f) la manda a los clientes. Sin historial suficiente repite la primera muestra.
+function BallService.recentTrack(seconds: number, hz: number): { Vector3 }
+	local track = {}
+	local count = bufferCount
+	if count == 0 then
+		table.insert(track, state.pos)
+		return track
+	end
+	local capacity = bufferCapacity()
+	-- La muestra k (1 = la más vieja) vive en el índice circular de abajo.
+	local function indexOf(k: number): number
+		return (bufferHead - count + k - 1) % capacity + 1
+	end
+	local last = os.clock()
+	local steps = math.max(1, math.floor(seconds * hz))
+	local k = 1
+	for s = 0, steps do
+		local at = last - seconds + s / hz
+		while k < count and bufferTimes[indexOf(k + 1)] <= at do
+			k += 1
+		end
+		local current = indexOf(k)
+		local position = bufferPositions[current]
+		if k < count and bufferTimes[current] < at then
+			local nextIndex = indexOf(k + 1)
+			local span = bufferTimes[nextIndex] - bufferTimes[current]
+			if span > 0 then
+				position = position:Lerp(bufferPositions[nextIndex], (at - bufferTimes[current]) / span)
+			end
+		end
+		table.insert(track, position)
+	end
+	-- La última muestra es la posición exacta de ahora (la embocada ocurre dentro del subpaso, tras la última grabada).
+	track[#track] = state.pos
+	return track
 end
 
 -- Saque: la pelota sale del centro del pasillo con un lob suave hacia el campo del equipo indicado (o de uno al azar).
@@ -145,6 +211,7 @@ local function onHeartbeat(dt: number)
 	if not active then
 		return
 	end
+	record()
 	if not (state.resting or state.dead) then
 		accumulator += dt
 		local layout = BallService.layout()

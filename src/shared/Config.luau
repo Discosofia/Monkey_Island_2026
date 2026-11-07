@@ -1262,6 +1262,18 @@ local Config = {
 			PointPauseSeconds = 2.5,
 			-- Un tiro perfecto que pasa a menos de esto (studs) del centro del aro sin entrar, o roza el borde, es fallo.
 			RingAttemptDistance = 6,
+			-- Repetición del aro (Fase 27f): embocar gana al instante, pero la victoria se da al acabar la repetición
+			-- a cámara lenta. El servidor graba BufferSeconds de la pelota, manda las últimas Seconds a SendHz y espera
+			-- el aviso de cada jugador (BallReplayDone) hasta MaxSeconds. El cliente la reproduce a Rate de velocidad
+			-- (Seconds / Rate segundos) y celebra CelebrationSeconds más: la suma tiene que quedar por debajo de MaxSeconds.
+			Replay = {
+				MaxSeconds = 9,
+				Rate = 0.4,
+				Seconds = 2.2,
+				CelebrationSeconds = 2,
+				BufferSeconds = 2.5,
+				SendHz = 30,
+			},
 		},
 		ResultsSeconds = 20,
 		-- Al caer se reaparece en la base tras estos segundos (más si llevaba la bandera).
@@ -2548,6 +2560,9 @@ local Config = {
 		-- Marcas de impacto de bala en paredes y suelo vivas a la vez (combatClient/ImpactFx; cuentan para Vfx).
 		-- Al llenarse se recicla la más vieja.
 		ImpactMarks = { Low = 15, Medium = 35, High = 60 },
+		-- Confeti y plumas vivos a la vez en la celebración del aro del Juego de pelota (Dunas/Client/BallReplayController;
+		-- cuentan para Vfx). Al llegar al tope no sale más hasta que caigan.
+		BallgameConfetti = { Low = 20, Medium = 40, High = 60 },
 		-- LOD de detalle de los cosméticos de otros jugadores.
 		Lod = {
 			DetailDistance = 60, -- studs a partir de los que se ocultan los detalles
