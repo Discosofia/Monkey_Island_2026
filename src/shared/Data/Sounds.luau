@@ -127,17 +127,17 @@ local Effects: { [string]: Effect } = {
 	Firework = { id = BOOM, volume = 0.3, pitch = 1.9, jitter = 0.15, range = 250 },
 	RockImpact = { id = LAND, volume = 1, pitch = 0.5, jitter = 0.1, range = 120 },
 	EggHatch = { id = GET_UP, volume = 0.9, pitch = 1.8, range = 120 },
-	-- Juego de pelota de Dunas (Fase 27f; Dunas/Client/BallSfxController y BallReplayController). Todos Provisional con
-	-- ids de serie: el comentario `TODO id` dice qué buscar en el Creator Store.
-	BallHit = { id = LAND, volume = 0.8, pitch = 1.5, jitter = 0.08 }, -- TODO id: "rubber ball kick / palm slap, dry"
-	BallHitPerfect = { id = LAND, volume = 0.9, pitch = 2, jitter = 0.05 }, -- TODO id: "ball hit crisp, bright"
-	BallTouch = { id = CLICK, volume = 0.35, pitch = 1, jitter = 0.1 }, -- roce pasivo. TODO id: "soft ball touch"
-	BallBounceFloor = { id = LAND, volume = 0.55, pitch = 1.1, jitter = 0.1 }, -- TODO id: "rubber ball bounce on stone"
-	BallBounceWall = { id = LAND, volume = 0.6, pitch = 0.75, jitter = 0.1 }, -- TODO id: "rubber ball hits stone wall"
-	BallRim = { id = CLICK, volume = 0.9, pitch = 0.55, jitter = 0.05 }, -- TODO id: "stone ring clack, resonant"
-	BallRingPass = { id = GET_UP, volume = 0.7, pitch = 2.4 }, -- TODO id: "whoosh through hoop with chime"
-	BallRay = { id = CLICK, volume = 0.7, pitch = 2.2 }, -- sube el marcador por una raya. TODO id: "short bright mark / tally"
-	BallFanfare = { id = BOOM, volume = 0.6, pitch = 1.6, range = 250 }, -- TODO id: "victory fanfare, tribal drums and horns" (el que más lo necesita)
+	-- Juego de pelota de Dunas (Fase 27f; Dunas/Client/BallSfxController y BallReplayController). Audios propios
+	-- del Creator Store.
+	BallHit = { id = "rbxassetid://88997704162934", volume = 0.8, pitch = 1, jitter = 0.08 },
+	BallHitPerfect = { id = "rbxassetid://79342880578781", volume = 0.9, pitch = 1, jitter = 0.05 }, -- «BA_CRITICAL_HIT»
+	BallTouch = { id = "rbxassetid://9119333248", volume = 0.35, pitch = 1, jitter = 0.1 }, -- roce pasivo
+	BallBounceFloor = { id = "rbxassetid://9113338546", volume = 0.55, pitch = 1, jitter = 0.1 }, -- «Basketball On Concrete 7»
+	BallBounceWall = { id = "rbxassetid://86043432719999", volume = 0.6, pitch = 1, jitter = 0.1 },
+	BallRim = { id = "rbxassetid://9117556149", volume = 0.9, pitch = 1, jitter = 0.05 },
+	BallRingPass = { id = "rbxassetid://92299784167897", volume = 0.7, pitch = 1 },
+	BallRay = { id = "rbxassetid://92708987611847", volume = 0.7, pitch = 1 }, -- sube el marcador por una raya
+	BallFanfare = { id = "rbxassetid://119656288876036", volume = 0.8, pitch = 1, range = 250 }, -- locución de gol («what a goal»)
 	-- "¡Puf!" de humo al derrotar un mono, un jefe o un muñeco (Combat/Poof).
 	Poof = { id = GET_UP, volume = 0.6, pitch = 2.2, jitter = 0.1, range = 120 }, -- Provisional: "cartoon poof"
 }
