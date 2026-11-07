@@ -21,6 +21,7 @@
 --   Shipwreck ............................ 18,8  (noche cerrada con luna roja baja y grande; Lobby sin ciclo de día: ShipwreckSet
 --                                                 pone y devuelve la hora y la luz del Lobby él mismo, evento night; la última
 --                                                 toma de G6c, justo antes de amanecer, irá a ~5,3)
+--   Flyover y Flyover_Comic .............. 17,5  (atardecer con el sol bajo; a 18,8 el sobrevuelo queda a oscuras)
 --   Prueba ............................... 14,0  (tarde clara; no lleva luces propias)
 --   Boss_OrangutanDelManglar, Boss_ChimpanceCaudillo, Boss_GorilaAlbino y sus _Comic ... 18,8 (luz de relleno de SceneLight)
 --   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
@@ -33,12 +34,14 @@ local Config = require(script.Parent.Parent.Config)
 local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
+local MountedRider = require(script.Parent.Parent.Cinematics.MountedRider)
 local Strings = require(script.Parent.Parent.Strings)
 
 export type Scene = {
 	duration: number,
 	audience: string,
 	freeze: boolean,
+	streamFollowsCamera: boolean?, -- el servidor carga el terreno donde estará la cámara (escenas que cruzan la isla)
 	waitTerrain: { Vector3 }?, -- puntos (relativos al anchor) cuyo terreno debe estar cargado antes de empezar (streaming)
 	skippable: boolean?, -- se puede saltar aunque no se haya visto entera (sin él, solo si ya está vista)
 	noSkip: boolean?, -- nunca se puede saltar, ni siquiera vista (el Naufragio)
@@ -1979,6 +1982,376 @@ local function shipwreckCamera(): { { t: number, pos: Vector3, look: Vector3, fo
 	return points
 end
 
+-- Sobrevuelo (Fase 25, S2; 42 s): tráiler de la Isla, solo para grabar (orden «🎬 Sobrevuelo»). Va en coordenadas del MUNDO
+-- (anchor = CFrame.identity, lo pone DebugService) y recorre toda la isla, así que CinematicService carga el terreno
+-- siguiendo a la cámara (campo streamFollowsCamera). Ocho clips panorámicos de ~1,3 s con corte seco (costa, montaña,
+-- volcán, cráter y acercamiento al Basecamp), el avatar del jugador planeando en el Quetzalcóatl desde el borde del
+-- cráter hasta el Basecamp (siete planos de ~1,5 s alrededor de ella), tres manadas con su alfa en posición de ataque
+-- (volcán: gorilas; falda de la montaña: babuino y gibones; sur del Basecamp: chimpancés) y el cartel con el reto.
+-- Medidas en el Studio de la Isla (radio 950): borde del cráter y 160, fondo 130, cima de la montaña 135 a 148, Basecamp 12.
+local FLYOVER_SECONDS = 42
+local FLYOVER_HOUR = 17.5 -- atardecer con el sol bajo (como Gorila de Ceniza); a 18,8 la isla se ve a oscuras desde el aire
+local GLIDE_FROM = Vector3.new(350, 180, -350) -- sobre el borde del cráter
+local GLIDE_TO = Vector3.new(45, 55, -40) -- ya sobre el Basecamp
+local GLIDE_START = 11
+local GLIDE_END = 22
+local GLIDE_FLAT = Vector3.new(GLIDE_TO.X - GLIDE_FROM.X, 0, GLIDE_TO.Z - GLIDE_FROM.Z)
+local GLIDE_DIR = GLIDE_FLAT.Unit
+local GLIDE_RIGHT = GLIDE_DIR:Cross(Vector3.yAxis)
+local GLIDE_YAW = math.deg(math.atan2(-GLIDE_DIR.X, -GLIDE_DIR.Z)) -- la montura mira a -Z con yaw 0
+local GLIDE_PITCH = -math.deg(math.atan((GLIDE_FROM.Y - GLIDE_TO.Y) / GLIDE_FLAT.Magnitude)) -- nariz abajo
+local FLYOVER_CUT_GAP = 0.05 -- segundos entre el final de un plano y el principio del siguiente (corte seco)
+
+type CameraPoint = { t: number, pos: Vector3, look: Vector3, fov: number? }
+
+-- Posición de la montura en el instante t de la escena (el movimiento es lineal).
+local function glideAt(t: number): Vector3
+	return GLIDE_FROM:Lerp(GLIDE_TO, math.clamp((t - GLIDE_START) / (GLIDE_END - GLIDE_START), 0, 1))
+end
+
+-- Un plano: dos extremos con el punto repetido 1 ms después, para que la spline no curve el plano con los vecinos del corte.
+local function pushShot(camera: { CameraPoint }, t0: number, t1: number, a: CameraPoint, b: CameraPoint)
+	table.insert(camera, { t = t0, pos = a.pos, look = a.look, fov = a.fov })
+	table.insert(camera, { t = t0 + 0.001, pos = a.pos, look = a.look, fov = a.fov })
+	table.insert(camera, { t = t1, pos = b.pos, look = b.look, fov = b.fov })
+	table.insert(camera, { t = t1 + 0.001, pos = b.pos, look = b.look, fov = b.fov })
+end
+
+local function shot(pos: Vector3, look: Vector3, fov: number): CameraPoint
+	return { t = 0, pos = pos, look = look, fov = fov }
+end
+
+-- Plano que acompaña a la montura: la cámara a offsetA..offsetB (derecha, arriba, delante, en el marco de su rumbo) y
+-- mirando un poco por encima de ella. Se muestrea cada 0,5 s.
+local function pushFollow(
+	camera: { CameraPoint },
+	t0: number,
+	t1: number,
+	offsetA: Vector3,
+	offsetB: Vector3,
+	lookUp: number,
+	fov: number
+)
+	local steps = math.max(2, math.ceil((t1 - t0) / 0.5))
+	for i = 0, steps do
+		local f = i / steps
+		local t = t0 + (t1 - t0) * f
+		local o = offsetA:Lerp(offsetB, f)
+		local mount = glideAt(t)
+		local point: CameraPoint = {
+			t = t,
+			pos = mount + GLIDE_RIGHT * o.X + Vector3.yAxis * o.Y + GLIDE_DIR * o.Z,
+			look = mount + Vector3.new(0, lookUp, 0),
+			fov = fov,
+		}
+		if i == 0 then
+			table.insert(camera, { t = t0 - 0.001, pos = point.pos, look = point.look, fov = fov })
+		end
+		table.insert(camera, point)
+		if i == steps then
+			table.insert(camera, { t = t1 + 0.001, pos = point.pos, look = point.look, fov = fov })
+		end
+	end
+end
+
+local function flyoverCamera(): { CameraPoint }
+	local camera: { CameraPoint } = {}
+	local gap = FLYOVER_CUT_GAP
+	-- Un plano cada ~1,3 s: la panorámica del principio es una ráfaga de cortes (v = vista de lejos o de cerca).
+	local function v(x: number, y: number, z: number): Vector3
+		return Vector3.new(x, y, z)
+	end
+	local mountain, volcano, crater, camp = v(-428, 150, -380), v(399, 150, -399), v(399, 135, -399), v(0, 18, 0)
+	-- Panorámica: costa, montaña (lejos y cerca), volcán (flanco y desde el este), cráter (dos planos), Basecamp.
+	pushShot(camera, 0, 1.3, shot(v(120, 75, 1010), v(0, 110, -250), 70), shot(v(90, 95, 940), v(0, 125, -250), 70))
+	pushShot(camera, 1.35, 2.65, shot(v(-260, 105, -60), mountain, 65), shot(v(-300, 115, -120), mountain, 65))
+	pushShot(camera, 2.7, 4.0, shot(v(-330, 125, -190), mountain, 60), shot(v(-370, 130, -250), mountain, 58))
+	pushShot(camera, 4.05, 5.35, shot(v(150, 120, -150), volcano, 65), shot(v(230, 130, -250), volcano, 65))
+	pushShot(camera, 5.4, 6.7, shot(v(600, 120, -300), volcano, 62), shot(v(560, 140, -330), volcano, 60))
+	pushShot(camera, 6.75, 8.05, shot(v(320, 175, -300), volcano, 62), shot(v(370, 215, -345), crater, 58))
+	pushShot(camera, 8.1, 9.4, shot(v(399, 215, -345), crater, 60), shot(v(399, 200, -368), crater, 55))
+	pushShot(camera, 9.45, GLIDE_START - gap, shot(v(230, 100, -190), camp, 60), shot(v(60, 30, -50), camp, 48))
+	-- Planeo (la montura mide unos 16 studs de largo): siete planos de ~1,5 s alrededor de ella.
+	-- Offsets (derecha, arriba, delante) en el marco de su rumbo.
+	local function follow(t0: number, t1: number, a: Vector3, b: Vector3, lookUp: number, fov: number)
+		pushFollow(camera, t0, t1, a, b, lookUp, fov)
+	end
+	follow(GLIDE_START, 12.8, v(0, 7, -30), v(-6, 9, -22), 1, 62)
+	follow(12.8 + gap, 14.4, v(11, 5, 2), v(9, 5, -3), 4, 45)
+	follow(14.4 + gap, 16, v(6, -2, 24), v(-3, 2, 18), 3, 52)
+	follow(16 + gap, 17.6, v(-14, 6, -2), v(-12, 6, 4), 4, 48)
+	follow(17.6 + gap, 19.2, v(0, 18, -14), v(2, 14, -8), 0, 58)
+	follow(19.2 + gap, 20.6, v(10, 6, 40), v(0, 10, 30), 2, 55)
+	follow(20.6 + gap, GLIDE_END, v(30, 3, -4), v(24, 5, 6), 1, 58)
+	-- Manadas: tres planos de ~1,35 s cada una (de frente y abierto, bajo y cerca del alfa, y de costado).
+	local function pack(t0: number, plans: { { CameraPoint } })
+		for index, plan in plans do
+			local from = t0 + (index - 1) * 1.4
+			pushShot(camera, from, from + 1.35, plan[1], plan[2])
+		end
+	end
+	pack(22.05, {
+		{ shot(v(372, 22, -76), v(402, 22, -94), 55), shot(v(370, 21, -88), v(402, 22, -94), 55) },
+		{ shot(v(384, 22, -90), v(399, 22, -92), 45), shot(v(381, 23, -95), v(399, 22, -92), 45) },
+		{ shot(v(400, 26, -60), v(405, 20, -90), 55), shot(v(412, 24, -64), v(405, 20, -90), 55) },
+	})
+	pack(26.3, {
+		{ shot(v(-414, 27, -84), v(-421, 27, -103), 55), shot(v(-420, 26, -86), v(-421, 27, -103), 55) },
+		{ shot(v(-422, 27, -88), v(-420, 26, -100), 45), shot(v(-420, 27, -90), v(-420, 26, -100), 45) },
+		{ shot(v(-404, 26, -100), v(-422, 25, -106), 55), shot(v(-405, 26, -108), v(-422, 25, -106), 55) },
+	})
+	pack(30.55, {
+		{ shot(v(-8, 24, 250), v(-25, 19, 276), 55), shot(v(-14, 23, 252), v(-25, 19, 276), 55) },
+		{ shot(v(-25, 20, 258), v(-25, 19, 272), 45), shot(v(-22, 20, 260), v(-25, 19, 272), 45) },
+		{ shot(v(-4, 22, 268), v(-27, 18, 276), 55), shot(v(-5, 22, 275), v(-27, 18, 276), 55) },
+	})
+	-- Cartel: la cámara sube despacio sobre el Basecamp con el reto encima.
+	pushShot(
+		camera,
+		34.8,
+		FLYOVER_SECONDS,
+		shot(v(70, 40, 60), v(0, 30, -20), 60),
+		shot(v(40, 80, 90), v(0, 45, -20), 65)
+	)
+	return camera
+end
+
+-- Una manada: el alfa en el centro y sus compañeros detrás, todos mirando en la misma dirección (yaw del marco del mundo).
+local function flyoverPack(
+	events: { { [string]: any } },
+	prefix: string,
+	species: string,
+	spawnAt: number,
+	yaw: number,
+	alphaAt: Vector3,
+	others: { Vector3 },
+	roarAt: number,
+	attackAt: number
+)
+	local function add(event: { [string]: any })
+		event.kind = "monkey"
+		event.server = true
+		event.essential = true
+		table.insert(events, event)
+	end
+	add({ t = spawnAt, name = `{prefix}Alfa`, species = species, alpha = true, at = alphaAt, yaw = yaw })
+	add({ t = roarAt, name = `{prefix}Alfa`, action = "Roar" })
+	add({ t = roarAt + 1.3, name = `{prefix}Alfa`, action = "Attack" })
+	for index, position in others do
+		local name = `{prefix}{index}`
+		add({ t = spawnAt, name = name, species = species, at = position, yaw = yaw })
+		add({ t = attackAt + (index % 3) * 0.35, name = name, action = "Attack" })
+		add({ t = attackAt + 1.2 + (index % 2) * 0.4, name = name, action = "Roar" })
+	end
+end
+
+-- Versión cómic del sobrevuelo (Flyover_Comic): el mismo recorrido con viñetas, fondos de semitono y de líneas de
+-- velocidad y onomatopeyas en 11 de los 25 planos (el 44 %); en los demás, la ventana a pantalla completa (sin borde).
+-- Cada fila es el plano que empieza en t: forma de la ventana (Comic.PRESETS), estilo de fondo, colores y, si lleva,
+-- una onomatopeya { texto, x, y, rotación }. Los paneles cambian de golpe, a la vez que el corte de cámara.
+local COMIC_RED = { Color3.fromRGB(206, 62, 32), Color3.fromRGB(255, 238, 200) }
+local COMIC_BLUE = { Color3.fromRGB(64, 98, 168), Color3.fromRGB(255, 238, 200) }
+local COMIC_GOLD = { Color3.fromRGB(240, 170, 30), Color3.fromRGB(70, 36, 20) }
+local COMIC_DARK = { Color3.fromRGB(150, 28, 40), Color3.fromRGB(255, 226, 170) }
+local FLYOVER_COMIC_PANELS: { { t: number, shape: string, style: string?, colors: { Color3 }?, sfx: { any }? } } = {
+	{ t = 0, shape = "full" },
+	{ t = 1.35, shape = "diagLeft", style = "halftone", colors = COMIC_BLUE },
+	{ t = 2.7, shape = "full" },
+	{ t = 4.05, shape = "diagRight", style = "speed", colors = COMIC_RED },
+	{ t = 5.4, shape = "full" },
+	{
+		t = 6.75,
+		shape = "tri",
+		style = "halftone",
+		colors = COMIC_RED,
+		sfx = { Strings.later("¡BUM!"), 0.68, 0.25, 8 },
+	},
+	{ t = 8.1, shape = "full" },
+	{ t = 9.45, shape = "diagLeft", style = "speed", colors = COMIC_GOLD },
+	{ t = GLIDE_START, shape = "full" },
+	{
+		t = 12.85,
+		shape = "tallSlant",
+		style = "halftone",
+		colors = COMIC_GOLD,
+		sfx = { Strings.later("¡WHOOSH!"), 0.14, 0.24, -10 },
+	},
+	{ t = 14.45, shape = "full" },
+	{
+		t = 16.05,
+		shape = "diagRight",
+		style = "speed",
+		colors = COMIC_GOLD,
+		sfx = { Strings.later("¡WHOOSH!"), 0.68, 0.22, 7 },
+	},
+	{ t = 17.65, shape = "full" },
+	{ t = 19.25, shape = "diagLeft", style = "halftone", colors = COMIC_BLUE },
+	{ t = 20.65, shape = "full" },
+	{ t = 22.05, shape = "full" },
+	{
+		t = 23.45,
+		shape = "diagRight",
+		style = "speed",
+		colors = COMIC_DARK,
+		sfx = { Strings.later("¡ROAAAR!"), 0.2, 0.22, -8 },
+	},
+	{ t = 24.85, shape = "full" },
+	{ t = 26.3, shape = "full" },
+	{
+		t = 27.7,
+		shape = "tallSlant",
+		style = "halftone",
+		colors = COMIC_DARK,
+		sfx = { Strings.later("¡FUM!"), 0.7, 0.3, 9 },
+	},
+	{ t = 29.1, shape = "full" },
+	{
+		t = 30.55,
+		shape = "diagLeft",
+		style = "halftone",
+		colors = COMIC_RED,
+		sfx = { Strings.later("¡ROAAAR!"), 0.2, 0.24, -7 },
+	},
+	{ t = 31.95, shape = "full" },
+	{
+		t = 33.35,
+		shape = "wide",
+		style = "speed",
+		colors = COMIC_DARK,
+		sfx = { Strings.later("¡CRASH!"), 0.68, 0.26, 6 },
+	},
+	{ t = 34.8, shape = "full" },
+}
+
+local function flyoverScene(comic: boolean): Scene
+	local events: { { [string]: any } } = {
+		-- Planeo: un solo movimiento lineal, nariz abajo. Al llegar, la montura se aparta del mundo (ya no sale en pantalla).
+		{
+			t = GLIDE_START,
+			kind = "move",
+			actor = "mount",
+			pos = GLIDE_TO,
+			yaw = GLIDE_YAW,
+			pitch = GLIDE_PITCH,
+			seconds = GLIDE_END - GLIDE_START,
+			easing = Enum.EasingStyle.Linear,
+		},
+		-- Las manadas salen a contraluz y oscuras: una luz que sigue a la cámara y algo de exposición, hasta el cartel.
+		{ t = GLIDE_END - 0.1, kind = "exposure", value = 0.6 },
+		{
+			t = GLIDE_END - 0.1,
+			kind = "light",
+			follow = true,
+			offset = Vector3.new(0, 5, 0),
+			color = Color3.fromRGB(255, 236, 210),
+			brightness = 2,
+			range = 40,
+			seconds = 12.8,
+		},
+		{ t = 34.7, kind = "exposure", value = 0 },
+		{ t = GLIDE_END + 0.5, kind = "move", actor = "mount", pos = Vector3.new(0, -400, 0), yaw = GLIDE_YAW },
+	}
+	-- Las escenas cómic no llevan franjas negras: la ventana de las viñetas (Comic) hace de marco.
+	if not comic then
+		table.insert(events, 1, { t = 0, kind = "letterbox" })
+	end
+	-- Volcán: gorilas (grandes) mirando hacia el Basecamp (-X).
+	flyoverPack(
+		events,
+		"VolcanGorila",
+		"Gorila",
+		19.5,
+		90,
+		Vector3.new(399, 0, -92),
+		{ Vector3.new(410, 0, -76), Vector3.new(410, 0, -108), Vector3.new(420, 0, -84), Vector3.new(420, 0, -100) },
+		22.6,
+		23.0
+	)
+	-- Falda de la montaña: babuino alfa (mediano) con gibones detrás, mirando al sur (+Z).
+	flyoverPack(events, "MontanaBabuino", "Babuino", 23.8, 180, Vector3.new(-420, 0, -100), {
+		Vector3.new(-432, 0, -108),
+		Vector3.new(-408, 0, -108),
+		Vector3.new(-442, 0, -114),
+		Vector3.new(-398, 0, -114),
+	}, 26.9, 27.3)
+	-- Sur del Basecamp (claro sin árboles ni bambú, a 270 studs): chimpancés (grandes) mirando al norte, hacia el Basecamp.
+	flyoverPack(
+		events,
+		"SurChimpance",
+		"Chimpance",
+		28,
+		0,
+		Vector3.new(-25, 0, 272),
+		{ Vector3.new(-13, 0, 284), Vector3.new(-37, 0, 284), Vector3.new(-3, 0, 294), Vector3.new(-47, 0, 294) },
+		31.2,
+		31.6
+	)
+	-- Cartel con el reto, título del juego y fundido a negro.
+	table.insert(events, {
+		t = 35,
+		kind = "title",
+		text = Strings.later("¿Cuántos días puedes sobrevivir en la isla?"),
+		seconds = 2.7,
+	})
+	table.insert(events, {
+		t = 38.8,
+		kind = "logo", -- el logo de la portada; sin imagen, el texto
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 1.5,
+	})
+	table.insert(events, { t = 41, kind = "fade", seconds = 1, toBlack = true })
+	if comic then
+		for _, row in FLYOVER_COMIC_PANELS do
+			table.insert(events, {
+				t = row.t,
+				kind = "panel",
+				shape = row.shape,
+				bg = { style = row.style or "flat", colors = row.colors or COMIC_RED },
+			})
+			local sfx = row.sfx
+			if sfx then
+				table.insert(events, {
+					t = row.t + 0.1,
+					kind = "sfx",
+					text = sfx[1],
+					pos = { sfx[2], sfx[3] },
+					rot = sfx[4],
+					size = 0.3,
+					color = Color3.new(1, 1, 1),
+					seconds = 1.3,
+				})
+			end
+		end
+	end
+	return {
+		duration = FLYOVER_SECONDS,
+		audience = "Self",
+		freeze = false,
+		skippable = true,
+		hour = FLYOVER_HOUR,
+		streamFollowsCamera = true,
+		actors = {
+			mount = {
+				kind = "prop",
+				build = function()
+					local Players = game:GetService("Players")
+					local model = MountedRider.build("Quetzalcoatl", Players.LocalPlayer.Character, { pose = "Glide" })
+					assert(model, "Sobrevuelo: no se pudo construir la montura")
+					model:PivotTo(
+						CFrame.new(GLIDE_FROM)
+							* CFrame.Angles(0, math.rad(GLIDE_YAW), 0)
+							* CFrame.Angles(math.rad(GLIDE_PITCH), 0, 0)
+					)
+					return model
+				end,
+			},
+		},
+		camera = flyoverCamera(),
+		events = events,
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
 	-- Batallas contra un jefe (G5b): solo para grabar; las lanza el panel de pruebas con ArrivalService.play y un stage.
 	Battle_Boss_OrangutanDelManglar = bossBattleScene("OrangutanDelManglar", "normal"),
@@ -2477,6 +2850,10 @@ local Cinematics: { [string]: Scene } = {
 			{ t = 27, kind = "caption", text = Strings.later("Esto no va a resistir."), seconds = 1.3 },
 		},
 	},
+
+	-- Sobrevuelo (S2): ver flyoverScene.
+	Flyover = flyoverScene(false),
+	Flyover_Comic = flyoverScene(true),
 
 	-- Escena de prueba del motor: un maniquí guerrero camina hacia la cámara delante del jugador.
 	Prueba = {

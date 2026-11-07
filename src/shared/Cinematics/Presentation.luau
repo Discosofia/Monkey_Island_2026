@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
+local Branding = require(script.Parent.Parent.Data.Branding)
 local Sequencer = require(script.Parent.Sequencer)
 local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -45,6 +46,7 @@ local safe: Frame? = nil
 local fadeFrame: Frame? = nil
 local titleToken = 0
 local captionToken = 0
+local logoToken = 0
 
 -- Dónde colgar la interfaz: el PlayerGui en Play y la CoreGui en modo edición.
 local function container(): Instance?
@@ -227,6 +229,44 @@ function Presentation.title(text: string, sub: string?, options: TextOptions?)
 	end
 end
 
+-- Logo de la portada (Data/Branding) en el centro de la zona segura, con fundido de entrada y de salida. Devuelve false
+-- si el juego no tiene logo (Branding.Logo vacío) o no hay interfaz: quien llama escribe entonces el nombre con texto.
+function Presentation.logo(seconds: number?): boolean
+	if Branding.Logo == "" or not (Presentation.gui() and safe) then
+		return false
+	end
+	logoToken += 1
+	local token = logoToken
+	local image = safe:FindFirstChild("Logo") :: ImageLabel?
+	if not image then
+		local created = Instance.new("ImageLabel")
+		created.Name = "Logo"
+		created.AnchorPoint = Vector2.new(0.5, 0.5)
+		created.Position = UDim2.fromScale(0.5, 0.5)
+		created.Size = UDim2.fromScale(1, 0.4)
+		created.BackgroundTransparency = 1
+		created.Image = Branding.Logo
+		created.ScaleType = Enum.ScaleType.Fit
+		created.ImageTransparency = 1
+		created.Parent = safe
+		local aspect = Instance.new("UIAspectRatioConstraint")
+		aspect.AspectRatio = Branding.LogoAspect
+		aspect.AspectType = Enum.AspectType.FitWithinMaxSize
+		aspect.DominantAxis = Enum.DominantAxis.Width
+		aspect.Parent = created
+		image = created
+	end
+	local logo = image :: ImageLabel
+	logo.ImageTransparency = 1
+	tween(logo, FADE_IN, { ImageTransparency = 0 })
+	task.delay(FADE_IN + (seconds or TITLE_SECONDS), function()
+		if logoToken == token and logo.Parent then
+			tween(logo, FADE_OUT, { ImageTransparency = 1 })
+		end
+	end)
+	return true
+end
+
 -- Subtítulo inferior (dentro de la zona segura, por encima de la franja de abajo).
 function Presentation.caption(text: string, options: TextOptions?)
 	local opts: TextOptions = options or {}
@@ -283,6 +323,15 @@ function Presentation.install(sequencer: SequencerModule)
 			event.sub,
 			{ args = event.args, subArgs = event.subArgs, seconds = event.seconds, oneLine = event.oneLine }
 		)
+	end)
+	-- Evento logo { seconds?, text?, sub? }: el logo de la portada; sin logo, el cartel de texto text / sub.
+	sequencer.registerHandler("logo", function(event, ctx)
+		if ctx.seeking then
+			return
+		end
+		if not Presentation.logo(event.seconds) and event.text then
+			Presentation.title(event.text, event.sub, { seconds = event.seconds })
+		end
 	end)
 	sequencer.registerHandler("caption", function(event, ctx)
 		if ctx.seeking then

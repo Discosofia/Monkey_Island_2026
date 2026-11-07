@@ -121,6 +121,18 @@ local function runStage(player: Player, comic: boolean)
 	Remotes.Notify:FireClient(player, `🎬 Plató{if comic then " cómic" else ""}: grabando a {definition.name}`)
 end
 
+-- Lanza el sobrevuelo "sceneId" (Flyover o Flyover_Comic) solo para "player", con el anchor en el origen del mundo.
+local function runFlyover(player: Player, sceneId: string)
+	local started = CinematicService.play(sceneId, {
+		audience = { player },
+		anchor = CFrame.identity,
+		noFreeze = true,
+	})
+	if not started then
+		Remotes.Notify:FireClient(player, "🎬 El sobrevuelo ya está en marcha")
+	end
+end
+
 -- «🥊 Batalla jefe» (Fase 25, G5b): la tripulación contra un jefe quieto, solo para grabar. Cada versión (normal, cómic
 -- y reel) rota por su cuenta entre los jefes de BATTLE_BOSSES. ArrivalService aparta al personaje real, monta al jefe
 -- (StageBoss, carpeta «BatallaJefe») antes de la espera y lo borra al acabar. Con un jefe real vivo del mismo id no
@@ -878,6 +890,14 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	CineBossBattleReel = function(player)
 		runBossBattle(player, "Reel")
+	end,
+	-- «🎬 Sobrevuelo» y «🎬 Sobrevuelo cómic» (Fase 25, S2): tráiler de la isla en coordenadas del mundo, solo para
+	-- quien pulsa.
+	CineFlyover = function(player)
+		runFlyover(player, "Flyover")
+	end,
+	CineFlyoverComic = function(player)
+		runFlyover(player, "Flyover_Comic")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

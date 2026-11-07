@@ -6473,6 +6473,35 @@ La escena pasa a 40 s (G6c añade de 31 a 40 el amanecer): tras la luna (hasta 1
 11. [ ] Las 3 frases nuevas del final («Al amanecer solo quedaba la arena.», «Primal Banana Islands», «Monkey Survival»).
    ✅ En inglés salen «By dawn, only the sand remained.» y los dos títulos iguales. Al cerrar el grupo, `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, subir y `--marcar-subidas`.
 
+## 169. Fase 25 S1 y S2: cinemática «Sobrevuelo» de la Isla (07-11-2026)
+
+Escena `Flyover` (42 s, solo para grabar, no sale sola en el juego) con la orden «🎬 Sobrevuelo» (panel de depuración de la Isla). En el Studio de la Isla se comprobó en Play con un jugador, midiendo la cámara, que la línea de tiempo corre entera (38 planos con corte seco cada ~1,3 a 1,5 s, la montura baja del cráter al Basecamp y se aparta, aparecen las 3 manadas de 5 monos y no hay errores de Luau), y en edición que ninguna cámara queda a menos de 4 studs del suelo ni con el terreno delante. El primer vídeo del usuario (planos más lentos) ya se revisó: los monos salían diminutos entre la hierba, la montura se quedaba flotando durante el cartel y los chimpancés estaban junto a un río; todo corregido, **pero el vídeo nuevo no se ha visto**. Los números de cámara (`flyoverCamera` en `Data/Cinematics`) son de arranque y la hora (`FLYOVER_HOUR` = 17,5) también.
+
+1. [ ] En el Studio de la Isla, en Play, pulsa «🎬 Sobrevuelo» y míralo entero (38 s). Graba en OBS a 1080p60.
+   ✅ De 0 a 11 s, ocho planos de ~1,3 s con corte seco: la costa sur, la montaña (lejos y cerca), el flanco del volcán, el volcán desde el este, el cráter (dos planos, con la montura quieta al borde) y el acercamiento al Basecamp. De 11 a 22 s, tu avatar baja en planeo sobre el Quetzalcóatl desde el cráter hasta el Basecamp en siete planos: detrás, un primer plano del jinete, de frente, otro del jinete del otro lado, desde arriba, de frente alto y de lado con el Basecamp. De 22 a 35 s, tres manadas (tres planos cada una: abierto de frente, bajo y cerca del alfa, y de costado) con el alfa rugiendo y atacando: gorilas (volcán), babuino con gibones (falda de la montaña) y chimpancés (sur del Basecamp, en un claro). De 35 s, el cartel «¿Cuántos días puedes sobrevivir en la isla?», después el logo de la portada (si falta la imagen, el texto «Primal Banana Islands / Monkey Survival») y fundido a negro.
+2. [ ] Mira el primer plano (la costa) y la carga del terreno.
+   ✅ El terreno y el mar están cargados desde el primer fotograma, sin saltos ni facetas gruesas. El servidor pide el terreno donde estará la cámara 2,5 s después (`streamFollowsCamera`); si la primera carga tarda, la escena arranca ya adelantada y se pierde el principio.
+3. [ ] Mira que ninguna cámara atraviesa el terreno ni queda a ras: la montaña (plano 2), el cráter (plano 4), el Basecamp (plano 5) y las tres manadas.
+   ✅ Se ve el suelo bajo los monos y la falda detrás, sin pantalla marrón. Si alguna cámara baja demasiado, sube su `y` en `flyoverCamera`.
+4. [ ] Mira al jinete y la montura en los tres planos de planeo.
+   ✅ El avatar va sentado a horcajadas (pose «Ride»), con la montura con las alas abiertas (pista `Glide`) y sus plumas y remolinos en marcha, de nariz algo hacia abajo, sin que el avatar flote ni se hunda en la montura. Si falta la pose o la animación, comprueba que sus ids están publicados.
+5. [ ] Mira a los monos de las manadas.
+   ✅ El alfa se distingue de los demás (más grande y de otro color) y mira hacia el Basecamp o hacia la cámara, sin hundirse ni flotar sobre la ladera; ruge y ataca con voz; los compañeros atacan un poco desfasados. Si alguno se hunde o queda en una pendiente, mueve su `at` en `flyoverScene`.
+6. [ ] Mira la luz.
+   ✅ Atardecer claro y con relieve, sin pasarse de oscuro (a 17,5 h). Si falta ambiente, prueba `FLYOVER_HOUR` 16 o 18.
+7. [ ] Mira el personaje real de la partida.
+   ✅ Mientras sale el avatar sobre la montura, el personaje real queda quieto en su sitio; si se le ve en el plano 5 o en el cartel, mueve la cámara o apártalo. Al acabar, vuelves a la cámara normal y los monos de la escena desaparecen.
+8. [ ] La frase nueva «¿Cuántos días puedes sobrevivir en la isla?».
+   ✅ En inglés sale «How many days can you survive on the island?». Al cerrar el grupo, `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, subir y `--marcar-subidas`.
+9. [ ] Con 2 jugadores y con el juego publicado.
+   ✅ La cámara, la montura y el avatar solo los ve quien pulsa. Los monos son de servidor: el otro jugador los ve si está cerca de una manada, y desaparecen al acabar la escena.
+10. [ ] Pulsa «🎬 Sobrevuelo cómic» (escena `Flyover_Comic`, 42 s, mismo recorrido) y míralo entero.
+   ✅ 11 de los 25 planos (el 44 %) llevan viñeta con borde y fondo de semitono o de líneas de velocidad (azul en la montaña, rojo en el volcán y el cráter, dorado en el planeo, rojo oscuro en las manadas); los demás van a pantalla completa. No hay franjas negras. Salen 7 onomatopeyas: «¡BUM!» (cráter, ~6,9 s), «¡WHOOSH!» (dos en el planeo, ~13 y ~16 s), «¡ROAAAR!» (dos, en el gorila ~23,5 s y en los chimpancés ~30,6 s), «¡FUM!» (~27,8 s) y «¡CRASH!» (~33,4 s). Ninguna onomatopeya tapa a la montura, al jinete ni a un alfa; si alguna estorba, mueve su `x`, `y` en `FLYOVER_COMIC_PANELS`. Al acabar no queda capa de cómic. Las frases ya existen en inglés (no hay frases nuevas).
+11. [ ] Mira el final de las dos versiones.
+   ✅ El logo de la portada sale centrado en la pantalla (a ~38,8 s), con fundido de entrada y de salida, y después el fundido a negro.
+12. [ ] Mira el Basecamp durante cualquier cinemática (Sobrevuelo, Llegada, Rescate…).
+   ✅ No se ve ningún rótulo del mundo: ni «Free plot» ni «Parcela de …» sobre las parcelas, ni el del tótem. Al acabar la escena vuelven todos (en Play se comprobó: 9 visibles antes y después, ninguno durante). Si algún rótulo de un sitio que sí debe verse en una escena desaparece, hay que excluirlo en `UI/HudHider`.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

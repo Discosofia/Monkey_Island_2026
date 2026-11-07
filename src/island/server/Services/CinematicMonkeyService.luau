@@ -5,9 +5,11 @@
 -- atributo CinematicOwner (el UserId de quien ve la escena) y la etiqueta Config.Combat.CinematicActorTag, y los
 -- borra el final de la ejecución (CinematicService.onEnd).
 --
---   monkey { t, server = true, name, species?, at?, yaw?, action?, move?, despawn? }
+--   monkey { t, server = true, name, species?, alpha?, at?, yaw?, action?, move?, despawn? }
 --     name     nombre del mono en la escena (el que usa el evento abilityFx del cliente y los bocadillos del cómic).
 --     species  id de Data/Monkeys. Con species (y at) crea el mono; sin species, el evento actúa sobre el que ya existe.
+--     alpha    boolean, solo al crear con species: el mono alfa de la especie (más grande y de colores marcados;
+--              MonkeyModels.spawn con alpha). Sigue sin IA ni etiqueta Enemy.
 --     at       Vector3 en el marco del anchor: solo cuentan X y Z; el suelo se busca con un rayo solo contra Terrain.
 --     yaw      grados en el marco del anchor (0 mira a -Z, 180 a +Z), como los maniquíes (Actors). Sin move, gira ya.
 --     action   Idle | Attack | Hurt | Roar | Throw | Howl | Stomp | Pounce… (Data/MonkeyAnimations) o «Die»: corta
@@ -141,9 +143,10 @@ local function spawnMonkey(state: State, run: CinematicService.Run, event: { [st
 	end
 	local anchor = anchorOf(run)
 	local at: Vector3 = event.at or Vector3.zero
-	local model = MonkeyModels.spawn(event.species, definition, groundAt(anchor, at), false)
+	local alpha = event.alpha == true
+	local model = MonkeyModels.spawn(event.species, definition, groundAt(anchor, at), alpha)
 	local root = model.PrimaryPart :: BasePart
-	local lift = MonkeyModels.rootHeight(MonkeyModels.scaleOf(definition, false))
+	local lift = MonkeyModels.rootHeight(MonkeyModels.scaleOf(definition, alpha))
 	model:SetAttribute("CinematicActor", event.name)
 	model:SetAttribute("CinematicOwner", state.owner)
 	CollectionService:AddTag(model, Config.Combat.CinematicActorTag)

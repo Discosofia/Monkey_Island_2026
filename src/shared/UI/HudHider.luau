@@ -1,7 +1,8 @@
 --!strict
 -- Esconde la interfaz para grabar vídeos y para las cinemáticas (Fase 25): los ScreenGui del jugador (salvo
 -- los que se excluyan), la CoreGui, el cursor del ratón y la interfaz del mundo: los avisos de los ProximityPrompt
--- (ProximityPromptService.Enabled), los BillboardGui que cuelgan del PlayerGui (los marcadores de estación del Lobby) y
+-- (ProximityPromptService.Enabled), los BillboardGui que cuelgan del PlayerGui (los marcadores de estación del Lobby) o del
+-- Workspace (los rótulos de las parcelas, «Free plot», «Parcela de …» y los de los tótems), y
 -- los Highlight de la cámara (el contorno de las estaciones). Todo vuelve exacto al soltar la última llamada. Cuenta las llamadas: dos hide necesitan dos
 -- restore, y la interfaz solo vuelve cuando se suelta la última. Sin dependencias del juego (no requiere
 -- Remotes ni Settings). Solo cliente.
@@ -95,6 +96,20 @@ function HudHider.hide(except: { ScreenGui }?)
 			hideBillboard(child)
 		end
 	end
+	-- Rótulos colgados de piezas del mundo (parcelas, tótems): los que hay y los que lleguen por el streaming.
+	for _, descendant in workspace:GetDescendants() do
+		if descendant:IsA("BillboardGui") then
+			hideBillboard(descendant)
+		end
+	end
+	table.insert(
+		connections,
+		workspace.DescendantAdded:Connect(function(descendant)
+			if count > 0 and descendant:IsA("BillboardGui") then
+				hideBillboard(descendant)
+			end
+		end)
+	)
 	local camera = workspace.CurrentCamera
 	if camera then
 		for _, child in camera:GetChildren() do

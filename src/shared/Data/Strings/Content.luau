@@ -849,6 +849,7 @@ return {
 	["Aguanta, Esperanza…"] = "Hold on, Esperanza…",
 	["Esto no va a resistir."] = "She won't hold.",
 	["Al amanecer solo quedaba la arena."] = "By dawn, only the sand remained.",
+	["¿Cuántos días puedes sobrevivir en la isla?"] = "How many days can you survive on the island?",
 	["Primal Banana Islands"] = "Primal Banana Islands",
 	["Monkey Survival"] = "Monkey Survival",
 	["La isla de los monos los espera"] = "The island of monkeys awaits you",

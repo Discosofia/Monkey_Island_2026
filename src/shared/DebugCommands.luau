@@ -67,6 +67,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "CineBossBattle", label = "🥊 Batalla jefe" },
 		{ id = "CineBossBattleComic", label = "🥊 Batalla jefe cómic" },
 		{ id = "CineBossBattleReel", label = "🥊 Batalla jefe reel" },
+		{ id = "CineFlyover", label = "🎬 Sobrevuelo" },
+		{ id = "CineFlyoverComic", label = "🎬 Sobrevuelo cómic" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

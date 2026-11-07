@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
+local CameraPath = require(ReplicatedStorage.Shared.Cinematics.CameraPath)
 local Cinematics = require(ReplicatedStorage.Shared.Data.Cinematics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CinematicLock = require(ServerScriptService.Combat.CinematicLock)
@@ -35,6 +36,10 @@ local JOIN_DELAY_SECONDS = 1.5
 local STREAM_TIMEOUT_SECONDS = 1.5
 -- Cada cuánto se renueva esa petición mientras dura la escena.
 local STREAM_RENEW_SECONDS = 1
+-- Escenas que cruzan la isla (scene.streamFollowsCamera): el terreno se pide donde estará la cámara dentro de
+-- STREAM_LEAD_SECONDS, y la primera carga espera más (el primer plano está lejos del jugador).
+local STREAM_LEAD_SECONDS = 2.5
+local STREAM_FOLLOW_TIMEOUT_SECONDS = 5
 
 export type PlayOptions = {
 	audience: { Player }?, -- por defecto, todos los jugadores (y quien entre a mitad)
@@ -206,10 +211,21 @@ local function addViewer(run: Run, player: Player, startTime: number)
 	protect(run, player)
 	local anchor = run.args.anchor
 	if typeof(anchor) == "CFrame" then
+		local scene = Cinematics[run.id]
+		local follow = scene ~= nil and scene.streamFollowsCamera == true
+		-- Dónde pedir el terreno en el instante "seconds" de la escena: el ancla o, si la escena la sigue, la cámara.
+		local function streamPoint(seconds: number): Vector3
+			if follow then
+				local position = CameraPath.sampleTimed(scene.camera, seconds)
+				return anchor:PointToWorldSpace(position)
+			end
+			return anchor.Position
+		end
 		-- Con StreamingEnabled la escena puede estar lejos del jugador: se pide que se cargue antes de empezar
 		-- (el cliente salta al tiempo que le toca si tarda). Sin streaming no hace nada.
 		task.spawn(function()
-			pcall(player.RequestStreamAroundAsync, player, anchor.Position, STREAM_TIMEOUT_SECONDS)
+			local first = if follow then STREAM_FOLLOW_TIMEOUT_SECONDS else STREAM_TIMEOUT_SECONDS
+			pcall(player.RequestStreamAroundAsync, player, streamPoint(0), first)
 			if not run.finished and player.Parent then
 				Remotes.Cinematic:FireClient(player, "Play", run.id, startTime, run.args)
 			end
@@ -220,7 +236,13 @@ local function addViewer(run: Run, player: Player, startTime: number)
 				if run.finished or not player.Parent then
 					break
 				end
-				pcall(player.RequestStreamAroundAsync, player, anchor.Position, STREAM_RENEW_SECONDS)
+				local elapsed = Workspace:GetServerTimeNow() - run.startTime
+				pcall(
+					player.RequestStreamAroundAsync,
+					player,
+					streamPoint(elapsed + STREAM_LEAD_SECONDS),
+					STREAM_RENEW_SECONDS
+				)
 			end
 		end)
 		return

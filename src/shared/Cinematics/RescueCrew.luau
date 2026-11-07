@@ -167,6 +167,47 @@ end
 
 local freeze = RescueCrew.freeze
 
+-- Copia de "character" (o, sin personaje, un R15 de HumanoidDescription vacía) para un actor de escena: sin scripts,
+-- herramientas, campos de fuerza ni carteles sobre la cabeza. Aún con AnimationConstraint (ver toMotors) y sin
+-- congelar. nil si no se pudo copiar (también lo usa Cinematics/ShipwreckSet y MountedRider).
+function RescueCrew.cloneCharacter(character: Model?): Model?
+	local rig: Model? = nil
+	if character then
+		pcall(function()
+			local wasArchivable = character.Archivable
+			character.Archivable = true
+			rig = character:Clone()
+			character.Archivable = wasArchivable
+		end)
+	else
+		pcall(function()
+			rig = Players:CreateHumanoidModelFromDescription(
+				Instance.new("HumanoidDescription"),
+				Enum.HumanoidRigType.R15
+			)
+		end)
+	end
+	if not rig then
+		return nil
+	end
+	for _, descendant in rig:GetDescendants() do
+		-- Los BillboardGui (título y nombre sobre la cabeza) flotarían en medio de la escena.
+		if
+			descendant:IsA("LuaSourceContainer")
+			or descendant:IsA("Tool")
+			or descendant:IsA("ForceField")
+			or descendant:IsA("BillboardGui")
+		then
+			descendant:Destroy()
+		end
+	end
+	local humanoid = rig:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	return rig
+end
+
 -- Sienta "rig" (con su HumanoidRootPart) en la plaza "seatPos" del helicóptero: cadera sobre el cojín, mirando a -Z,
 -- con las piernas dobladas (o con la rodilla en "kneeAngle" radianes). Devuelve las medidas del rig (para el volante
 -- del piloto).

@@ -6,7 +6,8 @@
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
 --   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca.
 --   boss         el modelo del jefe que ya está en el mundo, buscado por su atributo "Boss" (def.id opcional).
---   prop         lo que devuelva def.build(anchor, ctx) (un Model con lo que haga falta).
+--   prop         lo que devuelva def.build(anchor, ctx) (un Model con lo que haga falta). Puede usar
+--                Cinematics/MountedRider.build(mountId, character?, { pose? }): una montura con su jinete sentado.
 -- pos (relativa al anchor) es donde pisa el suelo; yaw, el giro en grados. Actors.cleanup(ctx) destruye lo
 -- creado y devuelve a su sitio lo que se movió sin ser nuestro (jugador, jefe).
 --

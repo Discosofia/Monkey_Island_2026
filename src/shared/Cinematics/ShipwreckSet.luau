@@ -880,7 +880,6 @@ function ShipwreckSet.buildAvatar(ship: Model, character: Model?): Model?
 	if not (interior and base) then
 		return nil
 	end
-	local rig: Model? = nil
 	local idleId = IDLE_FALLBACK
 	if character then
 		-- El script Animate trae la animación de reposo del personaje (antes de quitarle los scripts).
@@ -892,40 +891,12 @@ function ShipwreckSet.buildAvatar(ship: Model, character: Model?): Model?
 				idleId = first.AnimationId
 			end
 		end)
-		pcall(function()
-			local wasArchivable = character.Archivable
-			character.Archivable = true
-			rig = character:Clone()
-			character.Archivable = wasArchivable
-		end)
-	else
-		pcall(function()
-			rig = Players:CreateHumanoidModelFromDescription(
-				Instance.new("HumanoidDescription"),
-				Enum.HumanoidRigType.R15
-			)
-		end)
 	end
-	local avatar = rig
+	local avatar = RescueCrew.cloneCharacter(character)
 	if not avatar then
 		return nil
 	end
 	avatar.Name = "NaufragoAvatar"
-	for _, descendant in avatar:GetDescendants() do
-		-- Los BillboardGui (título y nombre sobre la cabeza) flotaban sobre el techo del puente.
-		if
-			descendant:IsA("LuaSourceContainer")
-			or descendant:IsA("Tool")
-			or descendant:IsA("ForceField")
-			or descendant:IsA("BillboardGui")
-		then
-			descendant:Destroy()
-		end
-	end
-	local avatarHumanoid = avatar:FindFirstChildOfClass("Humanoid")
-	if avatarHumanoid then
-		avatarHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-	end
 	RescueCrew.toMotors(avatar)
 	if not pcall(avatar.ScaleTo, avatar, AVATAR_SCALE) then
 		avatar:Destroy()
