@@ -1799,7 +1799,9 @@ end
 -- Los dos últimos puntos miran a proa con la inclinación que deja la luna en el tercio de arriba del cuadro (elevación - 8°,
 -- entre 0 y 6°; calculada en shipwreckCamera); los ángulos entre el eje de la cámara y la luna (t = 0, 8, 14 y 19) salen de
 -- ShipwreckSet.cameraMoonAngles(scene.prepare(), { 0, 8, 14, 19 }). Los números son de arranque: se tocan aquí.
-local SHIPWRECK_SECONDS = 31
+-- Dura 40 s: el viaje y la tormenta acaban en negro a los 31 (el barco que navega se destruye en el evento dawn; su recorrido,
+-- ShipwreckSet.SAIL_SECONDS, sigue siendo de 31 s) y de 31,2 a 40 es el amanecer sobre el Lobby real (SHIPWRECK_DAWN_SHOTS).
+local SHIPWRECK_SECONDS = 40
 local SHIPWRECK_STEP = 0.25
 local SHIPWRECK_HOUR = ShipwreckSet.HOUR -- 18,8: noche con estrellas y la luna baja (G6c, justo antes de amanecer: ~5,3)
 
@@ -1858,10 +1860,43 @@ local SHIPWRECK_SHOTS: { Shot } = {
 	{
 		t0 = 29,
 		t1 = 31,
-		from = pose(EYE.X - 2.2, EYE.Y + 0.15, EYE.Z + 0.6, 3, 3, 50),
-		to = pose(EYE.X - 2.4, EYE.Y + 0.15, EYE.Z + 0.6, 3, 3, 50),
+		from = pose(EYE.X - 2.6, EYE.Y + 0.25, EYE.Z + 1.3, 8, 0, 78),
+		to = pose(EYE.X - 2.9, EYE.Y + 0.25, EYE.Z + 1.3, 8, 0, 78),
 		hold = 1,
 		rocked = true,
+	},
+}
+
+-- EL AMANECER (G6c), de 31,2 s al final, en coordenadas del MUNDO (el Lobby real, sin marco del barco). Mismos planos que
+-- SHIPWRECK_SHOTS (from / to / hold, cortes secos), pero la pose sale de lookPose: posición de la cámara, punto al que mira y
+-- fov. El primero arranca a los 31,2 s (a la vez que el evento dawn, con la pantalla en negro; la imagen vuelve a los 31,5).
+-- Mundo medido: el carguero encallado (Workspace.Naufragio.Esperanza) tiene el centro en (-44, 18, -36) y mide 78 x 35 x 25, con la
+-- proa hacia (-0,29, 0,19, -0,94); la plaza está en (10, -3), el nido en (-10, 8, -24) y el campamento en (-10, 9, -11). A las
+-- 5,3 h la luna roja sale al oeste (azimut ~266°, 10° de elevación; azimut = atan2(x, z), 0 = +Z). Desde la plaza el barco
+-- queda a ~239° y la luna a ~266°: caben en el mismo plano. Al oeste del Lobby hay decorado cerrado (ruinas, calavera): es lo esperado.
+-- Números de arranque, a afinar con capturas.
+local function lookPose(x: number, y: number, z: number, tx: number, ty: number, tz: number, fov: number): Pose
+	local d = Vector3.new(tx - x, ty - y, tz - z)
+	local flat = math.sqrt(d.X * d.X + d.Z * d.Z)
+	return pose(x, y, z, math.deg(math.atan2(d.Z, d.X)), math.deg(math.atan2(d.Y, flat)), fov)
+end
+local SHIPWRECK_DAWN_FROM = 31.2
+local SHIPWRECK_DAWN_SHOTS: { Shot } = {
+	-- A) Plano abierto desde el mar, al oeste, mirando a la popa del carguero encallado («ESPERANZA PANAMÁ») con la plaza al
+	-- fondo. Desde la plaza no sirve: los carteles tapan el barco. Alto (y 13): a ras del mar los basaltos del arrecife (y 6) llenaban
+	-- de negro el primer plano. Avanza muy despacio.
+	{
+		t0 = SHIPWRECK_DAWN_FROM,
+		t1 = 35.5,
+		from = lookPose(-100, 13, 2, -46, 15, -30, 60),
+		to = lookPose(-95, 13.2, -1, -46, 15, -30, 58),
+	},
+	-- B) Más cerca y bajo, desde la orilla de poniente: la superestructura iluminada, los contenedores «PRIMAL» y la pasarela.
+	{
+		t0 = 35.5,
+		t1 = 40,
+		from = lookPose(-84, 6.5, 2, -52, 17, -28, 55),
+		to = lookPose(-80, 6.8, 0, -52, 17, -28, 53),
 	},
 }
 
@@ -1890,11 +1925,16 @@ local function shipwreckCamera(): { { t: number, pos: Vector3, look: Vector3, fo
 		t0: number,
 		t1: number,
 		sample: (t: number) -> (Vector3, Vector3, number),
-		rocked: boolean?
+		rocked: boolean?,
+		world: boolean?
 	)
 		local function add(t: number)
 			local pos, look, fov = sample(t)
-			local frame = if rocked then ShipwreckSet.poseAt(t) else ShipwreckSet.frameAt(t)
+			-- world = true: coordenadas del mundo (el amanecer en el Lobby), sin marco del barco.
+			local frame = if world
+				then CFrame.identity
+				elseif rocked then ShipwreckSet.poseAt(t)
+				else ShipwreckSet.frameAt(t)
 			table.insert(
 				points,
 				{ t = t, pos = frame:PointToWorldSpace(pos), look = frame:PointToWorldSpace(look), fov = fov }
@@ -1917,6 +1957,11 @@ local function shipwreckCamera(): { { t: number, pos: Vector3, look: Vector3, fo
 		addSegment(shot.t0, shot.t1, function(t: number)
 			return shotLook(shot, t)
 		end, shot.rocked)
+	end
+	for _, shot in SHIPWRECK_DAWN_SHOTS do
+		addSegment(shot.t0, shot.t1, function(t: number)
+			return shotLook(shot, t)
+		end, nil, true)
 	end
 	return points
 end
@@ -2339,7 +2384,8 @@ local Cinematics: { [string]: Scene } = {
 	-- Naufragio (G6a): la bienvenida del Lobby, solo la primera vez que alguien entra al juego (la lanza el cliente,
 	-- ShipwreckController, y no se puede saltar nunca). De noche: el barco navega con gaviotas y la cámara vuela hasta el
 	-- puente de mando, donde está el avatar del jugador; a los 19 s llega la tormenta (G6b: planos cerrados con niebla, lluvia, viento,
-	-- olas y rayos, de noche) y acaba en negro a los 31 s (la revelación del barco encallado es G6c).
+	-- olas y rayos, de noche) y acaba en negro a los 31 s; de 31,2 a 40 s, el amanecer sobre el barco encallado del Lobby con
+	-- el título del juego (G6c).
 	Shipwreck = {
 		duration = SHIPWRECK_SECONDS,
 		audience = "Self",
@@ -2380,8 +2426,24 @@ local Cinematics: { [string]: Scene } = {
 			{ t = 25.5, kind = "lightning", side = 0.7, thunderDelay = 0.7 },
 			{ t = 28.5, kind = "lightning", side = -0.2, thunderDelay = 0.5 },
 			{ t = 30.3, kind = "lightning", strength = 1.6, bolt = false, thunderDelay = 0.2 },
-			-- A negro al final.
+			-- A negro a los 29,5 s (en negro a los 31).
 			{ t = 29.5, kind = "fade", seconds = 1.5, toBlack = true },
+			-- El amanecer (G6c): con la pantalla en negro el Lobby cambia de golpe a la luz de antes del alba (DAWN en
+			-- ShipwreckSet; night y storm dejan de aplicarse y el barco que navegaba desaparece). La imagen vuelve a los 31,5 s
+			-- en el barco encallado real (SHIPWRECK_DAWN_SHOTS), con el tinte de la escena sin el azul de la noche.
+			{ t = SHIPWRECK_DAWN_FROM, kind = "dawn", hour = 5.3 },
+			{ t = SHIPWRECK_DAWN_FROM, kind = "exposure", value = 0.3 },
+			{ t = 31.5, kind = "fade", seconds = 0.6, toBlack = false },
+			{ t = 32, kind = "caption", text = Strings.later("Al amanecer solo quedaba la arena."), seconds = 2.4 },
+			{
+				t = 36.5,
+				kind = "title",
+				text = Strings.later("Primal Banana Islands"),
+				sub = Strings.later("Monkey Survival"),
+				seconds = 2.6,
+			},
+			-- A negro al final: el hook finish devuelve la imagen con fundido y el jugador queda en el Lobby.
+			{ t = 39, kind = "fade", seconds = 1, toBlack = true },
 			-- Diario de a bordo: cada texto dura 0,5 s de entrada + seconds + 0,6 s de salida y acaba antes de que empiece el siguiente.
 			{
 				t = 1.5,

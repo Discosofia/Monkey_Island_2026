@@ -23,6 +23,9 @@
 --     storm { seconds }  tormenta (G6b): en "seconds" s lleva la niebla, la luz, la luna, el oleaje del agua y el viento
 --                      (Workspace.GlobalWind) a STORM.look; lo aplica night en cada cuadro y restoreNight lo devuelve. El
 --                      balanceo y el avance del barco (poseAt, positionAt) dependen de stormAmount(t), no del evento.
+--     dawn { seconds?, hour? }  (G6c) amanecer sobre el Lobby real (DAWN: hora 5,3, luz violeta y rosa, luna roja baja, mar en
+--                      calma y brisa): de golpe o en "seconds" s; quita la lluvia y los rayos, destruye el barco que navegaba y
+--                      desde ese momento night y storm no se aplican. restoreNight lo devuelve (setDawn / applyDawn).
 --     rain { seconds }  lluvia de dos capas sobre piezas invisibles que siguen a la cámara.
 --     lightning { side?, thunderDelay?, strength?, bolt? }  destello doble, tronco de Neon al este y trueno (Sfx).
 --   applyNight / restoreNight  la hora, la luz de noche y la luna roja del cielo del Lobby, guardando y devolviendo los
@@ -38,7 +41,8 @@
 --   cameraMoonAngles(puntos, tiempos)  ángulo entre el eje de la cámara y la luna, para calibrar planos.
 --   findCoplanar(modelo, soloNuevas?)  pares de piezas con caras coplanares (parpadeo); checkCamera(barco, puntos, desde)  puntos de
 --                      cámara dentro de sólidos o a menos de 1,2 del avatar. preview() los ejecuta y avisa con warn.
---   preview(parent?, { t?, night?, nightT?, storm? }) lo coloca todo en el mundo en modo edición (sin escena) para capturarlo; clearPreview lo quita.
+--   preview(parent?, { t?, night?, nightT?, storm?, dawn? }) lo coloca todo en el mundo en modo edición (sin escena) para
+--                      capturarlo (dawn = true: solo la luz del amanecer sobre el Lobby); clearPreview lo quita.
 --
 -- El mar del Lobby está en y = 0 y el barco flota con su línea de flotación (la franja negra del casco, a y local 4,4)
 -- a esa altura. Todos los números de arranque están arriba, para tocarlos con capturas.
@@ -165,6 +169,31 @@ local STORM = {
 	},
 	pulse = { on1 = 0.07, off = 0.08, on2 = 0.12, fade = 0.25 },
 	thunderVolume = 0.8,
+}
+
+-- EL AMANECER (G6c). Tras el negro de la tormenta, el Lobby real un poco antes de salir el sol: el evento dawn lleva la luz
+-- de golpe (o en "seconds" s) a este look. Desde ese momento night y storm dejan de aplicarse. Todo se guarda con la noche
+-- (NIGHT) y restoreNight lo devuelve. La luna roja sigue en el cielo, baja y grande, al oeste (a 5,3 h: azimut ~266°, 10°).
+local DAWN = {
+	hour = 5.3, -- ClockTime: el sol, unos 10° bajo el horizonte al este
+	look = {
+		{ target = "lighting", property = "Brightness", value = 1.1 },
+		-- Azul violáceo, con algo de calidez hacia el este.
+		{ target = "lighting", property = "Ambient", value = Color3.new(0.30, 0.32, 0.45) },
+		{ target = "lighting", property = "OutdoorAmbient", value = Color3.new(0.38, 0.40, 0.55) },
+		{ target = "lighting", property = "ExposureCompensation", value = 0.2 },
+		-- Neblina rosa-naranja pálida del alba.
+		{ target = "atmosphere", property = "Density", value = 0.38 },
+		{ target = "atmosphere", property = "Haze", value = 1.6 },
+		{ target = "atmosphere", property = "Color", value = Color3.new(0.78, 0.62, 0.66) },
+		{ target = "atmosphere", property = "Decay", value = Color3.new(0.55, 0.42, 0.46) },
+		{ target = "atmosphere", property = "Glare", value = 0.3 },
+		{ target = "grade", property = "TintColor", value = Color3.new(1, 0.94, 0.90) }, -- tinte cálido suave
+		{ target = "sky", property = "CelestialBodiesShown", value = true }, -- la luna roja vuelve a verse
+		{ target = "workspace", property = "GlobalWind", value = Vector3.new(3, 0, 2) }, -- brisa
+	} :: { StormLook },
+	-- El mar vuelve a la calma: el valor que tenía el mundo antes de la escena.
+	original = { "terrain.WaterWaveSize", "terrain.WaterWaveSpeed" },
 }
 
 -- Avatar en el puente: tamaño (el puente tiene 3,6 de alto) y animación de reposo.
@@ -1016,6 +1045,13 @@ local stormLook: { [string]: any } = {}
 for _, look in STORM.look do
 	stormLook[`{look.target}.{look.property}`] = look.value
 end
+-- El amanecer en marcha (evento dawn o preview): nil = aún no. Mientras exista, applyNight no escribe nada. "from" = valor de
+-- cada propiedad al empezar (por "objetivo.propiedad"), para la rampa si seconds > 0.
+local dawnState: { start: number, seconds: number, hour: number, from: { [string]: any } }? = nil
+local dawnLook: { [string]: any } = {}
+for _, look in DAWN.look do
+	dawnLook[`{look.target}.{look.property}`] = look.value
+end
 
 local function targetOf(name: string): Instance?
 	if name == "lighting" then
@@ -1082,6 +1118,9 @@ function ShipwreckSet.applyNight(t: number?, midAt: number?, deepAt: number?, ho
 		end
 		table.clear(restoreTweens)
 	end
+	if dawnState then
+		return -- ya amaneció: la luz de la noche y la tormenta no se vuelven a escribir
+	end
 	local now = t or 0
 	for _, entry in resolved do
 		if entry.key.property == "ClockTime" then
@@ -1107,9 +1146,49 @@ function ShipwreckSet.setStorm(start: number, seconds: number)
 	stormState = { start = start, seconds = seconds }
 end
 
+-- Pone el amanecer como si empezara en el segundo "start" y durara "seconds" de rampa (0 = de golpe; el evento dawn y preview).
+-- Guarda los valores de antes (si aún no estaba la noche puesta, la pone) y desde ahora applyNight no escribe. La luz se
+-- escribe con applyDawn: una vez con seconds = 0, o cada cuadro mientras dura la rampa.
+function ShipwreckSet.setDawn(start: number, seconds: number?, hour: number?)
+	if #resolved == 0 then
+		ShipwreckSet.applyNight(0, nil, nil, hour or DAWN.hour)
+	end
+	local from: { [string]: any } = {}
+	for _, entry in resolved do
+		pcall(function()
+			from[entry.id] = (entry.instance :: any)[entry.key.property]
+		end)
+	end
+	stormState = nil
+	dawnState = { start = start, seconds = seconds or 0, hour = hour or DAWN.hour, from = from }
+end
+
+-- Escribe la luz del amanecer en el segundo t (de "from" al look de DAWN según la rampa). Sin dawnState no hace nada.
+function ShipwreckSet.applyDawn(t: number)
+	local dawn = dawnState
+	if not dawn then
+		return
+	end
+	local fraction = if dawn.seconds <= 0 then 1 else math.clamp((t - dawn.start) / dawn.seconds, 0, 1)
+	for _, entry in resolved do
+		local target: any = dawnLook[entry.id]
+		if table.find(DAWN.original, entry.id) then
+			target = entry.original
+		end
+		if entry.key.property == "ClockTime" then
+			(entry.instance :: any).ClockTime = dawn.hour
+		elseif target ~= nil then
+			local from = dawn.from[entry.id]
+			local instance: any = entry.instance
+			instance[entry.key.property] = if from == nil then target else mix(from, target, fraction)
+		end
+	end
+end
+
 -- Devuelve la luz de antes (con un fundido de "seconds"; por defecto 0,5 s). No hace nada si no se puso la noche.
 function ShipwreckSet.restoreNight(seconds: number?)
 	stormState = nil
+	dawnState = nil
 	if #saved == 0 then
 		return
 	end
@@ -1394,6 +1473,9 @@ function ShipwreckSet.install(sequencer: typeof(Sequencer))
 			state.flashHook = true
 			-- Va después de night (se registró antes): suma el destello a la luz de ese cuadro.
 			addFrameHook(ctx, function(t: number)
+				if dawnState then
+					return -- el amanecer no lleva destellos
+				end
 				local level = 0
 				for _, flash in state.flashes do
 					level = math.max(level, pulseAt(t - flash.start) * flash.strength)
@@ -1426,6 +1508,32 @@ function ShipwreckSet.install(sequencer: typeof(Sequencer))
 				Sfx.playLocal("Thunder", STORM.thunderVolume)
 			end
 		end)
+	end)
+
+	-- dawn { seconds?, hour? }: con la pantalla en negro, el Lobby al amanecer (DAWN): la luz, la niebla, la luna, el mar y el
+	-- viento pasan a su look (de golpe, o en "seconds" s), la lluvia y los rayos se quitan y el barco que navegaba desaparece.
+	-- Desde aquí night y storm dejan de aplicarse. restoreNight (al acabar o abortar) lo devuelve todo.
+	sequencer.registerHandler("dawn", function(event, ctx)
+		local state = stateOf(ctx)
+		if state.fx then
+			state.fx:Destroy()
+			state.fx = nil
+		end
+		local actors = ctx.actors
+		local ship = if actors then actors.ship else nil
+		if ship then
+			ship:Destroy()
+		end
+		local seconds: number = event.seconds or 0
+		ShipwreckSet.setDawn(event.t, seconds, event.hour)
+		ShipwreckSet.applyDawn(event.t)
+		if seconds > 0 then
+			addFrameHook(ctx, function(t: number)
+				if t < event.t + seconds + 0.1 then
+					ShipwreckSet.applyDawn(t)
+				end
+			end)
+		end
 	end)
 
 	sequencer.addHooks({
@@ -1467,7 +1575,7 @@ end
 -- queda en el place; clearPreview() la devuelve. Devuelve la carpeta.
 function ShipwreckSet.preview(
 	parent: Instance?,
-	options: { t: number?, night: boolean?, nightT: number?, storm: boolean? }?
+	options: { t: number?, night: boolean?, nightT: number?, storm: boolean?, dawn: boolean? }?
 ): Folder
 	ShipwreckSet.clearPreview()
 	ShipwreckSet.setCourse()
@@ -1475,6 +1583,14 @@ function ShipwreckSet.preview(
 	local folder = Instance.new("Folder")
 	folder.Name = PREVIEW_NAME
 	folder.Parent = parent or Workspace
+
+	-- dawn = true: solo el amanecer sobre el Lobby real (luz, niebla, luna, mar y viento de DAWN), sin barco que navega, gaviotas
+	-- ni comprobaciones. clearPreview() lo devuelve.
+	if options and options.dawn then
+		ShipwreckSet.setDawn(0, 0)
+		ShipwreckSet.applyDawn(0)
+		return folder
+	end
 
 	local ship = ShipwreckSet.buildShip()
 	ship:PivotTo(ShipwreckSet.poseAt(t))
@@ -1505,7 +1621,13 @@ function ShipwreckSet.preview(
 		return require(script.Parent.Parent.Data.Cinematics) :: any
 	end)
 	if ok and cinematics.Shipwreck and cinematics.Shipwreck.prepare then
-		local points = cinematics.Shipwreck.prepare()
+		-- Solo el viaje: los planos del amanecer (desde SAIL_SECONDS) están en el mundo, no en el marco del barco.
+		local points = {}
+		for _, point in cinematics.Shipwreck.prepare() do
+			if point.t < SAIL_SECONDS then
+				table.insert(points, point)
+			end
+		end
 		local looks = ShipwreckSet.checkLook(points)
 		warn(`ShipwreckSet.preview: mirada y zona de la cámara: {#looks} avisos`)
 		for index, problem in looks do

@@ -6448,7 +6448,7 @@ Se probó en el Studio del Lobby solo en modo edición con `ShipwreckSet.preview
 
 ## 168. Fase 25 G6b: la tormenta del «Naufragio» (07-11-2026)
 
-La escena pasa a 31 s: tras la luna (hasta 19 s) hay una tormenta corta con cinco planos de cámara estáticos y cortes secos, niebla, lluvia, viento, olas grandes y rayos. **No se ha probado en Play ni se ha visto en vídeo**; en el Studio solo se comprobó con `preview({ storm = true })` que ninguna cámara queda dentro de un sólido y que la luz y la niebla se restauran. Los números de cámara de los planos de tormenta (`SHIPWRECK_SHOTS`) son de arranque.
+La escena pasa a 40 s (G6c añade de 31 a 40 el amanecer): tras la luna (hasta 19 s) hay una tormenta corta con cinco planos de cámara estáticos y cortes secos, niebla, lluvia, viento, olas grandes y rayos. **No se ha probado en Play ni se ha visto en vídeo**; en el Studio solo se comprobó con `preview({ storm = true })` que ninguna cámara queda dentro de un sólido y que la luz y la niebla se restauran. Los números de cámara de los planos de tormenta (`SHIPWRECK_SHOTS`) son de arranque.
 
 1. [ ] En el Studio del Lobby, lanza «🚢 Naufragio» y míralo hasta el final (31 s).
    ✅ A los 19 s la luna se cubre y la niebla se espesa; llueve en rayas inclinadas por el viento; el barco cabecea y se balancea mucho, casi parado; hay rayos con destello doble y trueno a los 19, 22, 25,5 y 28,5 s, y un destello grande a los 30,3 s; los planos cambian a golpe de corte (proa, el avatar por el cristal de babor, cubierta con la grúa, popa y el avatar por detrás); fundido a negro a los 29,5 s. Nunca se ve el Lobby ni el barco encallado.
@@ -6464,6 +6464,14 @@ La escena pasa a 31 s: tras la luna (hasta 19 s) hay una tormenta corta con cinc
    ✅ Fluido con la lluvia y el rayo.
 7. [ ] Mira los textos del diario de a bordo (siete, a 1,5, 6, 11,5, 17,5, 19,5, 22 y 27 s).
    ✅ Salen uno tras otro sin solaparse, legibles sobre cada plano y sin tapar al avatar; con el idioma en inglés salen en inglés («Ship's log. Night 11. Calm seas.», «We've gone weeks without seeing land…»…). Las 7 frases son nuevas: al cerrar el grupo, `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` y subirlas a Creator Hub.
+8. [ ] Mira el final (de 31 a 40 s): el amanecer sobre el Lobby.
+   ✅ Tras el negro de los 29,5 s la imagen vuelve (a ~31,5 s) con el Lobby real justo antes de amanecer: cielo azul violáceo con el horizonte rosado, la luna roja baja, brisa y mar en calma, sin lluvia ni niebla de tormenta. Primer plano (hasta 35,5 s): la popa del carguero encallado, «ESPERANZA PANAMÁ», vista desde el mar con la plaza al fondo; sale el texto «Al amanecer solo quedaba la arena.» (inglés: «By dawn, only the sand remained.»). Segundo plano (hasta 40 s): más cerca y bajo desde la orilla de poniente, con la superestructura iluminada y los contenedores «PRIMAL»; a los 36,5 s sale el título «Primal Banana Islands» con «Monkey Survival» debajo; a los 39 s fundido a negro y vuelves al Lobby.
+9. [ ] Mira los dos planos del amanecer de cerca.
+   ✅ Ninguna cámara atraviesa el casco ni el decorado; en el segundo plano no tapa la hoja de la palmera el casco; los carteles de la plaza no tapan el barco. El agua del primer plano se ve como agua (en edición solo se ve el fondo oscuro).
+10. [ ] Al acabar (o saltando a mitad).
+   ✅ El Lobby vuelve a su luz de antes (17,6), con el oleaje (`WaterWaveSize`, `WaterWaveSpeed`) y `Workspace.GlobalWind` como estaban; la luna y el cielo de siempre. El título no se queda en pantalla.
+11. [ ] Las 3 frases nuevas del final («Al amanecer solo quedaba la arena.», «Primal Banana Islands», «Monkey Survival»).
+   ✅ En inglés salen «By dawn, only the sand remained.» y los dos títulos iguales. Al cerrar el grupo, `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, subir y `--marcar-subidas`.
 
 ## Cuando termines
 
