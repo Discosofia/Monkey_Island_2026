@@ -9,7 +9,6 @@ local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
-local BossStages = require(ReplicatedStorage.Shared.Data.BossStages)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
@@ -51,7 +50,8 @@ local WeatherService = require(script.Parent.WeatherService)
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local MonkeyModels = require(ServerScriptService.Combat.Monkeys.MonkeyModels)
-local MonkeyAnimator = require(ServerScriptService.Combat.Monkeys.MonkeyAnimator)
+local StageBoss = require(ServerScriptService.Combat.Monkeys.StageBoss)
+local BossService = require(ServerScriptService.Combat.Services.BossService)
 local IslandBossHooks = require(script.Parent.IslandBossHooks)
 
 local DebugService = {}
@@ -95,41 +95,13 @@ local function runStage(player: Player, comic: boolean)
 		return
 	end
 	clearStage()
-	local spot = BossStages[bossId]
-	local species = Monkeys[definition.baseSpecies]
-
-	local folder = Instance.new("Folder")
-	folder.Name = "Plato"
-	folder.Parent = Workspace
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { Workspace.Terrain }
-	local hit = Workspace:Raycast(spot.position + Vector3.new(0, 6, 0), Vector3.new(0, -80, 0), params)
-	local ground = if hit then hit.Position else spot.position
-	local look = table.clone(species)
-	look.name = definition.name
-	look.scale = definition.scale
-	look.bodyColor = definition.bodyColor
-	look.faceColor = definition.faceColor
-	look.maxHealth = definition.maxHealth
-	look.walkSpeed = 0
-	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, ground, bossId)
-	model.Name = definition.name
-	model:SetAttribute("Boss", bossId)
-	model:SetAttribute("BossPhase", 1)
-	model.Parent = folder
-	model:PivotTo(CFrame.lookAt(model:GetPivot().Position, model:GetPivot().Position + spot.facing))
-	local root = model.PrimaryPart
-	if root then
-		root.Anchored = true
-	end
-	MonkeyAnimator.attach(model)
+	local model, anchor, folder = StageBoss.create(bossId, "Plato")
 	local mine = { folder = folder }
 	stage = mine
 
 	local started = CinematicService.play(sceneId, {
 		audience = { player },
-		anchor = CFrame.lookAt(ground, ground + spot.facing),
+		anchor = anchor,
 		bossId = bossId,
 		noFreeze = true,
 		context = { bossModel = model },
@@ -147,6 +119,43 @@ local function runStage(player: Player, comic: boolean)
 		return
 	end
 	Remotes.Notify:FireClient(player, `🎬 Plató{if comic then " cómic" else ""}: grabando a {definition.name}`)
+end
+
+-- «🥊 Batalla jefe» (Fase 25, G5b): la tripulación contra un jefe quieto, solo para grabar. Cada versión (normal, cómic
+-- y reel) rota por su cuenta entre los jefes de BATTLE_BOSSES. ArrivalService aparta al personaje real, monta al jefe
+-- (StageBoss, carpeta «BatallaJefe») antes de la espera y lo borra al acabar. Con un jefe real vivo del mismo id no
+-- monta nada.
+local BATTLE_BOSSES = { "OrangutanDelManglar", "ChimpanceCaudillo" }
+local BATTLE_WAIT_OFFSET = Vector3.new(-6, 0, 8) -- dónde espera el personaje real, en el marco del jefe
+local nextBattleBoss: { [string]: number } = { Normal = 1, Comic = 1, Reel = 1 }
+
+local function runBossBattle(player: Player, variant: string)
+	local bossId = BATTLE_BOSSES[(nextBattleBoss[variant] - 1) % #BATTLE_BOSSES + 1]
+	nextBattleBoss[variant] += 1
+	local definition = Bosses[bossId]
+	local live = BossService.currentModel()
+	if live and live:GetAttribute("Boss") == bossId then
+		Remotes.Notify:FireClient(player, "🥊 {boss} está vivo en la isla: no se monta la batalla", {
+			boss = { definition.name },
+		})
+		return
+	end
+	local suffix = if variant == "Normal" then "" else `_{variant}`
+	-- play espera unos segundos con el personaje ya apartado: el aviso sale antes, y el de fallo lo corrige.
+	Remotes.Notify:FireClient(player, "🥊 Batalla contra {boss}: grabando", { boss = { definition.name } })
+	local ok = ArrivalService.play(player, `Battle_Boss_{bossId}{suffix}`, nil, {
+		bossId = bossId,
+		waitOffset = BATTLE_WAIT_OFFSET,
+		create = function()
+			local model, anchor, folder = StageBoss.create(bossId, "BatallaJefe")
+			return anchor, model, function()
+				folder:Destroy()
+			end
+		end,
+	})
+	if not ok then
+		Remotes.Notify:FireClient(player, "🥊 La batalla contra un jefe ya está en marcha")
+	end
 end
 
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
@@ -859,6 +868,16 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		if not ArrivalService.play(player, "Battle_Pack_Reel") then
 			Remotes.Notify:FireClient(player, "🥊 La batalla reel ya está en marcha")
 		end
+	end,
+	-- Batallas contra un jefe (Fase 25, G5b; ver runBossBattle): cada botón rota por su cuenta entre los jefes.
+	CineBossBattle = function(player)
+		runBossBattle(player, "Normal")
+	end,
+	CineBossBattleComic = function(player)
+		runBossBattle(player, "Comic")
+	end,
+	CineBossBattleReel = function(player)
+		runBossBattle(player, "Reel")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

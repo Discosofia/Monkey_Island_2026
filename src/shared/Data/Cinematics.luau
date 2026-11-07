@@ -22,6 +22,7 @@
 --   Boss_OrangutanDelManglar, Boss_ChimpanceCaudillo, Boss_GorilaAlbino y sus _Comic ... 18,8 (luz de relleno de SceneLight)
 --   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
 --   Battle_Pack, Battle_Pack_Comic, Battle_Pack_Reel ... 18,8
+--   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
 
 local Bosses = require(script.Parent.Bosses)
 local Config = require(script.Parent.Parent.Config)
@@ -479,6 +480,7 @@ local BATTLE_FLEE = { macaco = Vector3.new(-17, 0, -52), aullador = Vector3.new(
 
 type CameraKey = { pos: Vector3, look: Vector3, fov: number }
 type CameraShot = { t0: number, t1: number, a: CameraKey, b: CameraKey }
+type EventList = { { t: number, kind: string, [string]: any } }
 
 local function cameraKey(pos: Vector3, look: Vector3, fov: number): CameraKey
 	return { pos = pos, look = look, fov = fov }
@@ -848,8 +850,8 @@ end
 
 -- La capa cómic del reel: el modo reel, una ventana por corte y las frases. Las coordenadas de `pos` y `at` son
 -- relativas a la banda (x) y al alto de la pantalla (y); los textos que no caben en la banda se parten en líneas.
-local function addReelComic(events: { { t: number, kind: string, [string]: any } }, cuts: { ReelCut })
-	local base, cream = Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196)
+-- El modo reel y una ventana por corte (compartido por las batallas de G5a y G5b).
+local function addReelPanels(events: EventList, cuts: { ReelCut }, base: Color3, cream: Color3)
 	table.insert(events, { t = 0, kind = "reel", on = true })
 	for index, cut in cuts do
 		table.insert(events, {
@@ -860,8 +862,13 @@ local function addReelComic(events: { { t: number, kind: string, [string]: any }
 			seconds = if index == 1 then nil else 0.12,
 		})
 	end
-	-- `side` (left, right, up o down) elige de qué lado de la cabeza sale el bocadillo: sin él, arriba, y en una ventana
-	-- alta y de borde inclinado el bocadillo se corre hacia abajo y tapa la cara.
+end
+
+-- Escritores de bocadillos y onomatopeyas de la banda del reel. `side` (left, right, up o down) elige de qué lado de
+-- la cabeza sale el bocadillo: sin él, arriba, y en una ventana alta y de borde inclinado el bocadillo se corre hacia
+-- abajo y tapa la cara. `band` es el ancho máximo de la onomatopeya como fracción del ancho de la banda (sfx.bandMax
+-- de Comic).
+local function reelWriters(events: EventList)
 	local function bubble(t: number, actor: string, text: string, seconds: number, side: string?)
 		table.insert(events, {
 			t = t,
@@ -873,7 +880,6 @@ local function addReelComic(events: { { t: number, kind: string, [string]: any }
 			side = side,
 		})
 	end
-	-- `band` es el ancho máximo de la onomatopeya como fracción del ancho de la banda (sfx.bandMax de Comic).
 	local function sfx(t: number, text: string, x: number, y: number, rot: number, band: number, seconds: number)
 		table.insert(events, {
 			t = t,
@@ -887,6 +893,25 @@ local function addReelComic(events: { { t: number, kind: string, [string]: any }
 			seconds = seconds,
 		})
 	end
+	return bubble, sfx
+end
+
+-- Cartel de cierre del reel: el nombre del juego (nombre propio, no se traduce), en grande y bajo en la zona segura.
+local function addReelTitle(events: EventList, t: number, y: number?)
+	table.insert(events, {
+		t = t,
+		kind = "bubble",
+		balloon = "title",
+		verbatim = true,
+		text = Config.GameName,
+		at = { 0.5, y or 0.66 },
+		seconds = 0.7 + REEL_TAIL_SECONDS,
+	})
+end
+
+local function addReelComic(events: EventList, cuts: { ReelCut })
+	addReelPanels(events, cuts, Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196))
+	local bubble, sfx = reelWriters(events)
 	-- Reglas: ninguna onomatopeya coincide con otra (≥ 0,7 s entre inicios y ≤ 0,5 s de vida salvo el gancho), van en
 	-- las esquinas libres de la ventana (arriba o abajo) con un giro de 12 a 15° y nunca en la zona de un bocadillo.
 	-- Gancho (primer 1,5 s): ¡ROAAAR! arriba sobre la manada que carga; la narración, abajo a la izquierda.
@@ -907,16 +932,7 @@ local function addReelComic(events: { { t: number, kind: string, [string]: any }
 	sfx(10.7, Strings.later("¡CRASH!"), 0.3, 0.7, -15, 0.4, 0.5) -- abajo a la izquierda
 	sfx(12.85, Strings.later("¡BUM!"), 0.7, 0.7, 12, 0.4, 0.5) -- abajo a la derecha
 	bubble(13.0, "cazador", Strings.later("¡Lo logramos!"), 0.8)
-	-- Cartel de cierre: el nombre del juego (nombre propio, no se traduce), en grande y bajo en la zona segura.
-	table.insert(events, {
-		t = 13.1,
-		kind = "bubble",
-		balloon = "title",
-		verbatim = true,
-		text = Config.GameName,
-		at = { 0.5, 0.66 },
-		seconds = 0.7 + REEL_TAIL_SECONDS,
-	})
+	addReelTitle(events, 13.1)
 end
 
 local function battleActors(): { [string]: { [string]: any } }
@@ -936,11 +952,10 @@ local function battleActors(): { [string]: { [string]: any } }
 	return actors
 end
 
-type EventList = { { t: number, kind: string, [string]: any } }
-
 -- Los eventos de la batalla que son iguales en la versión normal y en la cómic: monos, gestos y efectos.
-local function battleAction(): EventList
-	local events: EventList = {}
+-- Escritores de los eventos de acción de una batalla: add(evento), anim(t, actor, acción, segundos?) y
+-- skill(t, efecto, de, a, args?) (evento abilityFx; el campo es «fx», no «kind»).
+local function actionWriters(events: EventList)
 	local function add(event: { t: number, kind: string, [string]: any })
 		table.insert(events, event)
 	end
@@ -950,6 +965,12 @@ local function battleAction(): EventList
 	local function skill(t: number, name: string, from: string, to: any, args: { [string]: any }?)
 		add({ t = t, kind = "abilityFx", fx = name, from = from, to = to, args = args })
 	end
+	return add, anim, skill
+end
+
+local function battleAction(): EventList
+	local events: EventList = {}
+	local add, anim, skill = actionWriters(events)
 	local function monkey(t: number, name: string, fields: { [string]: any })
 		local event: { [string]: any } = { t = t, kind = "monkey", server = true, name = name }
 		for field, value in fields do
@@ -1044,6 +1065,50 @@ local function battleLight(): EventList
 	}
 end
 
+-- Escritores de la capa cómic de la variante «comic» (sin banda): panel(t, forma, fondo, segundos?),
+-- bubble(t, actor, texto, segundos) y sfx(t, texto, x, y, giro, tamaño).
+local function comicWriters(events: EventList, base: Color3, cream: Color3)
+	local function panel(t: number, shape: string, style: string, seconds: number?)
+		table.insert(events, {
+			t = t,
+			kind = "panel",
+			shape = shape,
+			bg = { style = style, colors = { base, cream } },
+			seconds = seconds,
+		})
+	end
+	local function bubble(t: number, actor: string, text: string, seconds: number)
+		table.insert(
+			events,
+			{ t = t, kind = "bubble", balloon = "speech", actor = actor, text = text, seconds = seconds }
+		)
+	end
+	local function sfx(t: number, text: string, x: number, y: number, rot: number, size: number)
+		table.insert(events, {
+			t = t,
+			kind = "sfx",
+			text = text,
+			pos = { x, y },
+			rot = rot,
+			size = size,
+			color = Color3.new(1, 1, 1),
+			seconds = 1.1,
+		})
+	end
+	return panel, bubble, sfx
+end
+
+-- Fundido a negro del final. El reel dura un segundo más que la batalla y acaba en negro (0,3 s) para que el cartel de
+-- cierre se lea hasta casi el final.
+local function addBattleFade(events: EventList, reel: boolean, total: number)
+	table.insert(events, {
+		t = if reel then total - 0.3 else total - 0.6,
+		kind = "fade",
+		seconds = if reel then 0.3 else 0.5,
+		toBlack = true,
+	})
+end
+
 -- La batalla. "comic" es la variante para vídeo: sin franjas negras, con viñetas, fondos de puntos y de líneas,
 -- onomatopeyas y bocadillos cortos de la tripulación (Cinematics/Comic). "reel" es la misma acción (mismos monos,
 -- habilidades y tiempos) con otro montaje: cámaras y capa cómic pensadas para la banda vertical 9:16.
@@ -1060,34 +1125,7 @@ local function battleScene(variant: string): Scene
 		camera = cutShots(battleReelShots(cuts))
 		addReelComic(events, cuts)
 	elseif comic then
-		local base, cream = Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196)
-		local function panel(t: number, shape: string, style: string, seconds: number?)
-			table.insert(events, {
-				t = t,
-				kind = "panel",
-				shape = shape,
-				bg = { style = style, colors = { base, cream } },
-				seconds = seconds,
-			})
-		end
-		local function bubble(t: number, actor: string, text: string, seconds: number)
-			table.insert(
-				events,
-				{ t = t, kind = "bubble", balloon = "speech", actor = actor, text = text, seconds = seconds }
-			)
-		end
-		local function sfx(t: number, text: string, x: number, y: number, rot: number, size: number)
-			table.insert(events, {
-				t = t,
-				kind = "sfx",
-				text = text,
-				pos = { x, y },
-				rot = rot,
-				size = size,
-				color = Color3.new(1, 1, 1),
-				seconds = 1.1,
-			})
-		end
+		local panel, bubble, sfx = comicWriters(events, Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196))
 		panel(0, "diagLeft", "halftone")
 		table.insert(events, {
 			t = 0.2,
@@ -1117,14 +1155,8 @@ local function battleScene(variant: string): Scene
 	else
 		table.insert(events, { t = 0, kind = "letterbox" })
 	end
-	-- El reel dura un segundo más que la batalla y acaba en negro (0,3 s) para que el cartel de cierre se lea hasta casi el final.
 	local total = if reel then BATTLE_SECONDS + REEL_TAIL_SECONDS else BATTLE_SECONDS
-	table.insert(events, {
-		t = if reel then total - 0.3 else total - 0.6,
-		kind = "fade",
-		seconds = if reel then 0.3 else 0.5,
-		toBlack = true,
-	})
+	addBattleFade(events, reel, total)
 	return {
 		duration = total,
 		audience = "Self",
@@ -1138,7 +1170,613 @@ local function battleScene(variant: string): Scene
 	}
 end
 
+-- Batallas contra un jefe (G5b): la tripulación de G5a contra un jefe quieto (Orangután o Caudillo), solo para grabar.
+-- El anchor es el pie del jefe, que mira a -Z (ArrivalService.play con «stage»: el jefe lo monta StageBoss y llega
+-- como actor boss). Los maniquís se paran a distancia con el arma lista y no se acercan, salvo el guerrero para su
+-- remate. Los dos terrenos no son llanos: terrainY(jefe, x, z) lee una rejilla medida en Studio (altura respecto al pie
+-- del jefe) y los maniquís, además, se pegan al suelo con un rayo (snap, en Actors).
+--
+-- Línea de tiempo (14 s; las habilidades son las de AbilityShow con los gestos del animador):
+--    2,5  rugido del jefe (evento bossRoar; no esencial)
+--    3,0  Grito de guerra del guerrero (3,05)
+--    4,0  el cazador apunta; flecha 4,55; Disparo múltiple 4,7; el jefe se queja (Hurt) 4,95
+--    5,3  el mago apunta; Bola de fuego 5,72; Hurt 6,0
+--    6,4  habilidad del jefe (bossSkill: pisotón o lluvia de rocas; el impacto llega 0,9 s o 1,1 a 1,9 s después)
+--    7,6  el mago lanza la Nova de hielo (7,8) y el jefe queda congelado (7,95)
+--    8,9  el médico cura en área (9,0)
+--    9,1  el cazador apunta; Lluvia de flechas 9,7 (1,2 s); Hurt 9,95
+--   10,4  Embestida del guerrero hasta el jefe (0,55 s); Rompehuesos 11,45; Hurt 11,6
+--   12,0  el guerrero vuelve a su sitio; el mago prepara el Meteoro (12,2); Cheer 12,6; muerte del jefe 13,05
+-- Efectos grandes de AbilityShow (no más de 2 vivos a la vez ni dos inicios a menos de 0,4 s): con las duraciones de
+-- AbilityShow.SPECS (Config.Abilities.MeteorDelay = 0,8 s):
+--   Nova 7,8 → 9,6 (1,8 s) · Curación en área 9,0 → 10,4 (1,4 s) · Lluvia 9,7 → 11,9 (1,2 + 1 s)
+--   Rompehuesos 11,45 → 12,85 (1,4 s) · Meteoro 12,2 → 14,2 (0,8 + 1,2 s)
+-- Máximo 2 vivos a la vez (Nova y Curación de 9,0 a 9,6; Curación y Lluvia de 9,7 a 10,4; Lluvia y Rompehuesos de
+-- 11,45 a 11,9; Rompehuesos y Meteoro de 12,2 a 12,85). Los inicios están a 1,2, 0,7, 1,75 y 0,75 s unos de otros.
+-- Piezas vivas como mucho: 38 + 14 (Hielo) + 40 = 92 a los 9,0 s y 60 + 40 + 14 + 14 = 128 a los 9,7 s, bajo el tope
+-- de High (160). La habilidad del jefe (6,4) cae entre la Bola de fuego (acaba hacia 7,3) y la Nova (7,8): el pisotón
+-- (impacto 7,3) no solapa con efectos grandes; la lluvia de rocas (7,5 a 8,3) roza el inicio de la Nova.
+local BOSS_CREW_OFFSETS: { [string]: { number } } = {
+	guerrero = { 4, 3 },
+	cazador = { -8, -1 },
+	mago = { 0, 0 },
+	medico = { 7, -2 },
+}
+
+-- Rejillas medidas en Studio: altura del suelo respecto al pie del jefe. Columnas x = -36 a 36 y filas z = -48 a 12,
+-- las dos de 6 en 6 (filas de z creciente).
+local TERRAIN_X0 = -36
+local TERRAIN_Z0 = -48
+local TERRAIN_STEP = 6
+local TERRAIN_GRIDS: { [string]: { { number } } } = {
+	-- Plataforma llana de x = -36 a 6; barranco hacia +X, de suelo plano a -10,8.
+	OrangutanDelManglar = {
+		{ -0.4, -0.4, -0.5, -0.6, -0.7, -1.6, -5.7, -10.8, -10.8, -10.8, -10.8, -10.8, -10.8 },
+		{ -0.2, -0.3, -0.4, -0.6, -0.7, -1, -3, -8.5, -10.8, -10.8, -10.8, -10.8, -10.8 },
+		{ -0.1, -0.3, -0.4, -0.5, -0.6, -0.7, -1.4, -4.9, -10.8, -10.8, -10.8, -10.8, -10.8 },
+		{ 0, -0.1, -0.2, -0.4, -0.5, -0.6, -0.8, -2.2, -7.6, -10.8, -10.8, -10.8, -10.8 },
+		{ 0.2, 0, -0.1, -0.2, -0.3, -0.5, -0.7, -1.3, -4.3, -10.5, -10.8, -10.8, -10.8 },
+		{ 0.3, 0.2, 0.2, 0.1, -0.1, -0.4, -0.6, -0.8, -2, -6.8, -10.8, -10.8, -10.8 },
+		{ 0.4, 0.5, 0.5, 0.4, 0.2, -0.1, -0.4, -0.7, -1, -3.8, -9.7, -10.8, -10.8 },
+		{ 0.6, 0.7, 0.8, 0.7, 0.5, 0.1, -0.2, -0.5, -0.7, -2, -7.3, -10.8, -10.8 },
+		{ 0.8, 1, 1.1, 1, 0.8, 0.4, 0, -0.4, -0.7, -1.4, -5.5, -10.8, -10.8 },
+		{ 1.1, 1.4, 1.5, 1.2, 1, 0.6, 0.1, -0.3, -0.6, -1.1, -4, -10.5, -10.8 },
+		{ 1.4, 1.8, 1.8, 1.6, 1.1, 0.7, 0.2, -0.2, -0.6, -0.8, -2.6, -8.6, -10.8 },
+	},
+	-- Cima con ladera irregular que baja hacia delante del jefe (rocas pegadas al anchor en (-3,0,0) y (0,1,0)).
+	ChimpanceCaudillo = {
+		{ -5.9, -7.8, -9.3, -13.2, -15.3, -17.7, -18.1, -17.6, -15.3, -12.6, -11.4, -9.7, -10.1 },
+		{ -4.5, -6.9, -8.7, -12.7, -15.4, -17.1, -18.2, -16.7, -15.2, -14, -12.7, -11.4, -11.6 },
+		{ -3.1, -6.2, -8.2, -10.8, -14.1, -15.2, -15.9, -15.9, -14.8, -14.5, -12.7, -12.7, -14.5 },
+		{ -4.2, -5.4, -8.1, -9.4, -11.3, -13.5, -13, -14, -11.7, -13.3, -13.4, -14.7, -16.2 },
+		{ -5.6, -4.6, -6.5, -8.8, -8.5, -9.2, -11.6, -10.1, -10.8, -11.1, -12.7, -14.9, -18 },
+		{ -5.9, -4.8, -5.3, -5.5, -5.6, -6.9, -7.1, -6.9, -8.4, -9.7, -11.6, -15.6, -19.7 },
+		{ -6.8, -5.5, -4.1, -3, -2, -3, -3.8, -4.6, -6.5, -7.7, -13.2, -18, -21.4 },
+		{ -8.7, -5.6, -2.8, -1.7, -0.3, 0.2, -1.5, -2.9, -5.3, -8.5, -13.1, -18.4, -23.1 },
+		{ -10.7, -6.5, -2.9, -0.3, 0.3, 1, 0, -2.7, -7.7, -10.8, -15.4, -21.4, -27.8 },
+		{ -12.6, -7.8, -4.6, -0.9, -0.5, 0.4, -1.5, -5.2, -7.9, -12.8, -17.5, -23.7, -30 },
+		{ -14.4, -9.4, -6.9, -3.9, -2.5, -3.9, -3.9, -5.4, -11.5, -16.4, -20.9, -27.5, -33.4 },
+	},
+}
+
+-- Altura del suelo (relativa al pie del jefe) en (x, z), con interpolación bilineal; fuera de la rejilla, la del borde.
+local function terrainY(bossId: string, x: number, z: number): number
+	local grid = TERRAIN_GRIDS[bossId]
+	local columns = #grid[1]
+	local fx = math.clamp((x - TERRAIN_X0) / TERRAIN_STEP, 0, columns - 1)
+	local fz = math.clamp((z - TERRAIN_Z0) / TERRAIN_STEP, 0, #grid - 1)
+	local ix = math.min(math.floor(fx), columns - 2)
+	local iz = math.min(math.floor(fz), #grid - 2)
+	local tx, tz = fx - ix, fz - iz
+	local near = grid[iz + 1][ix + 1] + (grid[iz + 1][ix + 2] - grid[iz + 1][ix + 1]) * tx
+	local far = grid[iz + 2][ix + 1] + (grid[iz + 2][ix + 2] - grid[iz + 2][ix + 1]) * tx
+	return near + (far - near) * tz
+end
+
+-- Cámara: { desplazamiento x, altura sobre el suelo de ese punto, desplazamiento z } respecto al centro C de la
+-- tripulación. Mirada: { "abs", x, altura, z } (marco del jefe), { "crew", nombre, altura } (sobre un maniquí) o
+-- { "mid", nombre | "C", altura } (a medio camino entre ese maniquí, o C, y el pie del jefe).
+type Cam = { number }
+type Look = { any }
+type PlanShot = {
+	t0: number,
+	t1: number,
+	cam: Cam,
+	camB: Cam?, -- cámara al final del plano (por defecto, un empuje del 4 % hacia la mirada)
+	look: Look,
+	lookB: Look?, -- mirada al final (por defecto, la misma)
+	fov: number,
+}
+-- Un corte del reel: lo mismo, con su ventana (ver ReelCut) y el tamaño de la acción.
+type ReelPlan = {
+	t0: number,
+	t1: number,
+	shape: string,
+	bg: string,
+	cam: Cam,
+	camB: Cam?,
+	subject: Look,
+	subjectB: Look?,
+	h: number?,
+	fill: number?,
+	width: number?,
+	f: number?,
+}
+type BossBattle = {
+	centre: { number }, -- C = (x, z) en el marco del jefe: el mago está ahí y los demás, en BOSS_CREW_OFFSETS
+	colors: { Color3 }, -- { color del jefe, crema } para los paneles del cómic
+	narration: string,
+	quote: string, -- la frase del jefe
+	skill: string, -- habilidad que enseña el jefe (bossSkill)
+	wait: { Vector3 }, -- puntos del suelo que deben estar cargados antes de empezar (waitTerrain)
+	plan: { PlanShot },
+	reel: { ReelPlan },
+}
+
+-- Los planos de cámara (tiempo, cámara de a b, mirada y FOV). Ninguna cámara a menos de 12 studs de un maniquí.
+local function bossPlan(): { PlanShot }
+	return {
+		-- 1 general desde el costado izquierdo.
+		{
+			t0 = 0,
+			t1 = 2.6,
+			cam = { 26, 7, 8 },
+			camB = { 26, 6, 2 },
+			look = { "mid", "C", 5 },
+			lookB = { "mid", "C", 5 },
+			fov = 56,
+		},
+		-- 2 rugido del jefe, a su cara.
+		{ t0 = 2.6, t1 = 3.8, cam = { 18, 10, -10 }, camB = { 17, 10, -9 }, look = { "abs", 0, 9, 0 }, fov = 46 },
+		-- 3 Grito de guerra del guerrero.
+		{ t0 = 3.8, t1 = 4.8, cam = { -14, 6, 14 }, look = { "crew", "guerrero", 3.5 }, fov = 52 },
+		-- 4 flecha y Bola de fuego hacia el jefe, desde el costado derecho.
+		{ t0 = 4.8, t1 = 6.6, cam = { 26, 6, 6 }, look = { "mid", "C", 4 }, fov = 52 },
+		-- 5 habilidad del jefe, desde detrás de la tripulación.
+		{ t0 = 6.6, t1 = 8.0, cam = { 22, 8, -12 }, camB = { 20, 9, -12 }, look = { "abs", 0, 6, 0 }, fov = 46 },
+		-- 6 Nova de hielo.
+		{ t0 = 8.0, t1 = 9.0, cam = { -20, 5, 2 }, look = { "abs", -2, 4, -6 }, fov = 58 },
+		-- 7 Curación en área y Lluvia de flechas.
+		{ t0 = 9.0, t1 = 10.4, cam = { 22, 9, 0 }, look = { "mid", "C", 3 }, fov = 58 },
+		-- 8 Embestida y Rompehuesos.
+		{ t0 = 10.4, t1 = 12.0, cam = { -20, 3.4, -6 }, look = { "mid", "guerrero", 3.5 }, fov = 52 },
+		-- 9 Meteoro, muerte del jefe y celebración.
+		{
+			t0 = 12.0,
+			t1 = BATTLE_SECONDS,
+			cam = { 22, 8, -10 },
+			camB = { 22, 10, -10 },
+			look = { "abs", 0, 7, 0 },
+			lookB = { "abs", 0, 7, -6 },
+			fov = 55,
+		},
+	}
+end
+
+-- Los cortes del reel (uno por plano normal, o más finos): cámara de los planos de arriba y sujeto en el centro de la
+-- acción, con la ventana y el tamaño de cada uno (h y fill como en battleReelCuts; `width` si se quiere una anchura fija).
+local function bossReelPlan(): { ReelPlan }
+	return {
+		-- Gancho: el jefe, grande, desde el costado.
+		{
+			t0 = 0,
+			t1 = 1.4,
+			shape = "reelTall",
+			bg = "speed",
+			cam = { 26, 7, 8 },
+			subject = { "abs", 0, 6, 0 },
+			width = 14,
+		},
+		-- La tripulación y el jefe al fondo.
+		{
+			t0 = 1.4,
+			t1 = 2.6,
+			shape = "reelDiagR",
+			bg = "flat",
+			cam = { 26, 6, 6 },
+			subject = { "mid", "C", 3.5 },
+			width = 28,
+		},
+		-- Rugido del jefe.
+		{
+			t0 = 2.6,
+			t1 = 3.7,
+			shape = "reelTop",
+			bg = "halftone",
+			cam = { 18, 10, -10 },
+			subject = { "abs", 0, 9, 0 },
+			h = 7,
+			fill = 0.6,
+		},
+		-- Grito de guerra del guerrero.
+		{
+			t0 = 3.7,
+			t1 = 4.7,
+			shape = "reelSlant",
+			bg = "flat",
+			cam = { -14, 6, 14 },
+			subject = { "crew", "guerrero", 3.5 },
+			width = 11,
+		},
+		-- El cazador apunta y dispara.
+		{
+			t0 = 4.7,
+			t1 = 5.6,
+			shape = "reelDiagL",
+			bg = "halftone",
+			cam = { -22, 5, 5 },
+			subject = { "crew", "cazador", 3.5 },
+			width = 12,
+		},
+		-- Bola de fuego del mago hacia el jefe.
+		{
+			t0 = 5.6,
+			t1 = 6.6,
+			shape = "reelTall",
+			bg = "flat",
+			cam = { 26, 6, 6 },
+			subject = { "crew", "mago", 3.5 },
+			width = 22,
+		},
+		-- Habilidad del jefe.
+		{
+			t0 = 6.6,
+			t1 = 8.0,
+			shape = "reelSlant",
+			bg = "speed",
+			cam = { 22, 8, -12 },
+			camB = { 20, 9, -12 },
+			subject = { "abs", 0, 5, 0 },
+			h = 12,
+			fill = 0.55,
+		},
+		-- Nova de hielo.
+		{
+			t0 = 8.0,
+			t1 = 9.0,
+			shape = "reelBottom",
+			bg = "halftone",
+			cam = { -20, 5, 2 },
+			subject = { "abs", -2, 3, -6 },
+			width = 16,
+		},
+		-- Curación en área y Lluvia de flechas.
+		{
+			t0 = 9.0,
+			t1 = 10.4,
+			shape = "reelTop",
+			bg = "halftone",
+			cam = { 22, 9, 0 },
+			subject = { "mid", "C", 3 },
+			width = 26,
+		},
+		-- Embestida y Rompehuesos.
+		{
+			t0 = 10.4,
+			t1 = 12.0,
+			shape = "reelDiagR",
+			bg = "speed",
+			cam = { -20, 3.4, -6 },
+			subject = { "mid", "guerrero", 3.5 },
+			width = 24,
+		},
+		-- Meteoro y muerte del jefe: la ventana alta enseña también el cielo por donde baja.
+		{
+			t0 = 12.0,
+			t1 = 13.2,
+			shape = "reelTall",
+			bg = "speed",
+			cam = { 22, 8, -10 },
+			subject = { "abs", 0, 6, 0 },
+			h = 14,
+			fill = 0.5,
+			f = 0.55,
+		},
+		-- La tripulación celebra y el cartel de cierre.
+		{
+			t0 = 13.2,
+			t1 = BATTLE_SECONDS + REEL_TAIL_SECONDS,
+			shape = "reelTop",
+			bg = "halftone",
+			cam = { 22, 7, -2 },
+			subject = { "crew", "mago", 3.5 },
+			width = 22,
+			f = 0.2,
+		},
+	}
+end
+
+-- Cámaras propias del Orangután: en el manglar los troncos y las copas tapaban dos planos. Posiciones medidas en
+-- Studio (rayos contra todo lo que no es Terrain; desplazamientos respecto a C = (-9, -24)): para el guerrero, desde
+-- (12, 4, -22) en el marco del jefe (21, 4, 2 desde C; el (8, 6, -10) también estaba despejado en el rayo, pero un tronco cercano se veía delante), y para el punto medio, desde (12, 4, -14) (21, 4, 10 desde C).
+local function orangutanPlan(): { PlanShot }
+	local plan = bossPlan()
+	plan[3].cam = { 21, 4, 2 }
+	return plan
+end
+
+local function orangutanReel(): { ReelPlan }
+	local reel = bossReelPlan()
+	reel[2].cam = { 21, 4, 10 }
+	reel[4].cam = { 21, 4, 2 }
+	return reel
+end
+
+local BOSS_BATTLES: { [string]: BossBattle } = {
+	OrangutanDelManglar = {
+		centre = { -9, -24 },
+		colors = { Color3.fromRGB(26, 112, 108), Color3.fromRGB(246, 232, 196) },
+		narration = Strings.later("En el corazón del manglar…"),
+		quote = Strings.later("¡Fuera de mi manglar!"),
+		skill = "stomp",
+		wait = { Vector3.new(0, 0, 0), Vector3.new(-12, -0.3, -24) },
+		plan = orangutanPlan(),
+		reel = orangutanReel(),
+	},
+	ChimpanceCaudillo = {
+		centre = { 0, -18 },
+		colors = { Color3.fromRGB(140, 44, 36), Color3.fromRGB(244, 226, 190) },
+		narration = Strings.later("En lo alto de la montaña…"),
+		quote = Strings.later("¡Esta montaña es mía!"),
+		skill = "rockRain",
+		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -7.1, -18) },
+		plan = bossPlan(),
+		reel = bossReelPlan(),
+	},
+}
+
+-- Dónde está cada uno de la tripulación (x, z) en el marco del jefe.
+local function crewSpot(battle: BossBattle, name: string): (number, number)
+	local offset = BOSS_CREW_OFFSETS[name]
+	return battle.centre[1] + offset[1], battle.centre[2] + offset[2]
+end
+
+-- Giro (grados) de quien está en (x, z) para mirar al jefe, que está en (0, 0): yaw 0 mira a -Z y 180 a +Z.
+local function yawToBoss(x: number, z: number): number
+	return math.deg(math.atan2(x, z))
+end
+
+-- Un punto sobre el suelo del jefe (x, z) a "height" studs.
+local function bossGround(bossId: string, x: number, height: number, z: number): Vector3
+	return Vector3.new(x, terrainY(bossId, x, z) + height, z)
+end
+
+local function bossCamPoint(bossId: string, battle: BossBattle, cam: Cam): Vector3
+	return bossGround(bossId, battle.centre[1] + cam[1], cam[2], battle.centre[2] + cam[3])
+end
+
+local function bossLookPoint(bossId: string, battle: BossBattle, look: Look): Vector3
+	local kind = look[1]
+	if kind == "abs" then
+		return bossGround(bossId, look[2], look[3], look[4])
+	end
+	local x, z = battle.centre[1], battle.centre[2]
+	if look[2] ~= "C" then
+		x, z = crewSpot(battle, look[2])
+	end
+	if kind == "mid" then
+		x, z = x / 2, z / 2
+	end
+	return bossGround(bossId, x, look[3], z)
+end
+
+-- Un empuje del 4 % hacia la mirada, para que ningún plano quede muerto.
+local function pushed(pos: Vector3, look: Vector3): Vector3
+	return pos:Lerp(look, 0.04)
+end
+
+local function bossShots(bossId: string, battle: BossBattle): { CameraShot }
+	local shots: { CameraShot } = {}
+	for _, plan in battle.plan do
+		local posA = bossCamPoint(bossId, battle, plan.cam)
+		local lookA = bossLookPoint(bossId, battle, plan.look)
+		local posB = if plan.camB then bossCamPoint(bossId, battle, plan.camB) else pushed(posA, lookA)
+		local lookB = if plan.lookB then bossLookPoint(bossId, battle, plan.lookB) else lookA
+		table.insert(shots, {
+			t0 = plan.t0,
+			t1 = plan.t1,
+			a = cameraKey(posA, lookA, plan.fov),
+			b = cameraKey(posB, lookB, plan.fov),
+		})
+	end
+	return shots
+end
+
+local function bossReelCuts(bossId: string, battle: BossBattle): { ReelCut }
+	local cuts: { ReelCut } = {}
+	for _, plan in battle.reel do
+		table.insert(cuts, {
+			t0 = plan.t0,
+			t1 = plan.t1,
+			shape = plan.shape,
+			bg = plan.bg,
+			pos = bossCamPoint(bossId, battle, plan.cam),
+			posB = if plan.camB then bossCamPoint(bossId, battle, plan.camB) else nil,
+			subject = bossLookPoint(bossId, battle, plan.subject),
+			subjectB = if plan.subjectB then bossLookPoint(bossId, battle, plan.subjectB) else nil,
+			h = plan.h,
+			fill = plan.fill,
+			width = plan.width,
+			f = plan.f,
+		})
+	end
+	return cuts
+end
+
+local function bossBattleActors(bossId: string, battle: BossBattle): { [string]: { [string]: any } }
+	local actors: { [string]: { [string]: any } } = { boss = { kind = "boss", id = bossId } }
+	for _, member in CREW do
+		local x, z = crewSpot(battle, member.name)
+		actors[member.name] = {
+			kind = "dummy",
+			role = member.role,
+			armor = member.armor,
+			outfit = member.outfit,
+			skin = member.skin,
+			pos = Vector3.new(x, terrainY(bossId, x, z), z),
+			yaw = yawToBoss(x, z),
+			snap = true,
+		}
+	end
+	return actors
+end
+
+-- Los eventos de la batalla contra el jefe, iguales en las tres versiones (ver la línea de tiempo más arriba).
+local function bossBattleAction(battle: BossBattle): EventList
+	local events: EventList = {}
+	local add, anim, skill = actionWriters(events)
+	local function bossAct(t: number, action: string)
+		add({ t = t, kind = "bossAct", server = true, action = action })
+	end
+	local function crewMove(t: number, name: string, x: number, z: number, seconds: number, easing: Enum.EasingStyle?)
+		add({
+			t = t,
+			kind = "move",
+			actor = name,
+			pos = Vector3.new(x, 0, z), -- la Y sale del suelo (snap)
+			yaw = yawToBoss(x, z),
+			seconds = seconds,
+			easing = easing,
+		})
+	end
+
+	add({ t = 2.5, kind = "bossRoar", server = true })
+	-- Grito de guerra del guerrero.
+	anim(3.0, "guerrero", "WarCry", 1.4)
+	skill(3.05, "WarCry", "guerrero", nil, { seconds = 1.4 })
+	-- El cazador dispara (la flecha sale 0,16 s después del gesto) y el mago lanza la Bola de fuego.
+	anim(4.0, "cazador", "AimBow", 1.8)
+	anim(4.55, "cazador", "Arrow", 0.7)
+	skill(4.7, "MultiShot", "cazador", "boss", nil)
+	bossAct(4.95, "Hurt")
+	anim(5.3, "mago", "AimSpell", 1.4)
+	anim(5.6, "mago", "Spell", 0.6)
+	skill(5.72, "Fireball", "mago", "boss", nil)
+	bossAct(6.0, "Hurt")
+	-- Habilidad del jefe (pisotón o lluvia de rocas): solo visual.
+	add({ t = 6.4, kind = "bossSkill", server = true, skill = battle.skill })
+	-- El mago congela al jefe con la Nova de hielo.
+	anim(7.6, "mago", "CastArea", 1.0)
+	skill(7.8, "FrostNova", "mago", "boss", { radius = 12 })
+	skill(7.95, "Frozen", "mago", "boss", { seconds = 1.5 })
+	-- El médico cura en área; el cazador, Lluvia de flechas sobre el jefe (1,2 s: no hay tres efectos grandes a la vez).
+	anim(8.9, "medico", "CastArea", 1.1)
+	skill(9.0, "AreaHeal", "medico", nil, nil)
+	anim(9.1, "cazador", "AimBow", 1.3)
+	anim(9.55, "cazador", "Arrow", 0.7)
+	skill(9.7, "ArrowRain", "cazador", Vector3.new(0, 0, -2), { radius = 10, seconds = 1.2 })
+	bossAct(9.95, "Hurt")
+	-- Remate: Embestida del guerrero hasta el jefe y Rompehuesos (el golpe cae 0,25 s después del gesto).
+	anim(10.4, "guerrero", "Charge", 0.7)
+	crewMove(10.45, "guerrero", 0, -11, 0.55, Enum.EasingStyle.Quad)
+	skill(10.45, "Charge", "guerrero", nil, { seconds = 0.7 })
+	anim(11.2, "guerrero", "Smash", 0.8)
+	skill(11.45, "Smash", "guerrero", "boss", nil)
+	bossAct(11.6, "Hurt")
+	-- El guerrero vuelve a su sitio, el mago prepara el Meteoro (cae en MeteorDelay) y el jefe se va con su «¡puf!».
+	local homeX, homeZ = crewSpot(battle, "guerrero")
+	crewMove(12.0, "guerrero", homeX, homeZ, 0.5)
+	anim(12.0, "mago", "CastArea", 1.0)
+	skill(12.2, "Meteor", "mago", "boss", { radius = 8 })
+	for _, member in CREW do
+		anim(12.6, member.name, "Cheer", 1.4)
+	end
+	bossAct(13.05, "Die")
+	return events
+end
+
+-- Capa cómic de la variante «comic» (sin banda): un panel por plano, narración, frases, onomatopeyas.
+local function addBossComic(events: EventList, battle: BossBattle)
+	local base, cream = battle.colors[1], battle.colors[2]
+	local panel, bubble, sfx = comicWriters(events, base, cream)
+	panel(0, "diagLeft", "halftone")
+	table.insert(events, {
+		t = 0.2,
+		kind = "bubble",
+		balloon = "narration",
+		corner = "TL",
+		text = battle.narration,
+		seconds = 2.2,
+	})
+	panel(2.6, "diagRight", "speed", 0.2)
+	sfx(2.65, Strings.later("¡ROAAAR!"), 0.22, 0.22, -8, 0.2)
+	bubble(2.9, "boss", battle.quote, 0.9)
+	panel(3.8, "wide", "flat", 0.25) -- el guerrero entero (en tallSlant quedaba en el borde)
+	bubble(4.0, "guerrero", Strings.later("¡Que vengan!"), 0.8)
+	panel(4.8, "diagLeft", "halftone", 0.25)
+	bubble(5.9, "mago", Strings.later("¡Fuego!"), 0.7)
+	sfx(6.15, Strings.later("¡FUM!"), 0.72, 0.3, 10, 0.17) -- la bola de fuego da en el jefe
+	panel(6.6, "diagLeft", "speed", 0.2)
+	panel(8.0, "diagRight", "halftone", 0.2)
+	panel(9.0, "wide", "flat", 0.25)
+	bubble(9.2, "medico", Strings.later("¡Aguanten!"), 1.0)
+	panel(10.4, "diagLeft", "speed", 0.2)
+	sfx(10.5, Strings.later("¡WHOOSH!"), 0.28, 0.3, -12, 0.18)
+	sfx(11.5, Strings.later("¡CRASH!"), 0.3, 0.25, -6, 0.22)
+	panel(12.0, "diagRight", "speed", 0.2)
+	sfx(12.95, Strings.later("¡BUM!"), 0.7, 0.3, 10, 0.2)
+	bubble(13.2, "cazador", Strings.later("¡Lo logramos!"), 0.9)
+end
+
+-- Capa cómic del reel: el modo reel, una ventana por corte y las frases dentro de la banda.
+local function addBossReelComic(events: EventList, cuts: { ReelCut }, battle: BossBattle)
+	addReelPanels(events, cuts, battle.colors[1], battle.colors[2])
+	local bubble, sfx = reelWriters(events)
+	table.insert(events, {
+		t = 0.15,
+		kind = "bubble",
+		balloon = "narration",
+		corner = "BL",
+		text = battle.narration,
+		seconds = 2.0,
+	})
+	sfx(2.65, Strings.later("¡ROAAAR!"), 0.5, 0.78, -12, 0.6, 0.9) -- abajo, sobre los puntos: arriba va la frase del jefe
+	bubble(2.95, "boss", battle.quote, 0.7, "right")
+	bubble(3.85, "guerrero", Strings.later("¡Que vengan!"), 0.8, "left")
+	bubble(5.8, "mago", Strings.later("¡Fuego!"), 0.7)
+	sfx(7.3, Strings.later("¡FUM!"), 0.7, 0.7, 15, 0.3, 0.4)
+	bubble(9.2, "medico", Strings.later("¡Aguanten!"), 0.9)
+	sfx(10.5, Strings.later("¡WHOOSH!"), 0.3, 0.22, -15, 0.3, 0.4)
+	sfx(11.5, Strings.later("¡CRASH!"), 0.3, 0.7, -15, 0.4, 0.5)
+	sfx(12.95, Strings.later("¡BUM!"), 0.7, 0.7, 12, 0.4, 0.5)
+	bubble(13.5, "cazador", Strings.later("¡Lo logramos!"), 0.8)
+	addReelTitle(events, 13.4, 0.76) -- sobre los puntos de la ventana de arriba, no sobre la tripulación
+end
+
+-- La batalla contra "bossId" en su versión normal, "comic" o "reel" (mismas acciones y tiempos; cámaras y capa cómic
+-- cambian). Audiencia Self, sin congelar, saltable y con la hora del anochecer, como las de G5a.
+local function bossBattleScene(bossId: string, variant: string): Scene
+	local battle = BOSS_BATTLES[bossId]
+	local reel = variant == "reel"
+	local events: EventList = battleLight()
+	-- El jefe está más lejos de la cámara que los monos de la playa y su pelaje es oscuro: más exposición y más luz.
+	for _, event in events do
+		if event.kind == "exposure" then
+			event.value = 0.42
+		elseif event.kind == "light" then
+			event.brightness = 1.8
+		end
+	end
+	for _, event in bossBattleAction(battle) do
+		table.insert(events, event)
+	end
+	local camera: { { t: number, pos: Vector3, look: Vector3, fov: number? } }
+	if reel then
+		local cuts = bossReelCuts(bossId, battle)
+		camera = cutShots(battleReelShots(cuts))
+		addBossReelComic(events, cuts, battle)
+	else
+		camera = cutShots(bossShots(bossId, battle))
+		if variant == "comic" then
+			addBossComic(events, battle)
+		else
+			table.insert(events, { t = 0, kind = "letterbox" })
+		end
+	end
+	local total = if reel then BATTLE_SECONDS + REEL_TAIL_SECONDS else BATTLE_SECONDS
+	addBattleFade(events, reel, total)
+	return {
+		duration = total,
+		audience = "Self",
+		freeze = false,
+		skippable = true,
+		hour = DUSK_HOUR,
+		waitTerrain = battle.wait,
+		actors = bossBattleActors(bossId, battle),
+		camera = camera,
+		events = events,
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
+	-- Batallas contra un jefe (G5b): solo para grabar; las lanza el panel de pruebas con ArrivalService.play y un stage.
+	Battle_Boss_OrangutanDelManglar = bossBattleScene("OrangutanDelManglar", "normal"),
+	Battle_Boss_OrangutanDelManglar_Comic = bossBattleScene("OrangutanDelManglar", "comic"),
+	Battle_Boss_OrangutanDelManglar_Reel = bossBattleScene("OrangutanDelManglar", "reel"),
+	Battle_Boss_ChimpanceCaudillo = bossBattleScene("ChimpanceCaudillo", "normal"),
+	Battle_Boss_ChimpanceCaudillo_Comic = bossBattleScene("ChimpanceCaudillo", "comic"),
+	Battle_Boss_ChimpanceCaudillo_Reel = bossBattleScene("ChimpanceCaudillo", "reel"),
+
 	-- Batallas montadas (G5a): solo para grabar, las lanza el panel de pruebas con ArrivalService.play.
 	Battle_Pack = battleScene("normal"),
 	Battle_Pack_Comic = battleScene("comic"),

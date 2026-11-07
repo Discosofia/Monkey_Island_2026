@@ -2,7 +2,8 @@
 -- Actores de las cinemáticas (Fase 25). Actors.spawn(def, anchor, ctx) crea o encuentra el modelo de un
 -- actor según def.kind:
 --   dummy        rig R15 vestido con el equipo del juego (ArmorModels.wear + WeaponTools.build, como Portada).
---                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor? }
+--                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap? }
+--                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
 --   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca.
 --   boss         el modelo del jefe que ya está en el mundo, buscado por su atributo "Boss" (def.id opcional).
 --   prop         lo que devuelva def.build(anchor, ctx) (un Model con lo que haga falta).
@@ -40,6 +41,7 @@ export type ActorDef = {
 	id: string?,
 	pos: Vector3?,
 	yaw: number?,
+	snap: boolean?,
 	skinColor: Color3?,
 	pantsColor: Color3?,
 	build: ((anchor: CFrame, ctx: Sequencer.Context) -> Model)?,
@@ -117,6 +119,23 @@ local function holdWeapon(rig: Model, weaponId: string, skinId: string?)
 	weld.Parent = hand
 end
 
+-- Snap al suelo (def.snap = true en un maniquí): la Y de "pos" (relativa al anchor) sale de un rayo contra el Terrain
+-- desde 40 studs sobre ese punto del mundo y 120 hacia abajo, en vez de la Y relativa. Sin suelo, queda la Y de "pos".
+local SNAP_RAY_UP = 40
+local SNAP_RAY_DOWN = 120
+
+local function snapToTerrain(anchor: CFrame, pos: Vector3): Vector3
+	local world = anchor:PointToWorldSpace(pos)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Workspace.Terrain }
+	local hit = Workspace:Raycast(world + Vector3.new(0, SNAP_RAY_UP, 0), Vector3.new(0, -SNAP_RAY_DOWN, 0), params)
+	if not hit then
+		return pos
+	end
+	return anchor:PointToObjectSpace(Vector3.new(world.X, hit.Position.Y, world.Z))
+end
+
 -- Coloca "model" de pie en "ground" (relativo a anchor), girado "yaw" grados, por su raíz (no por la caja,
 -- para que el arma y el traje no lo levanten del suelo).
 local function place(model: Model, anchor: CFrame, ground: Vector3, yaw: number)
@@ -180,7 +199,12 @@ local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context)
 	if humanoid then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	end
-	place(rig, anchor, def.pos or Vector3.zero, def.yaw or 0)
+	local ground = def.pos or Vector3.zero
+	if def.snap then
+		rig:SetAttribute("CinematicSnap", true)
+		ground = snapToTerrain(anchor, ground)
+	end
+	place(rig, anchor, ground, def.yaw or 0)
 	alignWeapon(rig)
 	-- La raíz anclada deja el rig quieto donde se pone; los miembros siguen moviéndose con las animaciones.
 	local root = rig:FindFirstChild("HumanoidRootPart")
@@ -271,7 +295,11 @@ local function moveActor(actor: Model, event: Sequencer.Event, ctx: Sequencer.Co
 	local anchor: CFrame = ctx.anchor or CFrame.identity
 	local from = actor:GetPivot()
 	local lift = actor:GetAttribute("CinematicLift") or 0
-	local target = anchor:PointToWorldSpace((event.pos :: Vector3) + Vector3.new(0, lift, 0))
+	local pos: Vector3 = event.pos
+	if actor:GetAttribute("CinematicSnap") then
+		pos = snapToTerrain(anchor, pos)
+	end
+	local target = anchor:PointToWorldSpace(pos + Vector3.new(0, lift, 0))
 	-- pitch y roll (grados, opcionales) inclinan al actor después del giro: el balanceo de un bote.
 	local rotation = if event.yaw
 		then (anchor * CFrame.Angles(0, math.rad(event.yaw), 0) * CFrame.Angles(

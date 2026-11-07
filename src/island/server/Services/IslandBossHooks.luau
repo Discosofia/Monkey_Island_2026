@@ -20,6 +20,8 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local BossService = require(ServerScriptService.Combat.Services.BossService)
+local MonkeyAnimator = require(ServerScriptService.Combat.Monkeys.MonkeyAnimator)
+local Poof = require(ServerScriptService.Combat.Poof)
 local BasecampService = require(script.Parent.BasecampService)
 local CinematicService = require(script.Parent.CinematicService)
 local DayNightService = require(script.Parent.DayNightService)
@@ -125,6 +127,29 @@ function IslandBossHooks:Init()
 	CinematicService.registerServerEvent("bossRoar", function(_, run)
 		local model = run.context.bossModel
 		BossService.roar(if typeof(model) == "Instance" and model:IsA("Model") then model else nil)
+	end)
+	-- Gestos del jefe en las batallas montadas (G5b): bossAct { action = "Hurt" | "Roar" | "Stomp" | "Die" }.
+	-- «Die» es el «¡puf!» de caricatura (como los monos de CinematicMonkeyService). Sin animación para esa acción no
+	-- hace nada (MonkeyAnimator.play ya la ignora); si falla otra cosa, avisa una vez por acción.
+	local warnedActions: { [string]: boolean } = {}
+	CinematicService.registerServerEvent("bossAct", function(event, run)
+		local model = run.context.bossModel
+		local action = event.action
+		if not (typeof(model) == "Instance" and model:IsA("Model") and model.Parent and typeof(action) == "string") then
+			return
+		end
+		local ok, err = pcall(function()
+			if action == "Die" then
+				MonkeyAnimator.die(model)
+				Poof.vanish(model)
+			else
+				MonkeyAnimator.play(model, action :: any)
+			end
+		end)
+		if not ok and not warnedActions[action] then
+			warnedActions[action] = true
+			warn(`[IslandBossHooks] bossAct {action} falla: {err}`)
+		end
 	end)
 	-- Una habilidad del jefe solo para enseñarla en la escena (sin daño): animación y efectos para la audiencia.
 	CinematicService.registerServerEvent("bossSkill", function(event, run)

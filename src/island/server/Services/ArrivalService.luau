@@ -4,10 +4,12 @@
 -- en lancha, «Voyage», con su propio id) y «ArrivalShort» las siguientes. Es una escena local (solo la ve quien llega). CinematicService marca como vista la escena que se vio
 -- entera por su id, así que «Arrival» solo cuenta cuando se vio la larga y la corta nunca la marca.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local CinematicService = require(script.Parent.CinematicService)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Cinematics = require(game:GetService("ReplicatedStorage").Shared.Data.Cinematics)
 local Remotes = require(game:GetService("ReplicatedStorage").Shared.Remotes)
 local MatchService = require(script.Parent.MatchService)
@@ -73,15 +75,90 @@ local function takeSlot(player: Player): number
 	return slot
 end
 
+-- Batallas con jefe (G5b): los monos reales de la isla que andan por el escenario salían en plano (con su nombre) y
+-- mordían al personaje oculto. Dentro de CLEAR_RADIUS_STUDS del anchor se anclan, se esconden y se les apagan los
+-- carteles; la función devuelta los deja como estaban. "keep" es lo que no se toca (el jefe de plató y los monos de
+-- las escenas).
+local CLEAR_RADIUS_STUDS = 130
+
+local CLEAR_SWEEP_SECONDS = 0.4 -- cada cuánto se vuelve a barrer: los monos reales aparecen después de colocar al jugador
+
+local function clearArea(center: Vector3, keep: Instance): () -> ()
+	local saved: { { instance: Instance, transparency: number?, enabled: boolean?, anchored: boolean? } } = {}
+	local done: { [Instance]: boolean } = {}
+	local active = true
+	local function hide(tagged: Instance)
+		for _, descendant in tagged:GetDescendants() do
+			local item = descendant :: any
+			if descendant:IsA("BasePart") then
+				table.insert(
+					saved,
+					{ instance = descendant, transparency = item.Transparency, anchored = item.Anchored }
+				)
+				item.Transparency = 1
+				item.Anchored = true
+			elseif descendant:IsA("Decal") then
+				table.insert(saved, { instance = descendant, transparency = item.Transparency })
+				item.Transparency = 1
+			elseif descendant:IsA("BillboardGui") and item.Enabled then
+				table.insert(saved, { instance = descendant, enabled = true })
+				item.Enabled = false
+			end
+		end
+	end
+	local function sweep()
+		for _, tagged in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+			local root = if tagged:IsA("Model") then tagged.PrimaryPart else nil
+			if
+				root
+				and not done[tagged]
+				and not tagged:IsDescendantOf(keep)
+				and not tagged:GetAttribute("CinematicActor")
+				and (root.Position - center).Magnitude <= CLEAR_RADIUS_STUDS
+			then
+				done[tagged] = true
+				hide(tagged)
+			end
+		end
+	end
+	sweep()
+	task.spawn(function()
+		while active do
+			task.wait(CLEAR_SWEEP_SECONDS)
+			if active then
+				sweep()
+			end
+		end
+	end)
+	return function()
+		active = false
+		for _, entry in saved do
+			local item = entry.instance :: any
+			if item.Parent then
+				if entry.transparency ~= nil then
+					item.Transparency = entry.transparency
+				end
+				if entry.anchored ~= nil then
+					item.Anchored = entry.anchored
+				end
+				if entry.enabled ~= nil then
+					item.Enabled = true
+				end
+			end
+		end
+	end
+end
+
 -- Lleva el personaje a la playa (invisible y quieto) y devuelve la función que lo deja como estaba.
-local function moveToBeach(player: Player, slot: number): () -> ()
+-- "waitPoint" (mundo) es el sitio de espera de una batalla con jefe; sin él, el hueco de la playa.
+local function moveToBeach(player: Player, slot: number, waitPoint: Vector3?): () -> ()
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	if not (character and root and root:IsA("BasePart")) then
 		return function() end
 	end
 	local home = character:GetPivot()
-	local spot = ANCHOR:PointToWorldSpace(WAIT_OFFSET + Vector3.new(-WAIT_SPACING * slot, 0, 0))
+	local spot = waitPoint or ANCHOR:PointToWorldSpace(WAIT_OFFSET + Vector3.new(-WAIT_SPACING * slot, 0, 0))
 	local terrainOnly = RaycastParams.new()
 	terrainOnly.FilterType = Enum.RaycastFilterType.Include
 	terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
@@ -158,7 +235,17 @@ end
 -- Con "beforeId" (la travesía) esa escena suena antes y, al acabar, sigue "sceneId" sin soltar al personaje ni dejar
 -- entrar a otro. Varios jugadores pueden llegar a la vez (cada uno con su ejecución local y su hueco de espera).
 -- false si este jugador ya tiene una en marcha.
-function ArrivalService.play(player: Player, sceneId: string, beforeId: string?): boolean
+-- Con "stage" (batalla contra un jefe, G5b) la escena no es la de la playa: "create" monta al jefe y devuelve el anchor
+-- de la escena, el modelo del jefe y la función que lo borra; el personaje espera en "waitOffset" (marco del anchor) y
+-- la escena sale con ese anchor, "bossId" y context = { bossModel }. El jefe se monta antes de la espera para que el
+-- terreno y el modelo carguen, y se borra al acabar.
+export type Stage = {
+	bossId: string,
+	waitOffset: Vector3,
+	create: () -> (CFrame, Model, () -> ()),
+}
+
+function ArrivalService.play(player: Player, sceneId: string, beforeId: string?, stage: Stage?): boolean
 	if
 		CinematicService.isRunningFor(sceneId, player)
 		or (beforeId ~= nil and CinematicService.isRunningFor(beforeId, player))
@@ -168,17 +255,44 @@ function ArrivalService.play(player: Player, sceneId: string, beforeId: string?)
 	end
 	-- Pantalla en negro en su cliente (CinematicClient) hasta que empiece la escena.
 	player:SetAttribute(HOLD_ATTRIBUTE, "Arrive")
-	local back = moveToBeach(player, takeSlot(player))
+	local sceneAnchor = ANCHOR
+	local bossModel: Model? = nil
+	local removeStage: (() -> ())? = nil
+	local waitPoint: Vector3? = nil
+	local protectedUntil: number? = nil
+	if stage then
+		local removeBoss: () -> ()
+		sceneAnchor, bossModel, removeBoss = stage.create()
+		waitPoint = sceneAnchor:PointToWorldSpace(stage.waitOffset)
+		-- Sin monos reales alrededor y con el personaje oculto protegido (si no, lo mordían: «-20» en pantalla).
+		local restoreArea = clearArea(sceneAnchor.Position, bossModel.Parent or bossModel)
+		local scene = Cinematics[sceneId]
+		protectedUntil = Workspace:GetServerTimeNow() + SETTLE_SECONDS + (if scene then scene.duration else 20) + 15
+		player:SetAttribute("InvulnerableUntil", protectedUntil)
+		removeStage = function()
+			restoreArea()
+			if player.Parent and player:GetAttribute("InvulnerableUntil") == protectedUntil then
+				player:SetAttribute("InvulnerableUntil", nil)
+			end
+			removeBoss()
+		end
+	end
+	local back = moveToBeach(player, takeSlot(player), waitPoint)
 	task.wait(SETTLE_SECONDS)
 	local function finish()
 		waitSlot[player] = nil
 		back()
+		if removeStage then
+			removeStage()
+		end
 	end
 	local function launch(id: string, onEnd: () -> ()): boolean
 		return player.Parent ~= nil
 			and CinematicService.play(id, {
 				audience = { player },
-				anchor = ANCHOR,
+				anchor = sceneAnchor,
+				bossId = if stage then stage.bossId else nil,
+				context = if bossModel then { bossModel = bossModel } else nil,
 				onFinished = onEnd,
 			})
 	end

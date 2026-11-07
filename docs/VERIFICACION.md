@@ -6351,6 +6351,50 @@ Al embocar el aro, la partida queda congelada (estado `Replay` en `Dunas/Modes/B
 4. [ ] Entra a Captura la bandera.
    ✅ Todo sigue como antes (ventajas y equipo de arena).
 
+## 166. Fase 25 G5b: batallas montadas contra jefes (07-11-2026)
+
+Las 6 escenas (`Battle_Boss_<id>` con `_Comic` y `_Reel`, para el Orangután del Manglar y el Caudillo) se probaron en el Studio de la Isla con un jugador: sin errores de Luau, maniquíes a 0,19 studs del suelo, cámaras sin atravesar el terreno ni quedar a menos de 12 studs de un maniquí, y los monos reales de la zona ocultos mientras dura la escena. Se vieron en grabación (normal, cómic y reel) y el usuario las aprobó. Se lanzan con las órdenes de «🛠️ Pruebas»: «🥊 Batalla jefe», «🥊 Batalla jefe cómic» y «🥊 Batalla jefe reel» (cada una alterna entre los dos jefes).
+
+### Con un jugador en Play (Studio de la Isla)
+
+1. [ ] Pon el ajuste de efectos en **High** (⚙️ → efectos) y lanza «🥊 Batalla jefe» con los dos jefes.
+   ✅ Se dibujan la Curación en área del médico (a los 9 s) y el Rompehuesos del guerrero (a los 11,45 s); en Medium el gobernador los descarta. Nunca hay más de 2 efectos grandes a la vez. Al acabar deja el ajuste en «Auto».
+2. [ ] En Low y en Medium lanza la misma orden.
+   ✅ Sin errores; el Meteoro y la Lluvia de flechas salen como un Rayo y un Disparo múltiple (`fallback`).
+3. [ ] En el reel del Orangután, mira el corte del guerrero («¡Que vengan!», 3,7 a 4,7 s) con la cámara nueva (12, 4, -22).
+   ✅ El guerrero se ve entero, sin un tronco de manglar delante. Si sigue tapado, hay otras posiciones despejadas en la medición (ver PLAN, Handoff de G5b).
+4. [ ] En los dos reels, mira el cartel de cierre «Primal Banana Islands».
+   ✅ Se lee y no tapa la cara de nadie. Hoy sale hacia el centro (altura 0,3 a 0,6) porque `Comic` lo mantiene dentro de la zona segura; si estorba, hay que tocar `Cinematics/Comic.luau` (ver PLAN).
+5. [ ] Lanza la orden en los dos jefes y luego otra vez.
+   ✅ Cada botón alterna entre el Orangután y el Caudillo y avisa de a cuál graba.
+
+### Casos límite
+
+6. [ ] Salta una batalla a mitad con «Saltar».
+   ✅ El jefe de plató se borra, los monos reales vuelven a verse y a moverse, el personaje real vuelve a su sitio y la tarjeta de espera desaparece.
+7. [ ] Con un jefe real vivo del mismo id (usa «👑 Siguiente jefe» hasta que salga el Orangután o el Caudillo), lanza su batalla.
+   ✅ Avisa y no monta nada.
+8. [ ] Durante la batalla, mira la vida del personaje oculto.
+   ✅ No baja (`InvulnerableUntil`); al acabar queda en nil y se puede dañar otra vez.
+9. [ ] Lanza la batalla con la partida de la Isla ya avanzada (monos reales cerca del jefe).
+   ✅ Los monos a menos de 130 studs del jefe se ocultan en el primer segundo y vuelven a verse al acabar.
+10. [ ] Con el idioma en inglés, lanza el cómic y el reel de cada jefe.
+    ✅ Las narraciones, las frases y las onomatopeyas existen en inglés (no hay frases nuevas en este grupo) y caben en los bocadillos.
+
+### Con 2 o más jugadores
+
+11. [ ] Lanza la batalla con un amigo en la misma partida.
+    ✅ Solo ve la escena quien la lanza. El otro jugador ve desaparecer a los monos reales de la zona mientras dura (el ocultar es del servidor) y al jefe de plató quieto en su sitio.
+12. [ ] Dos jugadores lanzan una batalla a la vez.
+    ✅ Cada uno ve su escena y vuelve a su sitio. Comprueba que no se montan dos jefes de plató en el mismo lugar (el segundo debería avisar o esperar); si se montan, hay que impedirlo en `ArrivalService.play`. No se probó.
+
+### Juego publicado y móvil
+
+13. [ ] Publica la Isla y repite los pasos 1, 3 y 6 con el juego publicado.
+    ✅ Igual que en Studio; el terreno de la cima del Caudillo (y ≈ 156) carga antes de empezar (a veces el snap deja la Y de la rejilla si el suelo tarda).
+14. [ ] En el teléfono emulado (o real), lanza el cómic y el reel.
+    ✅ Las ventanas, los bocadillos y las onomatopeyas caben en la pantalla y en la banda 9:16.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
