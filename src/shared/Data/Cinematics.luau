@@ -37,6 +37,7 @@ local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local MountedRider = require(script.Parent.Parent.Cinematics.MountedRider)
+local Mounts = require(script.Parent.Mounts)
 local PetActor = require(script.Parent.Parent.Cinematics.PetActor)
 local Strings = require(script.Parent.Parent.Strings)
 
@@ -3466,7 +3467,402 @@ local function petsScene(variant: string): Scene
 	}
 end
 
+-- Monturas (Fase 25, G8a; 20 s): la Llama Andina, el Jaguar Albino Esmeralda y el Quetzalcóatl, cada uno con el avatar del
+-- jugador montado, en tres sitios de la isla (coordenadas del MUNDO, anchor = CFrame.identity). Solo para grabar (orden
+-- «🐎 Monturas»). Los sitios están medidos con rayos en el Studio de la Isla: PLAYA, la arena baja hacia el mar (+Z); JUNGLA,
+-- el claro llano de PET_JUNGLE; MONTAÑA, el banco (-410, 21, -100) con la falda que baja hacia el este y el vacío desde x = -350.
+-- Lo marcado «a medir» no se pudo comprobar sin Studio: las tomas de cámara de MOUNT_SHOTS son un primer borrador.
+--
+-- Línea de tiempo (segundos):
+--    0 a 3,5   Montaje de 6 cortes en la jungla (cabeza de la Llama, ojos del Jaguar, penacho del Quetzalcóatl, la silla
+--              por detrás, cenital y plano general). Las tres monturas esperan en fila, en Idle, a 6 studs entre sí: es lo
+--              más simple (un solo sitio, sin teletransportes entre cortes); al acabar, cada una salta a su sitio con `move`.
+--  3,5 a 8    PLAYA: la Llama galopa paralela a la orilla, salta y se para a escupir a la cámara
+--    8 a 12,5 JUNGLA: el Jaguar corre y salta; a los 9,65 corte a una cámara fija al final de su recorrido, a la que llega
+--              de frente y para a ~6,6 studs: primer plano de la cara y el pecho, y rugido con sacudida
+-- 12,5 a 17,5 MONTAÑA: el Quetzalcóatl baja corriendo de frente hacia la cámara (sobre la roca de la ladera, x -414), salta,
+--              pasa por encima y se aleja planeando por el valle con la cámara siguiéndolo
+-- 17,5 a 20   cartel «Elige tu montura», logo y fundido a negro
+-- Las monturas que no salen en pantalla se aparcan en y = -400 (como el final del Sobrevuelo).
+local MOUNTS_SECONDS = 20
+local MOUNTS_HOUR = 17.5 -- atardecer dorado, como el Sobrevuelo y las mascotas
+local MOUNT_PARK = Vector3.new(0, -400, 0)
+local MOUNT_ROW_YAW = -90 -- el montaje las deja mirando al este
+local MOUNT_ROW = {
+	Llama = Vector3.new(-25, 12.7, 266),
+	Jaguar = Vector3.new(-25, 12.7, 272),
+	Quetzalcoatl = Vector3.new(-25, 12.7, 278),
+}
+-- PLAYA: la Llama galopa por x -70 a 0 (mirando +X) a z = 925; la cámara va por el lado del mar (+Z).
+local BEACH_FROM = Vector3.new(-70, 4.8, 925)
+local BEACH_TO = Vector3.new(0, 4.8, 925)
+-- JUNGLA: el Jaguar corre por el claro de PET_JUNGLE (sin árboles entre x -55 y 5) mirando +X.
+local JUNGLE_RUN_FROM = Vector3.new(5, 12.7, 272)
+local JUNGLE_RUN_TO = Vector3.new(-39, 12.7, 272) -- el Jaguar corre hacia -X y se para a ~6,6 studs de la cámara fija (en x -49)
+-- MONTAÑA (rehecha tras el vídeo del 07-11-2026: el sitio anterior era la zanja de un río y la cámara quedaba debajo): la
+-- ladera de la montaña, mirando al norte. Línea libre de árboles en x ≈ -414 (medida con rayos): el suelo va de y 51 en
+-- z -194 a y 31 en z -148 (unos 25°) y sigue hasta y 22 en z -98. La cámara está sobre la roca desnuda (x -409,5, z -128, y 29):
+-- la hierba (~3 studs) solo crece donde el suelo es césped (más al sur) y, a menos de ~8 studs de altura, tapaba al
+-- Quetzalcóatl. Baja corriendo de frente hacia ella, salta y pasa por encima; después la cámara lo sigue por la espalda
+-- mientras planea hacia el sur sobre el valle y la isla (el sol está al oeste, a ~7°, a la derecha de esa vista).
+-- Puntos de la bajada: { z, y del suelo, t }.
+local MOUNTAIN_X = -414
+local MOUNTAIN_RUN = {
+	{ z = -194, y = 51, t = 12.5 },
+	{ z = -182, y = 46.4, t = 12.95 },
+	{ z = -170, y = 40.8, t = 13.45 },
+	{ z = -158, y = 35.6, t = 13.95 },
+	{ z = -148, y = 31.2, t = 14.4 },
+}
+local MOUNTAIN_RUN_START = 12.5
+local MOUNTAIN_LEAP_AT = 14.4 -- salta
+local MOUNTAIN_GLIDE_AT = 15.3 -- planea
+local MOUNTAIN_GLIDE_END = 17 -- el Quetzalcóatl se queda flotando (Idle) y siseando en MOUNTAIN_GLIDE_TO
+local MOUNTAIN_LEAP_TO = Vector3.new(MOUNTAIN_X, 41, -126)
+local MOUNTAIN_GLIDE_TO = Vector3.new(MOUNTAIN_X, 37, -82) -- por encima de las copas de la colina (~32)
+-- Cámara del plano final: más al sur y al este del punto donde flota, de modo que lo ve de TRES CUARTOS por delante (él mira al
+-- sur; la cámara queda a ~31° de su frente) con el cielo detrás, a la altura de las copas para que no las tenga delante.
+local MOUNTAIN_FINAL_CAMERA = Vector3.new(-401.5, 33, -61)
+local MOUNTAIN_CUT = 16.35 -- corte de la cámara de la roca a la del plano final
+local MOUNTAIN_FINAL_LIFT = 3 -- hacia dónde apunta la cámara final sobre el cuerpo (más que MOUNT_BODY_LIFT: lo baja en el cuadro)
+local MOUNTAIN_CAMERA = Vector3.new(-409.5, 29, -128)
+local MOUNTAIN_CENTER = Vector3.new(MOUNTAIN_X, 30, -150) -- para hideEnemies y waitTerrain
+local MOUNT_BODY_LIFT = 1.5 -- de los pies al centro del cuerpo, adonde mira la cámara en el planeo
+local MOUNT_CAPTION_SECONDS = 2.6
+
+-- Fotogramas clave del Quetzalcóatl en la montaña: { t, pos (pies), pitch }. De ellos salen los `move` y la mirada de la cámara.
+-- En la bajada el cuerpo sigue la pendiente (pitch negativo: morro abajo).
+local function mountainKeys(): { { t: number, pos: Vector3, pitch: number } }
+	local function pitchOf(from: Vector3, to: Vector3): number
+		return math.deg(math.atan((to.Y - from.Y) / Vector3.new(to.X - from.X, 0, to.Z - from.Z).Magnitude))
+	end
+	local keys = {}
+	for _, point in MOUNTAIN_RUN do
+		table.insert(keys, { t = point.t, pos = Vector3.new(MOUNTAIN_X, point.y, point.z), pitch = 0 })
+	end
+	for i = 2, #keys do
+		keys[i].pitch = pitchOf(keys[i - 1].pos, keys[i].pos)
+	end
+	keys[1].pitch = keys[2].pitch
+	local runEnd = keys[#keys].pos
+	table.insert(keys, { t = MOUNTAIN_GLIDE_AT, pos = MOUNTAIN_LEAP_TO, pitch = pitchOf(runEnd, MOUNTAIN_LEAP_TO) })
+	table.insert(
+		keys,
+		{ t = MOUNTAIN_GLIDE_END, pos = MOUNTAIN_GLIDE_TO, pitch = pitchOf(MOUNTAIN_LEAP_TO, MOUNTAIN_GLIDE_TO) }
+	)
+	return keys
+end
+
+-- Dónde están los pies del Quetzalcóatl en el segundo t (lineal entre fotogramas clave).
+local function mountainQuetzalAt(keys: { { t: number, pos: Vector3, pitch: number } }, t: number): Vector3
+	if t <= keys[1].t then
+		return keys[1].pos
+	end
+	for i = 2, #keys do
+		if t <= keys[i].t then
+			local a, b = keys[i - 1], keys[i]
+			return a.pos:Lerp(b.pos, (t - a.t) / (b.t - a.t))
+		end
+	end
+	return keys[#keys].pos
+end
+
+-- Tomas de cámara con nombre (pos, look y fov a mano, para afinarlas en Studio). Las del montaje (jungla, con las monturas
+-- en MOUNT_ROW) son `still` de una duración fija; el resto son un par { a, b } para pushShot (de dónde a dónde).
+-- Los primeros planos van a ~4,5 studs y la cámara de la montaña a >= 5 studs sobre el suelo.
+local MOUNT_SHOTS = {
+	-- MONTAJE (3,45 s): cada corte con su seguimiento mínimo.
+	llamaHead = still(
+		Vector3.new(-19.4, 18.7, 262.6),
+		Vector3.new(-23.2, 18.3, 266),
+		0.5,
+		40,
+		Vector3.new(-20, 18.7, 263.1)
+	),
+	jaguarEyes = still(
+		Vector3.new(-14.5, 16.7, 276),
+		Vector3.new(-21.3, 16.1, 272),
+		0.5,
+		36,
+		Vector3.new(-15.2, 16.7, 275.5)
+	),
+	quetzalCrest = still(
+		Vector3.new(-11.5, 18, 281.8),
+		Vector3.new(-19, 17.1, 278),
+		0.55,
+		42,
+		Vector3.new(-12.2, 18, 281.4)
+	),
+	saddleBehind = CameraPath.behind(Vector3.new(-25, 17.5, 266), MOUNT_ROW_YAW, 7.5, 2.6, 0, 0.6, 52),
+	topDown = CameraPath.zenith(Vector3.new(-25, 12.7, 272), 14, 0, 0.55, 60),
+	wide = still(jungle(-6, 3.2, 290), jungle(-25, 1.5, 272), 0.5, 62, jungle(-8, 3.2, 288.5)),
+	-- PLAYA: la cámara por el lado de tierra (z 903), mirando al mar con la Llama delante; la mirada sigue a la Llama
+	-- (corre de x -70 a 0 en 3,2 s) y el mar queda al fondo. Luego, de frente a la Llama que escupe.
+	beachGallop = {
+		a = shot(Vector3.new(-64, 9.4, 909), Vector3.new(-69, 6.9, 925), 48),
+		b = shot(Vector3.new(-6, 9.4, 909), Vector3.new(-3, 6.9, 925), 46),
+	},
+	beachSpit = {
+		a = shot(Vector3.new(1.5, 8.6, 918.5), Vector3.new(0, 8.2, 925), 44),
+		b = shot(Vector3.new(1, 8.5, 919.2), Vector3.new(0, 8.2, 925), 42),
+	},
+	-- JUNGLA: lateral desde el sur siguiendo la carrera (el Jaguar va de x 5 a -39, hacia -X); luego una cámara FIJA al
+	-- final del recorrido (x -49, a la altura de su cara, mirando a +X): el Jaguar llega corriendo de frente hasta
+	-- ~6,6 studs (su cabeza queda en x ≈ -42,4) y ruge, para enseñar la cara, el pecho y las patas delanteras.
+	jungleRun = {
+		a = shot(jungle(3, 2.4, 286), jungle(5, 2.4, 272), 50),
+		b = shot(jungle(-21, 2.4, 286), jungle(-23, 2.4, 272), 48),
+	},
+	jungleFront = {
+		a = shot(jungle(-49, 2.6, 272), jungle(-42.4, 2.9, 272), 40),
+		b = shot(jungle(-49, 2.6, 272), jungle(-42.4, 2.9, 272), 40),
+	},
+	-- MONTAÑA: la cámara de la roca (MOUNTAIN_CAMERA) sigue al Quetzalcóatl (ver mountsCamera): baja corriendo de frente,
+	-- salta, pasa por encima y se aleja planeando. A MOUNTAIN_CUT corte a la cámara del plano final (MOUNTAIN_FINAL_CAMERA),
+	-- que lo ve llegar y quedarse flotando de tres cuartos por delante; el plano final lo mantiene ahí, con un leve acercamiento.
+	finale = {
+		a = shot(MOUNTAIN_FINAL_CAMERA, MOUNTAIN_GLIDE_TO + Vector3.new(0, MOUNTAIN_FINAL_LIFT, 0), 52),
+		b = shot(Vector3.new(-404, 32.5, -65), MOUNTAIN_GLIDE_TO + Vector3.new(0, MOUNTAIN_FINAL_LIFT, 0), 46),
+	},
+}
+
+local function mountsCamera(keys: { { t: number, pos: Vector3, pitch: number } }): { CameraPoint }
+	local shots = MOUNT_SHOTS
+	local camera = (
+		CameraPath.montage({
+			shots.llamaHead,
+			shots.jaguarEyes,
+			shots.quetzalCrest,
+			shots.saddleBehind,
+			shots.topDown,
+			shots.wide,
+		}) :: any
+	) :: { CameraPoint }
+	pushShot(camera, 3.5, 6.65, shots.beachGallop.a, shots.beachGallop.b)
+	pushShot(camera, 6.7, 7.95, shots.beachSpit.a, shots.beachSpit.b)
+	pushShot(camera, 8, 9.6, shots.jungleRun.a, shots.jungleRun.b)
+	pushShot(camera, 9.65, 12.35, shots.jungleFront.a, shots.jungleFront.b)
+	-- Montaña: cámara fija en el pie de la ladera y mirada siguiendo al Quetzalcóatl (se muestrea cada 0,3 s, como el
+	-- planeo de las mascotas). El fov se abre de 46 a 60 entre 13,5 y 15,5 s: de la bajada de frente al paso por encima.
+	local function mountainPoint(t: number, pos: Vector3, fov: number, lift: number): CameraPoint
+		local look = mountainQuetzalAt(keys, t) + Vector3.new(0, lift, 0)
+		return { t = t, pos = pos, look = look, fov = fov }
+	end
+	-- Cámara de la roca hasta MOUNTAIN_CUT - 0,05; después la del plano final, siguiendo al Quetzalcóatl hasta que se para.
+	local function follow(from: number, to: number, pos: Vector3, lift: number, fovAt: (number) -> number)
+		local steps = math.max(1, math.ceil((to - from) / 0.3))
+		table.insert(camera, mountainPoint(from - 0.001, pos, fovAt(from), lift))
+		for i = 0, steps do
+			local t = from + (to - from) * i / steps
+			table.insert(camera, mountainPoint(t, pos, fovAt(t), lift))
+		end
+		table.insert(camera, mountainPoint(to + 0.001, pos, fovAt(to), lift))
+	end
+	follow(12.4, MOUNTAIN_CUT - 0.05, MOUNTAIN_CAMERA, MOUNT_BODY_LIFT, function(t)
+		return 46 + 14 * math.clamp((t - 13.5) / 2, 0, 1)
+	end)
+	follow(MOUNTAIN_CUT, MOUNTAIN_GLIDE_END, MOUNTAIN_FINAL_CAMERA, MOUNTAIN_FINAL_LIFT, function()
+		return 52
+	end)
+	pushShot(camera, MOUNTAIN_GLIDE_END + 0.05, MOUNTS_SECONDS, shots.finale.a, shots.finale.b)
+	return camera
+end
+
+-- Altura de la raíz de la montura sobre su pieza más baja (sin el jinete): el actor `prop` no tiene snap al suelo, así que
+-- se guarda como CinematicLift y el evento `move` la suma a la Y del suelo que le damos. Se mide al construir, con la pose
+-- de reposo (a medir en Studio: en carrera las patas pueden bajar o subir algo).
+local function mountLift(model: Model): number
+	local root = model.PrimaryPart
+	if not root then
+		return 0
+	end
+	local rider = model:FindFirstChild("Jinete")
+	local lowest = math.huge
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Transparency < 1 and not (rider and part:IsDescendantOf(rider)) then
+			local cf, size = part.CFrame, part.Size
+			local half = (
+				math.abs(cf.RightVector.Y) * size.X
+				+ math.abs(cf.UpVector.Y) * size.Y
+				+ math.abs(cf.LookVector.Y) * size.Z
+			) / 2
+			lowest = math.min(lowest, cf.Position.Y - half)
+		end
+	end
+	if lowest == math.huge then
+		return 0
+	end
+	return math.clamp(root.Position.Y - lowest, 0, 10)
+end
+
+-- Actor `prop` de una montura con el avatar del jugador montado, en Idle y en su sitio del montaje.
+local function mountActor(mountId: string): { [string]: any }
+	return {
+		kind = "prop",
+		build = function()
+			local Players = game:GetService("Players")
+			local model = MountedRider.build(mountId, Players.LocalPlayer.Character, { pose = "Idle" })
+			assert(model, `Monturas: no se pudo construir la montura {mountId}`)
+			local lift = mountLift(model)
+			model:SetAttribute("CinematicLift", lift)
+			model:PivotTo(
+				CFrame.new(MOUNT_ROW[mountId] + Vector3.new(0, lift, 0)) * CFrame.Angles(0, math.rad(MOUNT_ROW_YAW), 0)
+			)
+			return model
+		end,
+	}
+end
+
+-- `variant`: "full" (20 s). Reel y cómic se añadirán después.
+local function mountsScene(variant: string): Scene
+	assert(variant == "full", "Monturas: solo existe la variante «full» por ahora")
+	local events: EventList = {}
+	local function add(event: { t: number, kind: string, [string]: any })
+		table.insert(events, event)
+	end
+	-- Atajos de los eventos de montura y de movimiento (los `move` llevan la Y del suelo; el actor suma su altura).
+	local function setPose(t: number, actor: string, name: string)
+		add({ t = t, kind = "mountPose", actor = actor, pose = name })
+	end
+	local function gesture(t: number, actor: string)
+		add({ t = t, kind = "mountGesture", actor = actor })
+	end
+	local function put(t: number, actor: string, pos: Vector3, yaw: number)
+		add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
+	end
+	local function run(t: number, actor: string, pos: Vector3, yaw: number, seconds: number)
+		add({
+			t = t,
+			kind = "move",
+			actor = actor,
+			pos = pos,
+			yaw = yaw,
+			seconds = seconds,
+			easing = Enum.EasingStyle.Linear,
+		})
+	end
+	local function caption(t: number, mountId: string)
+		-- El nombre de la montura de Data/Mounts (se traduce al dibujarlo, ya está en Data/Strings/Content). Sin la rareza:
+		-- el rótulo es de una sola línea y no hay plantilla «{nombre} · {rareza}» en las frases.
+		add({ t = t, kind = "caption", text = Mounts[mountId].name, seconds = MOUNT_CAPTION_SECONDS })
+	end
+
+	add({ t = 0, kind = "letterbox" })
+	-- Los monos reales de la isla se esconden en los tres sitios mientras dura la escena; por eso lleva freeze.
+	add({
+		t = 0,
+		kind = "hideEnemies",
+		server = true,
+		centers = { MOUNT_ROW.Jaguar, BEACH_TO, MOUNTAIN_CENTER },
+		radius = 200,
+	})
+
+	-- Cada montura sale del montaje (3,45) directa a su sitio o al aparcamiento.
+	local beachYaw = yawBetween(BEACH_FROM, BEACH_TO)
+	put(3.45, "Quetzalcoatl", MOUNT_PARK, MOUNT_ROW_YAW)
+	put(3.45, "Llama", BEACH_FROM, beachYaw)
+
+	-- PLAYA (3,5 a 8): galope, salto a los 2 s y, al llegar, se gira hacia la cámara y escupe.
+	local beachCamera = MOUNT_SHOTS.beachSpit.a.pos
+	caption(3.6, "Llama")
+	setPose(3.5, "Llama", "Run")
+	run(3.5, "Llama", BEACH_TO, beachYaw, 3.2)
+	setPose(5.5, "Llama", "Jump")
+	put(6.7, "Llama", BEACH_TO, yawBetween(BEACH_TO, beachCamera))
+	setPose(6.7, "Llama", "Idle")
+	gesture(6.95, "Llama")
+	put(7.95, "Llama", MOUNT_PARK, beachYaw)
+	put(7.95, "Jaguar", JUNGLE_RUN_FROM, yawBetween(JUNGLE_RUN_FROM, JUNGLE_RUN_TO))
+
+	-- JUNGLA (8 a 12,5): carrera lateral y salto; a los 9,65 corte a la cámara fija del final, a la que el Jaguar llega
+	-- corriendo de frente (para en 10,6 a ~6,6 studs) y ruge con sacudida.
+	local jungleYaw = yawBetween(JUNGLE_RUN_FROM, JUNGLE_RUN_TO)
+	caption(8.1, "Jaguar")
+	setPose(8, "Jaguar", "Run")
+	run(8, "Jaguar", JUNGLE_RUN_TO, jungleYaw, 2.6)
+	setPose(8.9, "Jaguar", "Jump")
+	setPose(10.6, "Jaguar", "Idle")
+	gesture(10.8, "Jaguar")
+	add({ t = 11.1, kind = "shake", amp = 0.2, seconds = 0.6 })
+	put(12.35, "Jaguar", MOUNT_PARK, jungleYaw)
+
+	-- MONTAÑA (12,5 a 17,5): corre por la falda y sisea, salta y planea por encima de la cámara.
+	local keys = mountainKeys()
+	put(12.35, "Quetzalcoatl", keys[1].pos, yawBetween(keys[1].pos, keys[2].pos))
+	caption(12.6, "Quetzalcoatl")
+	setPose(MOUNTAIN_RUN_START, "Quetzalcoatl", "Run")
+	for i = 1, #keys - 1 do
+		local a, b = keys[i], keys[i + 1]
+		add({
+			t = a.t,
+			kind = "move",
+			actor = "Quetzalcoatl",
+			pos = b.pos,
+			yaw = yawBetween(a.pos, b.pos),
+			pitch = b.pitch,
+			seconds = b.t - a.t,
+			easing = Enum.EasingStyle.Linear,
+		})
+	end
+	gesture(13.1, "Quetzalcoatl")
+	setPose(MOUNTAIN_LEAP_AT, "Quetzalcoatl", "Jump")
+	setPose(MOUNTAIN_GLIDE_AT, "Quetzalcoatl", "Glide")
+	-- Al llegar flota quieto (Idle) con el cuerpo nivelado, de cara al sur, y sisea para la cámara de tres cuartos.
+	setPose(MOUNTAIN_GLIDE_END, "Quetzalcoatl", "Idle")
+	add({
+		t = MOUNTAIN_GLIDE_END,
+		kind = "move",
+		actor = "Quetzalcoatl",
+		pos = MOUNTAIN_GLIDE_TO,
+		yaw = yawBetween(MOUNTAIN_LEAP_TO, MOUNTAIN_GLIDE_TO),
+		pitch = 0,
+		seconds = 0.5,
+		easing = Enum.EasingStyle.Quad,
+	})
+	gesture(MOUNTAIN_GLIDE_END + 0.3, "Quetzalcoatl")
+	put(MOUNTS_SECONDS - 0.05, "Quetzalcoatl", MOUNT_PARK, -90)
+
+	-- Cartel final, logo del juego y fundido a negro (los mismos tiempos relativos que Pets).
+	add({ t = 17.5, kind = "title", text = Strings.later("Elige tu montura"), seconds = 1.4 })
+	add({
+		t = 18.9,
+		kind = "logo",
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 0.9,
+	})
+	add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
+
+	local camera = mountsCamera(keys)
+	return {
+		duration = MOUNTS_SECONDS,
+		audience = "Self",
+		freeze = true,
+		skippable = true,
+		hour = MOUNTS_HOUR,
+		streamFollowsCamera = true,
+		-- Los tres sitios con su terreno cargado antes de poner a nadie (el montaje empieza en la jungla).
+		waitTerrain = { MOUNT_ROW.Jaguar, BEACH_TO, MOUNTAIN_CENTER },
+		-- Las mallas y texturas de las tres monturas se bajan antes de arrancar (las tres a la vez): el montaje enseña las
+		-- tres en los primeros cortes y, sin esto, salían a bloques o sin textura hasta que cargaban.
+		prepare = function()
+			MountedRider.preloadAll({ "Llama", "Jaguar", "Quetzalcoatl" })
+			return camera
+		end,
+		actors = {
+			Llama = mountActor("Llama"),
+			Jaguar = mountActor("Jaguar"),
+			Quetzalcoatl = mountActor("Quetzalcoatl"),
+		},
+		camera = camera,
+		events = events,
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
+	-- Monturas (G8a): solo para grabar; la lanza la orden «🐎 Monturas» del panel de pruebas.
+	Mounts = mountsScene("full"),
+
 	-- Mascotas (G7b y G7c): solo para grabar; las lanzan las órdenes «🐾 Mascotas», «… reel» y «… cómic» del panel de pruebas.
 	Pets = petsScene("normal"),
 	Pets_Reel = petsScene("reel"),

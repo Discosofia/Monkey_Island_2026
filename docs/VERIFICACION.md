@@ -6585,6 +6585,37 @@ El último plano (grupo de frente tras darse la vuelta a 13,12 s) y el plano gra
 13. [ ] Frases nuevas: ¡Buen chico!, ¡A por ellos!, ¡Mira!, ¡GUAU!, ¡ÑAM!, ¡ZAS!, ¡PUF! y ¡FIUU!. Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`.
    ✅ El CSV lleva solo esas 8 frases con su inglés (las cinco de G7b ya están marcadas como subidas en `b88d748`). Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit y el cómic muestra el inglés de las 8.
 
+## 173. Fase 25 G8a: cinemática de las monturas «Mounts» (07-11-2026)
+
+Escena `Mounts` (20 s) en `Data/Cinematics`, solo para grabar: no sale sola en el juego. Se lanza con la orden «🐎 Monturas» del panel de pruebas de la Isla. Tres monturas con el avatar montado: la Llama (playa), el Jaguar (selva) y el Quetzalcóatl (falda de la montaña, salto y planeo). `MountedRider` tiene ahora las poses Run, Idle, Jump y Glide, `setPose`, `gesture` y los eventos `mountPose` y `mountGesture`. Frase nueva «Elige tu montura». En Studio (modo edición) solo se encuadraron los seis cortes del montaje, el plano de la carrera de la montaña y el de la Llama en la playa. Tras la primera grabación (07-11-2026, 19:07) se corrigieron dos cosas, comprobadas en Play de Studio con la escena corriendo en el cliente: (a) Run, Jump y el gesto no se veían: las pistas se cargaban con el modelo aún sin colgar del mundo y, ya colgado, quedaban con peso 0 sin avanzar; `MountedRider` las carga ahora al entrar el modelo en el mundo; (b) las mallas llegaban justo cuando empezaba el montaje: la escena lleva `prepare` con `MountedRider.preloadAll` (construye las tres monturas a la vez, precarga mallas y texturas y las destruye). En Studio `preloadAll` tarda 0,84 s con la caché caliente y el arranque de la escena 0,07 s. Falta ver los dos arreglos en el vídeo y el tiempo en frío. `Rendimiento` no se ha ejecutado para esta escena.
+
+1. [ ] En la Isla, en Play, pulsa «🐎 Monturas» justo después de abrir Play (primera cinemática en frío).
+   ✅ Las mallas de las tres monturas cargan sin pantalla negra larga: la escena arranca en pocos segundos y no se queda en negro. En los cinco primeros cortes las tres monturas ya salen con malla y textura (nada de bloques lisos ni manchas de color).
+2. [ ] En ese mismo vídeo, mira las patas de la Llama, el Jaguar y el Quetzalcóatl en su tramo.
+   ✅ Mientras corren se ven las patas galopar (Run) y al saltar cambian a la pose de salto (Jump); no se deslizan con las patas quietas.
+3. [ ] Mira el montaje de 6 cortes: cabeza de la Llama, ojos del Jaguar, penacho del Quetzalcóatl, la silla por detrás, cenital y general.
+   ✅ Las tres monturas salen en fila en la jungla con el avatar real montado encima. En modo edición los jinetes salían negros: ahora deben verse con su color. Cada corte entra seco.
+4. [ ] Tramo de la playa: la Llama galopa, salta y escupe a cámara.
+   ✅ El jinete pasa de Run a Jump y vuelve. El marcador de `Gesture` se dispara al escupir y sale el efecto Spit.
+5. [ ] Tramo de la selva: el Jaguar corre hacia la cámara fija del final (x -49), se para a ~6,6 studs y ruge.
+   ✅ La cámara no se mueve desde el corte (9,65 s): se ve llegar al Jaguar de frente y enseña la cara (ojos esmeralda, hocico, bigotes) y el pecho. Al parar vuelve a Idle y el rugido llega con una sacudida de cámara. No atraviesa ni tapa la cámara y ningún árbol se mete entre los dos.
+6. [ ] Tramo de la montaña (rehecho el 07-11-2026: antes la cámara quedaba en la zanja de un río): el Quetzalcóatl baja corriendo por la ladera de roca (x -414, de z -194 a -148) de frente hacia la cámara fija en (-409,5, 29, -128), silba, salta y pasa por encima; a los 16,35 s corte a la cámara del plano final en (-401,5, 33, -61), que lo ve planear hasta quedarse flotando (Idle) en (-414, 37, -82), de cara al sur, y silbar a los 17,3 s; el plano final lo mantiene de tres cuartos por delante con un leve acercamiento mientras salen el cartel y el logo.
+   ✅ La bajada se ve de frente, con la montaña de fondo y sin hierba que tape el cuadro (la cámara está sobre la roca desnuda). El paso por encima no da latigazos. En el plano final el Quetzalcóatl se ve de tres cuartos por delante (cara, cresta y cuerpo, ~31° respecto a su morro) sobre el cielo, centrado y sin árboles delante de la cara; el salto de plano a los 16,35 s no marea. Flota nivelado (no se queda inclinado como al planear) y el silbido sale a los 17,3 s. Solo se encuadraron en edición la bajada (t = 14) y el plano final (t = 17,6 y 18,4); falta ver el salto y el planeo en Play. Con la luz de las 17,5 la roca de la ladera se vio oscura y morada en el vídeo del 07-11: si queda apagada, hay que valorar otro fondo para la bajada.
+7. [ ] Mide `CinematicLift` de las tres monturas en reposo y en carrera (y al saltar).
+   ✅ Ninguna se hunde en el suelo ni se eleva en la carrera ni al saltar.
+8. [ ] Durante los 20 s, con monos de la isla cerca y con tormenta (`ReplicatedStorage:SetAttribute("Weather", "Storm")` desde el servidor en Play).
+   ✅ No se ve ningún mono de la isla ni cae ningún rayo (`hideEnemies` y `freeze`). Al acabar, los monos vuelven a verse y a actuar.
+9. [ ] Mira los rótulos, el cartel «Elige tu montura» y el logo.
+   ✅ Cada montura lleva su rótulo con su nombre. Sale el cartel «Elige tu montura» y el logo.
+10. [ ] Con el ajuste de idioma en inglés, mira el cartel.
+   ✅ El cartel «Elige tu montura» sale traducido.
+11. [ ] Salto del jinete: observa el Jump de `MountedRider` al saltar y al aterrizar.
+   ✅ Al aterrizar, el jinete vuelve a la pose que tenía antes del salto (Run o Idle) y no se queda en la del salto.
+12. [ ] Deja que acabe la escena de 20 s y después repite con una montura saltando la escena a mitad.
+   ✅ El final cae a negro. Al acabar (o al saltar) el jugador vuelve a controlar a su personaje.
+13. [ ] Anota en esta sección si `Rendimiento` cuenta bien las piezas de los modelos de la escena. Hoy no se ha ejecutado para `Mounts`.
+   ✅ Hay que ejecutarlo en el Studio de la Isla y las cifras deben quedar por debajo de `Config.Budgets`.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

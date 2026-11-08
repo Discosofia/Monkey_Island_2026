@@ -145,6 +145,17 @@ local function runPets(player: Player, sceneId: string)
 	end
 end
 
+-- Lanza las monturas "sceneId" (Mounts; Fase 25, G8a), igual que runPets.
+local function runMounts(player: Player, sceneId: string)
+	local started = CinematicService.play(sceneId, {
+		audience = { player },
+		anchor = CFrame.identity,
+	})
+	if not started then
+		Remotes.Notify:FireClient(player, "🐎 La escena de las monturas ya está en marcha")
+	end
+end
+
 -- «🥊 Batalla jefe» (Fase 25, G5b): la tripulación contra un jefe quieto, solo para grabar. Cada versión (normal, cómic
 -- y reel) rota por su cuenta entre los jefes de BATTLE_BOSSES. ArrivalService aparta al personaje real, monta al jefe
 -- (StageBoss, carpeta «BatallaJefe») antes de la espera y lo borra al acabar. Con un jefe real vivo del mismo id no
@@ -920,6 +931,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	CinePetsComic = function(player)
 		runPets(player, "Pets_Comic")
+	end,
+	-- «🐎 Monturas» (Fase 25, G8a): la Llama, el Jaguar y el Quetzalcóatl con el avatar montado en tres sitios de la isla.
+	CineMounts = function(player)
+		runMounts(player, "Mounts")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)
