@@ -4830,8 +4830,8 @@ local function ballgameComicCuts(plan: BallPlan, timing: BallTiming): { ComicCut
 		return ballgameLook(ballgameBallAt(plan, t))
 	end
 	-- Una viñeta que sigue a la pelota de t0 a t1 desde la cámara lateral `lateral`.
-	local function flight(t0: number, t1: number, lateral: number, bg: string): ComicCell
-		return comicCell(t0, t1, BALLGAME_LATERAL[lateral].pos, lookAt(t0), 14, bg, lookAt(t1))
+	local function flight(t0: number, t1: number, lateral: number, bg: string, width: number?): ComicCell
+		return comicCell(t0, t1, BALLGAME_LATERAL[lateral].pos, lookAt(t0), width or 14, bg, lookAt(t1))
 	end
 
 	-- P1: el montaje (seis viñetas del mismo largo).
@@ -4881,7 +4881,8 @@ local function ballgameComicCuts(plan: BallPlan, timing: BallTiming): { ComicCut
 	local ringPosA, ringFocusA = ballgameRingView(plan, ringStart, ringEnd, ringStart)
 	local ringPosB, ringFocusB = ballgameRingView(plan, ringStart, ringEnd, pageEnd)
 	addPage("four_b", COMIC_COLORS.mountain, "left", {
-		flight(segments[5].t0, receiveAt, segments[5].lateral, "flat"),
+		-- Más cerrada que las otras: es la viñeta grande y, congelada, se quedaba con un avatar diminuto sobre fondo vacío.
+		flight(segments[5].t0, receiveAt, segments[5].lateral, "flat", 9),
 		comicCell(
 			receiveAt,
 			plan.shotAt,
@@ -4907,9 +4908,9 @@ local function ballgameComicCuts(plan: BallPlan, timing: BallTiming): { ComicCut
 			view.feet + view.face * 12 + Vector3.new(0, 4.4, 0),
 			-- El avatar a un lado de la viñeta: el cartel «Juego de pelota» sale en el centro y no debe taparlo.
 			view.feet
-				+ view.side * 2.4
+				+ view.side * 3.8
 				+ Vector3.new(0, 3.3, 0),
-			9,
+			12,
 			"flat"
 		),
 	}, { 1, 1 })

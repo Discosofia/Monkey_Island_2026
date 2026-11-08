@@ -6717,7 +6717,7 @@ Dos versiones de 15 s de la cinemática del juego de pelota, derivadas de `Ballg
    ✅ La pelota sale de la mano cuando el brazo termina el gesto y toca el aro en su corte. Si va pronto o tarde, anota el desfase aquí para afinar `BALLGAME_HIT_LEAD`.
 7. [ ] Mira los pases y el tiro con BallHip, BallKnee y BallElbow, a velocidad normal y con un plano cercano del tiro (o adelantando el inicio de la animación del tiro). En la tercera grabación (`O:\Videos Primal banana\2026-11-08 12-02-21.mkv`) los pases se veían demasiado lejanos para juzgar el contacto. Sospecha: BallHip marca el golpe a 0,1 s y `animSpeed` 0,3 ralentiza la pista en marcha.
    ✅ El giro de cadera se ve a la vez que sale la pelota, no después, en cámara lenta. Anota aquí el desfase de `BALLGAME_HIT_LEAD` (0,15 s) y de BallHip si no encaja.
-8. [ ] Graba «cómic» y mira sus cuatro páginas: grid6, four_a, four_b y single.
+8. [x] Graba «cómic» y mira sus cuatro páginas: grid6, four_a, four_b y single. (Visto en vídeo el 08-11-2026: las cuatro páginas, los ¡PAM!, el ¡TOC!, y el avatar del último plano ya a un lado, sin el cartel encima.)
    ✅ Salen las cuatro páginas con su borde y su fondo, sin franjas negras. ¡PAM! sale en los golpes y ¡TOC! en el aro, con título, logo y fundido al final. Salen 4 ¡PAM! de 5 golpes: una guarda omite los que caen a menos de 0,7 s (decisión provisional; si falta un golpe que se ve bien, anótalo).
 9. [ ] Recorre los planos de vuelo del reel y las viñetas del cómic solo en estructura, sin encuadrar uno a uno.
    ✅ Cada plano entra y sale con la acción de su tramo, sin cortes secos ni planos vacíos.
