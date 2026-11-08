@@ -898,6 +898,9 @@ return {
 	["¡PTUI!"] = "SPIT!",
 	["¡GRRR!"] = "GRRR!",
 	["¡FSSS!"] = "HISSS!",
+	-- Onomatopeyas de Ballgame_Comic (G9b).
+	["¡PAM!"] = "WHAM!",
+	["¡TOC!"] = "CLONK!",
 	-- Variante cómic de las mascotas (Pets_Comic, G7c).
 	["¡Buen chico!"] = "Good boy!",
 	["¡A por ellos!"] = "Get them!",

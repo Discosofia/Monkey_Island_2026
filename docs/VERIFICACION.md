@@ -6697,6 +6697,43 @@ Escena `Ballgame` (~20 s) en `Data/Cinematics`, con su versión `ballgameScene("
 1. [ ] Lanza la orden «🎬 Juego de pelota (cinemática)» en el juego publicado y espera a que el servidor reconstruya la cancha de formato 3.
    ✅ La cancha aparece y la escena no se cancela por la espera de 8 s. Si tarda más de 8 s, anota cuánto tarda y si la escena llega a arrancar.
 
+## 176. Fase 25 G9b: Ballgame_Reel y Ballgame_Comic (08-11-2026)
+
+Dos versiones de 15 s de la cinemática del juego de pelota, derivadas de `Ballgame` con la tabla `BALLGAME_TIMING` (full: 20/4/17/19; short: 15/2,6/13/14,2) y las físicas reales recortadas: el tiro sale a ~10,0 s y toca el aro a ~12,1 s. `Ballgame_Reel` es la ventana alta 9:16 (orden «🎬 Juego de pelota reel», `CineBallgameReel`). `Ballgame_Comic` es el cómic de página con viñetas (orden «🎬 Juego de pelota cómic», `CineBallgameComic`). Solo sirven para grabar: no salen solas en el juego. Onomatopeyas: ¡PAM! (en los golpes) y ¡TOC! (en el aro). Frases nuevas: ¡PAM! (WHAM!) y ¡TOC! (CLONK!). En Studio (modo edición) solo se comprobó que las tres escenas cargan sin avisos y que cuatro planos del reel salen bien en maqueta (yugo, saque, tiro y aro). Lo de abajo no se ha probado.
+
+### 176.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Pulsa «🎬 Juego de pelota reel» en el panel de pruebas de Dunas, deja que acabe y pulsa otra vez.
+   ✅ Arranca sin pantalla negra larga ni avisos en la Salida, y funciona las dos veces seguidas.
+2. [ ] Lanza «🎬 Juego de pelota cómic» dos veces seguidas, primero sin saltarla y después saltándola a mitad.
+   ✅ Igual que el reel: arranca dos veces sin avisos, y al saltar la escena se corta.
+3. [ ] Durante las dos escenas, mira la luz.
+   ✅ Se queda en las 17,5 mientras dura la escena, sin seguir el ciclo de día. Al acabar o al saltar vuelve la hora que tenía el ciclo.
+4. [ ] Al acabar y al saltar, mira el personaje y la pelota real.
+   ✅ El personaje vuelve a controlarse y no queda anclado. La pelota real reaparece en su sitio.
+5. [ ] Graba «reel» en la ventana 9:16 entera.
+   ✅ Salen cinco cortes del montaje con formas y encuadres alternados. La pelota y quien golpea quedan dentro de la ventana en el tiro y en el aro. El cartel «Juego de pelota» sale arriba sin tapar al avatar, y el final cae a fundido.
+6. [ ] En el reel, mira el tiro (~10,0 s) y el aro (~12,1 s).
+   ✅ La pelota sale de la mano cuando el brazo termina el gesto y toca el aro en su corte. Si va pronto o tarde, anota el desfase aquí para afinar `BALLGAME_HIT_LEAD`.
+7. [ ] Mira los pases y el tiro con BallHip, BallKnee y BallElbow, a velocidad normal y con un plano cercano del tiro (o adelantando el inicio de la animación del tiro). En la tercera grabación (`O:\Videos Primal banana\2026-11-08 12-02-21.mkv`) los pases se veían demasiado lejanos para juzgar el contacto. Sospecha: BallHip marca el golpe a 0,1 s y `animSpeed` 0,3 ralentiza la pista en marcha.
+   ✅ El giro de cadera se ve a la vez que sale la pelota, no después, en cámara lenta. Anota aquí el desfase de `BALLGAME_HIT_LEAD` (0,15 s) y de BallHip si no encaja.
+8. [ ] Graba «cómic» y mira sus cuatro páginas: grid6, four_a, four_b y single.
+   ✅ Salen las cuatro páginas con su borde y su fondo, sin franjas negras. ¡PAM! sale en los golpes y ¡TOC! en el aro, con título, logo y fundido al final. Salen 4 ¡PAM! de 5 golpes: una guarda omite los que caen a menos de 0,7 s (decisión provisional; si falta un golpe que se ve bien, anótalo).
+9. [ ] Recorre los planos de vuelo del reel y las viñetas del cómic solo en estructura, sin encuadrar uno a uno.
+   ✅ Cada plano entra y sale con la acción de su tramo, sin cortes secos ni planos vacíos.
+10. [ ] Con el idioma en inglés, mira las onomatopeyas y el cartel.
+    ✅ ¡PAM! sale como WHAM!, ¡TOC! como CLONK! y el cartel como «Ball game».
+
+### 176.2 Con `Rendimiento` (calculadora, modo edición)
+
+11. [ ] Ejecuta `Rendimiento` sobre las viñetas congeladas del cómic (seis maniquíes con equipo) y compara las piezas con `Config.Budgets.Comic.FrozenParts`. Hoy no se ha medido.
+    ✅ Las piezas congeladas de las viñetas quedan por debajo de 1.500. Si pasa del tope, congela solo a quien sale en cada viñeta y no a los seis, o cambia el tope en `Config.Budgets` (y anótalo aquí). Anota la cifra medida.
+
+### 176.3 Textos en Creator Hub
+
+12. [ ] Frases pendientes de G7c, G8, G9a y G9b (entre ellas ¡PAM! y ¡TOC!). Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`. Es el mismo CSV del paso 15 de la §174, así que se sube una sola vez.
+    ✅ El CSV lleva esas frases con su inglés. Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

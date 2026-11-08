@@ -4224,13 +4224,22 @@ end
 -- salen de esas trayectorias (el tiro sale cuando acaba el último pase): son de diseño, a ajustar en Studio.
 -- La cámara lenta no es del Sequencer: las muestras del tiro se reparten en más segundos de escena (evento ballPath con
 -- times) y un evento animSpeed baja la velocidad de las pistas de los maniquíes (Cinematics/BallActor).
-local BALLGAME_SECONDS = 20
+-- Tiempos por variante (G9b). La física es la misma; solo cambian cuándo sale el saque, hasta cuándo dura la cámara lenta
+-- y cuándo acaba la escena: `full` (la normal, 20 s) y `short` (reel y cómic, 15 s).
+type BallTiming = {
+	seconds: number, -- duración de la escena
+	serveAt: number, -- el saque sale al acabar el montaje
+	slowEnd: number, -- cuándo vuelve la velocidad normal tras la cámara lenta
+	pickupMax: number, -- el Quetzal llega a la pelota como tarde a este segundo
+}
+local BALLGAME_TIMING: { [string]: BallTiming } = {
+	full = { seconds = 20, serveAt = 4, slowEnd = 17, pickupMax = 19 },
+	short = { seconds = 15, serveAt = 2.6, slowEnd = 13, pickupMax = 14.2 },
+}
 local BALLGAME_HOUR = 17.5 -- atardecer dorado, como Pets y Mounts
 local BALLGAME_FORMAT = 3 -- la cancha de 3 contra 3
 local BALLGAME_LAYOUT = CourtGeometry.forFormat(BALLGAME_FORMAT)
-local BALLGAME_SERVE_AT = 4 -- el saque sale al acabar el montaje
 local BALLGAME_SLOW = 0.3 -- velocidad de la cámara lenta del tiro
-local BALLGAME_SLOW_END = 17 -- cuándo vuelve la velocidad normal
 local BALLGAME_AFTER_SIM = 2 -- segundos de simulación tras la cámara lenta (la pelota sigue rodando hasta pararse)
 local BALLGAME_RING_SIDE = -1 -- el tiro va al aro del lado de z negativo
 local BALLGAME_RIM = 3.4 -- studs sobre el centro del aro por donde cruza la pelota (el hueco mide 3,2: roza la piedra)
@@ -4238,7 +4247,6 @@ local BALLGAME_BOOST_RANGE = { 0.2, 1.3 } -- límites de la bisección del multi
 local BALLGAME_BEHIND = 1.4 -- studs de la pelota a la raíz de quien la golpea, contra su dirección de salida
 local BALLGAME_RUN_SPEED = 20 -- studs/s al correr a un contacto
 local BALLGAME_HIT_LEAD = 0.15 -- la animación de golpe sale este tiempo antes de que salga la pelota
-local BALLGAME_PICKUP_MAX = 19 -- el Quetzal llega a la pelota como tarde a este segundo
 -- Altura del centro de la pelota al contacto (raíz del maniquí a ~3 studs del suelo + la mitad de cada zona de Hit.Zone*).
 local BALLGAME_RECEIVE_Y: { [string]: number } = { Hip = 3.4, Knee = 1.6, Elbow = 4.7 }
 local BALLGAME_HIT_ANIMATION: { [string]: string } = { Hip = "BallHip", Knee = "BallKnee", Elbow = "BallElbow" }
@@ -4345,7 +4353,7 @@ local function ballgameHeightAfter(start: Vector3, velocity: Vector3, distance: 
 end
 
 -- Todo lo que sale de la simulación: golpes, trayectorias con su tiempo de escena y qué pasa con el aro.
-local function ballgamePlan(): BallPlan
+local function ballgamePlan(timing: BallTiming): BallPlan
 	local ring = CourtGeometry.ring
 	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
 	local hits: { BallHitPlan } = {}
@@ -4374,7 +4382,7 @@ local function ballgamePlan(): BallPlan
 	if not serve.reached then
 		warn("Ballgame: el saque no llega a la altura de cadera")
 	end
-	local t = addPath(serve.samples, BALLGAME_SERVE_AT, realTime)
+	local t = addPath(serve.samples, timing.serveAt, realTime)
 	local contact = serve.samples[#serve.samples]
 
 	for _, leg in BALLGAME_LEGS do
@@ -4396,7 +4404,7 @@ local function ballgamePlan(): BallPlan
 
 	-- El tiro del avatar: de cadera, hacia el centro del aro, con la rapidez que da (bisección) la altura pedida.
 	local shotAt = t
-	assert(shotAt < BALLGAME_SLOW_END - 2.5, `Ballgame: el tiro sale demasiado tarde ({shotAt}); acorta los pases`)
+	assert(shotAt < timing.slowEnd - 2.5, `Ballgame: el tiro sale demasiado tarde ({shotAt}); acorta los pases`)
 	local toRing = Vector3.new(ringPos.X - contact.X, 0, ringPos.Z - contact.Z)
 	local dir = toRing.Unit
 	table.insert(hits, { hitter = "avatar", zone = "Hip", t = shotAt, ball = contact, dir = dir })
@@ -4416,13 +4424,13 @@ local function ballgamePlan(): BallPlan
 			high = mid
 		end
 	end
-	local slowSim = (BALLGAME_SLOW_END - shotAt) * BALLGAME_SLOW -- segundos de simulación que caben en la cámara lenta
+	local slowSim = (timing.slowEnd - shotAt) * BALLGAME_SLOW -- segundos de simulación que caben en la cámara lenta
 	local shotFlight = ballgameFly(contact, shotVelocity((low + high) / 2), slowSim + BALLGAME_AFTER_SIM, nil)
 	local function shotTime(simSeconds: number): number
 		if simSeconds <= slowSim then
 			return shotAt + simSeconds / BALLGAME_SLOW
 		end
-		return BALLGAME_SLOW_END + (simSeconds - slowSim)
+		return timing.slowEnd + (simSeconds - slowSim)
 	end
 	local endAt = addPath(shotFlight.samples, 0, function(index)
 		return shotTime((index - 1) * BallSim.STEP)
@@ -4498,9 +4506,82 @@ local function ballgameLook(ball: Vector3): Vector3
 	return Vector3.new(ball.X, 3 + (ball.Y - 3) * 0.45, ball.Z)
 end
 
--- La cámara: montaje de 5 cortes (0 a 3,95), tres planos laterales de los pases, el tiro (el avatar y después el aro) y el
--- plano medio final. Posiciones de diseño: a encuadrar en Studio.
-local function ballgameCamera(plan: BallPlan): { CameraPoint }
+-- Los tres planos laterales fijos de los pases (por el lado de +Z, el de -Z y otra vez +Z): por encima del banco y del
+-- talud (a 8 studs la pared roja del lado opuesto cortaba la imagen). Los comparten la cámara normal, el reel y el cómic.
+local BALLGAME_LATERAL: { { pos: Vector3, fov: number } } = {
+	{ pos = Vector3.new(-21, 11, 20), fov = 54 },
+	{ pos = Vector3.new(-21, 11, -20), fov = 54 },
+	{ pos = Vector3.new(-24, 11, 20), fov = 52 },
+}
+
+-- Los cinco tramos de vuelo entre golpes (saque, cuatro pases) con el plano lateral que sigue a la pelota en cada uno.
+local function ballgameSegments(plan: BallPlan, timing: BallTiming): { { t0: number, t1: number, lateral: number } }
+	local hits = plan.hits
+	return {
+		{ t0 = timing.serveAt, t1 = hits[1].t, lateral = 1 },
+		{ t0 = hits[1].t, t1 = hits[2].t, lateral = 1 },
+		{ t0 = hits[2].t, t1 = hits[3].t, lateral = 2 },
+		{ t0 = hits[3].t, t1 = hits[4].t, lateral = 2 },
+		{ t0 = hits[4].t, t1 = hits[5].t, lateral = 3 },
+	}
+end
+
+-- El tiro del avatar: dónde pisa, hacia dónde sale la pelota (face), su costado (side), cuándo acaba su plano cercano
+-- (un segundo antes del toque del aro, para que el aro se vea al llegar la pelota) y los dos puntos de la cámara de lado.
+local function ballgameShooterView(plan: BallPlan): {
+	feet: Vector3,
+	side: Vector3,
+	face: Vector3,
+	closeEnd: number,
+	a: CameraPoint,
+	b: CameraPoint,
+}
+	local shooter = plan.hits[5]
+	local feet = Vector3.new(
+		shooter.ball.X - shooter.dir.X * BALLGAME_BEHIND,
+		0,
+		shooter.ball.Z - shooter.dir.Z * BALLGAME_BEHIND
+	)
+	local side = Vector3.new(-shooter.dir.Z, 0, shooter.dir.X)
+	return {
+		feet = feet,
+		side = side,
+		face = shooter.dir,
+		closeEnd = math.max(plan.shotAt + 0.8, (plan.rimAt or plan.shotAt + 3.2) - 1),
+		a = shot(
+			feet + side * 11 + shooter.dir * 0.5 + Vector3.new(0, 3.6, 0),
+			feet + shooter.dir * 0.8 + Vector3.new(0, 3, 0),
+			46
+		),
+		b = shot(
+			feet + side * 10 + shooter.dir * 2.5 + Vector3.new(0, 3.6, 0),
+			feet + shooter.dir * 3.5 + Vector3.new(0, 3.4, 0),
+			40
+		),
+	}
+end
+
+-- Plano lateral al aro (el de BallReplayController): mira entre el aro y la pelota y se acerca. Devuelve la posición, la
+-- mirada y el fov en el segundo t de un plano que va de ringStart a ringEnd.
+local function ballgameRingView(
+	plan: BallPlan,
+	ringStart: number,
+	ringEnd: number,
+	t: number
+): (Vector3, Vector3, number)
+	local ring = CourtGeometry.ring
+	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
+	local ball = ballgameBallAt(plan, t)
+	local progress = math.clamp((t - ringStart) / (ringEnd - ringStart), 0, 1)
+	local far = math.clamp(math.abs(ball.X - ringPos.X) / 50, 0, 1)
+	local focus = ringPos:Lerp(ball, 0.5 * far)
+	local lateralDistance = 24 + 16 * far - 8 * progress
+	return focus + Vector3.new(-8, -3, -BALLGAME_RING_SIDE * lateralDistance), focus, 55 - 15 * progress
+end
+
+-- La cámara: montaje de 5 cortes, tres planos laterales de los pases, el tiro (el avatar y después el aro) y el plano medio
+-- final. Posiciones de diseño: a encuadrar en Studio.
+local function ballgameCamera(plan: BallPlan, timing: BallTiming): { CameraPoint }
 	local ring = CourtGeometry.ring
 	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
 	local start = BALLGAME_START
@@ -4540,62 +4621,39 @@ local function ballgameCamera(plan: BallPlan): { CameraPoint }
 		}) :: any
 	) :: { CameraPoint }
 
-	-- Los pases: tres planos laterales fijos (por el lado de +Z, el de -Z y otra vez +Z) que siguen la pelota.
-	local hits = plan.hits
-	local function lateral(camPos: Vector3, fov: number): (number) -> (Vector3, Vector3, number)
-		return function(t)
-			return camPos, ballgameLook(ballgameBallAt(plan, t)), fov
+	-- Los pases: los planos laterales fijos que siguen la pelota (el saque y el pase 1 con el primero, los pases 2 y 3 con el
+	-- segundo y el 4 con el tercero).
+	local segments = ballgameSegments(plan, timing)
+	for _, lateralIndex in { 1, 2, 3 } do
+		local first, last = math.huge, 0
+		for _, segment in segments do
+			if segment.lateral == lateralIndex then
+				first = math.min(first, segment.t0)
+				last = math.max(last, segment.t1)
+			end
 		end
+		local lateral = BALLGAME_LATERAL[lateralIndex]
+		ballgameFollow(camera, first, if lateralIndex == 3 then plan.shotAt - 0.05 else last - 0.05, function(t)
+			return lateral.pos, ballgameLook(ballgameBallAt(plan, t)), lateral.fov
+		end)
 	end
-	-- Por encima del banco y del talud (a 8 studs la pared roja del lado opuesto cortaba la imagen): y = 14, mirando abajo.
-	ballgameFollow(camera, BALLGAME_SERVE_AT, hits[2].t - 0.05, lateral(Vector3.new(-21, 11, 20), 54))
-	ballgameFollow(camera, hits[2].t, hits[4].t - 0.05, lateral(Vector3.new(-21, 11, -20), 54))
-	ballgameFollow(camera, hits[4].t, plan.shotAt - 0.05, lateral(Vector3.new(-24, 11, 20), 52))
 
 	-- El tiro. Primero el avatar de lado, a la altura de la cadera, con la pelota saliendo hacia el aro.
-	local shooter = hits[5]
-	local feet = Vector3.new(
-		shooter.ball.X - shooter.dir.X * BALLGAME_BEHIND,
-		0,
-		shooter.ball.Z - shooter.dir.Z * BALLGAME_BEHIND
-	)
-	local side = Vector3.new(-shooter.dir.Z, 0, shooter.dir.X)
-	-- El plano del avatar acaba un segundo antes del toque del aro, para que el aro se vea al llegar la pelota.
-	local closeEnd = math.max(plan.shotAt + 0.8, (plan.rimAt or plan.shotAt + 3.2) - 1)
-	pushShot(
-		camera,
-		plan.shotAt,
-		closeEnd,
-		shot(
-			feet + side * 11 + shooter.dir * 0.5 + Vector3.new(0, 3.6, 0),
-			feet + shooter.dir * 0.8 + Vector3.new(0, 3, 0),
-			46
-		),
-		shot(
-			feet + side * 10 + shooter.dir * 2.5 + Vector3.new(0, 3.6, 0),
-			feet + shooter.dir * 3.5 + Vector3.new(0, 3.4, 0),
-			40
-		)
-	)
-	-- Después, lateral al aro (el plano de BallReplayController): mira entre el aro y la pelota y se acerca; fov 55 a 40.
-	local ringStart = closeEnd + 0.05
-	local ringEnd = BALLGAME_SLOW_END - 0.03
+	local view = ballgameShooterView(plan)
+	local feet, side, face = view.feet, view.side, view.face
+	pushShot(camera, plan.shotAt, view.closeEnd, view.a, view.b)
+	-- Después, lateral al aro: mira entre el aro y la pelota y se acerca; fov 55 a 40.
+	local ringStart = view.closeEnd + 0.05
+	local ringEnd = timing.slowEnd - 0.03
 	ballgameFollow(camera, ringStart, ringEnd, function(t)
-		local ball = ballgameBallAt(plan, t)
-		local progress = math.clamp((t - ringStart) / (ringEnd - ringStart), 0, 1)
-		local far = math.clamp(math.abs(ball.X - ringPos.X) / 50, 0, 1)
-		local focus = ringPos:Lerp(ball, 0.5 * far)
-		local lateralDistance = 24 + 16 * far - 8 * progress
-		local pos = focus + Vector3.new(-8, -3, -BALLGAME_RING_SIDE * lateralDistance)
-		return pos, focus, 55 - 15 * progress
+		return ballgameRingView(plan, ringStart, ringEnd, t)
 	end)
 
 	-- Final: plano medio del avatar, de frente, con un leve acercamiento.
-	local face = shooter.dir
 	pushShot(
 		camera,
-		BALLGAME_SLOW_END + 0.05,
-		BALLGAME_SECONDS,
+		timing.slowEnd + 0.05,
+		timing.seconds,
 		-- El avatar queda a un lado del cuadro: el cartel «Juego de pelota» sale en el centro y no debe taparlo.
 		shot(feet + face * 14 + Vector3.new(0, 4.6, 0), feet + side * 4.6 + Vector3.new(0, 3.3, 0), 38),
 		shot(feet + face * 12 + Vector3.new(0, 4.4, 0), feet + side * 4 + Vector3.new(0, 3.3, 0), 34)
@@ -4608,22 +4666,335 @@ local function ballgameDummy(team: string, pos: Vector3, yaw: number, skin: Colo
 	return { kind = "dummy", weapon = false, ballGear = team, pos = pos, yaw = yaw, skinColor = skin }
 end
 
--- `variant`: por ahora solo "full" (20 s, con bandas). Reel y cómic (G9b) irán aquí, con los mismos eventos escalados.
+-- Las posiciones del montaje de 5 (el yugo de un Jaguar, el aro desde arriba, la rodillera, el tocado del Quetzal y el
+-- avatar por detrás), las mismas que ballgameCamera, para el reel (`reelWidth`) y el cómic (`comicWidth`).
+local function ballgameMontage(): { { pos: Vector3, subject: Vector3, reelWidth: number, comicWidth: number } }
+	local ring = CourtGeometry.ring
+	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
+	local start = BALLGAME_START
+	local yoke, knee, crest, avatar = start.jaguarA, start.jaguarB, start.quetzalA, start.avatar
+	return {
+		{
+			pos = yoke + Vector3.new(6.2, 3.6, 2.8),
+			subject = yoke + Vector3.new(0, 2.8, 0),
+			reelWidth = 4,
+			comicWidth = 4.5,
+		},
+		{ pos = ringPos + Vector3.new(0, 12, 0), subject = ringPos, reelWidth = 9, comicWidth = 10 },
+		{
+			pos = knee + Vector3.new(5, 2.8, 2.4),
+			subject = knee + Vector3.new(0, 1.6, 0),
+			reelWidth = 3.5,
+			comicWidth = 4,
+		},
+		{
+			pos = crest + Vector3.new(-3.2, 5.9, 0.9),
+			subject = crest + Vector3.new(0, 5.6, 0),
+			reelWidth = 3,
+			comicWidth = 3.5,
+		},
+		-- El avatar visto por detrás, como lo ve el jugador (mira a +X: detrás es -X).
+		{
+			pos = avatar + Vector3.new(-7.5, 5.6, 0),
+			subject = avatar + Vector3.new(0, 3, 0),
+			reelWidth = 4.5,
+			comicWidth = 5,
+		},
+	}
+end
+
+-- Los Quetzal en fila vistos de frente (miran a -X), sexta viñeta del montaje del cómic.
+local BALLGAME_QUETZAL_ROW = {
+	pos = Vector3.new(-4, 7, 0),
+	subject = Vector3.new(14.5, 3.5, -1),
+	comicWidth = 24,
+}
+
+-- Los cortes de Ballgame_Reel (G9b): ventanas de la banda 9:16. Montaje de 5 (~0,5 s cada uno) hasta el saque, un corte por
+-- tramo de vuelo (saque y cuatro pases) con la cámara lateral de la normal y la mirada de la pelota al empezar y al
+-- acabar, el tiro del avatar de lado, el aro en cámara lenta y el final con el avatar. Posiciones de diseño.
+local function ballgameReelCuts(plan: BallPlan, timing: BallTiming): { ReelCut }
+	local cuts: { ReelCut } = {}
+	local montage = ballgameMontage()
+	local shapes = { "reelTall", "reelTop", "reelDiagR", "reelSlant", "reelDiagL" }
+	local backgrounds = { "speed", "halftone", "flat", "speed", "halftone" }
+	local step = timing.serveAt / #montage
+	for index, m in montage do
+		table.insert(cuts, {
+			t0 = (index - 1) * step,
+			t1 = index * step,
+			shape = shapes[index],
+			bg = backgrounds[index],
+			pos = m.pos,
+			subject = m.subject,
+			width = m.reelWidth,
+		})
+	end
+	-- Un corte por tramo: la cámara lateral fija y el sujeto que va de la pelota de t0 a la de t1.
+	local passShapes = { "reelDiagR", "reelSlant", "reelDiagL", "reelSlant", "reelDiagR" }
+	local passBackgrounds = { "flat", "speed", "halftone", "flat", "speed" }
+	for index, segment in ballgameSegments(plan, timing) do
+		table.insert(cuts, {
+			t0 = segment.t0,
+			t1 = segment.t1,
+			shape = passShapes[index],
+			bg = passBackgrounds[index],
+			pos = BALLGAME_LATERAL[segment.lateral].pos,
+			subject = ballgameLook(ballgameBallAt(plan, segment.t0)),
+			subjectB = ballgameLook(ballgameBallAt(plan, segment.t1)),
+			width = 14,
+		})
+	end
+	-- El tiro: el avatar de lado con la pelota saliendo (las mismas cámaras que la normal).
+	local view = ballgameShooterView(plan)
+	table.insert(cuts, {
+		t0 = plan.shotAt,
+		t1 = view.closeEnd,
+		shape = "reelTall",
+		bg = "speed",
+		pos = view.a.pos,
+		posB = view.b.pos,
+		subject = view.a.look,
+		subjectB = view.b.look,
+		width = 5,
+	})
+	-- El aro en cámara lenta: la pelota da en el borde.
+	local ringPosA, ringFocusA = ballgameRingView(plan, view.closeEnd, timing.slowEnd, view.closeEnd)
+	local ringPosB, ringFocusB = ballgameRingView(plan, view.closeEnd, timing.slowEnd, timing.slowEnd)
+	table.insert(cuts, {
+		t0 = view.closeEnd,
+		t1 = timing.slowEnd,
+		shape = "reelSlant",
+		bg = "halftone",
+		pos = ringPosA,
+		posB = ringPosB,
+		subject = ringFocusA,
+		subjectB = ringFocusB,
+		width = 20,
+	})
+	-- Final: el avatar mirando a los lados.
+	cuts[#cuts + 1] = {
+		t0 = timing.slowEnd,
+		t1 = timing.seconds,
+		shape = "reelDiagL",
+		bg = "flat",
+		pos = view.feet + view.face * 12 + Vector3.new(0, 4.4, 0),
+		subject = view.feet + Vector3.new(0, 3.3, 0),
+		width = 6,
+	}
+	return cuts
+end
+
+-- Narración y cartel final del reel: las dos frases de la normal abajo a la izquierda, el título arriba y el nombre del
+-- juego bajo en la zona segura.
+local function addBallgameReelText(events: EventList, plan: BallPlan, timing: BallTiming)
+	local function narration(t: number, text: string, corner: string, seconds: number)
+		table.insert(
+			events,
+			{ t = t, kind = "bubble", balloon = "narration", corner = corner, text = text, seconds = seconds }
+		)
+	end
+	narration(timing.serveAt + 0.2, Strings.later("Sin manos. Solo cadera, rodilla y codo."), "BL", 2.4)
+	narration(plan.shotAt - 1.8, Strings.later("Un aro. Un tiro."), "BL", 1.5)
+	narration(13.1, BALLGAME_TITLE, "TL", 1.8)
+	addReelTitle(events, 13.3)
+end
+
+-- Los cortes de Ballgame_Comic (G9b): la misma escena en páginas con viñetas.
+--    0 a serveAt   P1 montaje 3×2 (grid6): los 5 del montaje y los tres Quetzal en fila, en amarillo cómic
+--    saque a pase 3  P2 (four_a): el saque, el pase 1, el pase 2 y el pase 3 del avatar
+--    pase 4 al aro   P3 (four_b): el pase 4, el avatar recibe, el tiro sale y la pelota vuela al aro
+--    el aro y el final P4 (single): la cámara lenta del aro y el avatar mirando a los lados, ¡TOC!, título, logo y fundido
+local function ballgameComicCuts(plan: BallPlan, timing: BallTiming): { ComicCut }
+	local cuts: { ComicCut } = {}
+	-- Las páginas de cuatro empiezan por la viñeta grande (la 4): así no queda medio cuadro vacío mientras pasan las pequeñas.
+	local BIG_FIRST = { 4, 1, 2, 3 }
+	local function addPage(layout: string, colors: { Color3 }, wipe: string?, cells: { ComicCell }, order: { number }?)
+		for index, c in cells do
+			table.insert(cuts, {
+				t0 = c.t0,
+				t1 = c.t1,
+				layout = layout,
+				page = if index == 1 then { layout = layout, colors = colors, wipe = wipe } else nil,
+				cell = if order then order[index] else index,
+				pos = c.pos,
+				posB = c.posB,
+				subject = c.subject,
+				subjectB = c.subjectB,
+				width = c.width,
+				bg = c.bg,
+			})
+		end
+	end
+	local function lookAt(t: number): Vector3
+		return ballgameLook(ballgameBallAt(plan, t))
+	end
+	-- Una viñeta que sigue a la pelota de t0 a t1 desde la cámara lateral `lateral`.
+	local function flight(t0: number, t1: number, lateral: number, bg: string): ComicCell
+		return comicCell(t0, t1, BALLGAME_LATERAL[lateral].pos, lookAt(t0), 14, bg, lookAt(t1))
+	end
+
+	-- P1: el montaje (seis viñetas del mismo largo).
+	local montage = ballgameMontage()
+	local step = timing.serveAt / (#montage + 1)
+	local cells: { ComicCell } = {}
+	for index, m in montage do
+		table.insert(
+			cells,
+			comicCell(
+				(index - 1) * step,
+				index * step,
+				m.pos,
+				m.subject,
+				m.comicWidth,
+				if index % 2 == 1 then "flat" else "dots"
+			)
+		)
+	end
+	table.insert(
+		cells,
+		comicCell(
+			#montage * step,
+			timing.serveAt,
+			BALLGAME_QUETZAL_ROW.pos,
+			BALLGAME_QUETZAL_ROW.subject,
+			BALLGAME_QUETZAL_ROW.comicWidth,
+			"flat"
+		)
+	)
+	addPage("grid6", COMIC_COLORS.montage, nil, cells)
+
+	-- P2: el saque y los pases 1, 2 y 3 (el del avatar).
+	local segments = ballgameSegments(plan, timing)
+	addPage("four_a", COMIC_COLORS.jungle, "left", {
+		flight(segments[1].t0, segments[1].t1, segments[1].lateral, "flat"),
+		flight(segments[2].t0, segments[2].t1, segments[2].lateral, "dots"),
+		flight(segments[3].t0, segments[3].t1, segments[3].lateral, "flat"),
+		flight(segments[4].t0, segments[4].t1, segments[4].lateral, "dots"),
+	}, BIG_FIRST)
+
+	-- P3: el pase 4, el avatar recibe (por detrás), el tiro sale (de lado) y la pelota vuela al aro.
+	local view = ballgameShooterView(plan)
+	local receiveAt = math.max(segments[5].t0 + 0.4, plan.shotAt - 0.6)
+	local pageEnd = math.max(view.closeEnd + 0.4, (plan.rimAt or view.closeEnd + 1.5) - 0.3)
+	local ringStart, ringEnd = view.closeEnd, timing.slowEnd
+	local ringPosA, ringFocusA = ballgameRingView(plan, ringStart, ringEnd, ringStart)
+	local ringPosB, ringFocusB = ballgameRingView(plan, ringStart, ringEnd, pageEnd)
+	addPage("four_b", COMIC_COLORS.mountain, "left", {
+		flight(segments[5].t0, receiveAt, segments[5].lateral, "flat"),
+		comicCell(
+			receiveAt,
+			plan.shotAt,
+			view.feet - view.face * 8 + Vector3.new(0, 4.5, 0) + view.side * 1.5,
+			view.feet + Vector3.new(0, 3, 0),
+			5,
+			"dots"
+		),
+		comicCell(plan.shotAt, view.closeEnd, view.a.pos, view.a.look, 6, "flat", view.b.look),
+		comicCell(ringStart, pageEnd, ringPosA, ringFocusA, 22, "dots", ringFocusB),
+	}, BIG_FIRST)
+	cuts[#cuts].posB = ringPosB
+
+	-- P4: el aro en cámara lenta hasta que acaba y el final con el avatar. Una sola viñeta: los dos planos la comparten (el
+	-- evento `cell` con el mismo índice no hace nada).
+	local ringPosC, ringFocusC = ballgameRingView(plan, ringStart, ringEnd, pageEnd)
+	local ringPosD, ringFocusD = ballgameRingView(plan, ringStart, ringEnd, ringEnd)
+	addPage("single", COMIC_COLORS.mangrove, "left", {
+		comicCell(pageEnd, ringEnd, ringPosC, ringFocusC, 22, "flat", ringFocusD),
+		comicCell(
+			ringEnd,
+			timing.seconds,
+			view.feet + view.face * 12 + Vector3.new(0, 4.4, 0),
+			-- El avatar a un lado de la viñeta: el cartel «Juego de pelota» sale en el centro y no debe taparlo.
+			view.feet
+				+ view.side * 2.4
+				+ Vector3.new(0, 3.3, 0),
+			9,
+			"flat"
+		),
+	}, { 1, 1 })
+	cuts[#cuts - 1].posB = ringPosD
+	return cuts
+end
+
+-- Narración y onomatopeyas de Ballgame_Comic. Con BIG_FIRST la viñeta k de la lista muestra la celda order[k] de la
+-- plantilla ({4, 1, 2, 3}): las onomatopeyas llevan el índice de la celda de la plantilla.
+local function addBallgameComicText(events: EventList, plan: BallPlan, timing: BallTiming)
+	local function narration(t: number, text: string, seconds: number)
+		table.insert(events, {
+			t = t,
+			kind = "bubble",
+			balloon = "narration",
+			corner = "BL",
+			onPage = true,
+			text = text,
+			seconds = seconds,
+		})
+	end
+	local lastSfx = -math.huge
+	local function sfx(t: number, text: string, layout: string, cell: number, fx: number, fy: number, rot: number)
+		if t - lastSfx < 0.7 then
+			return -- ninguna onomatopeya pisa a la anterior
+		end
+		lastSfx = t
+		table.insert(events, {
+			t = t,
+			kind = "sfx",
+			text = text,
+			pos = ComicPages.cellPoint(layout, cell, fx, fy),
+			rot = rot,
+			size = 0.3,
+			color = Color3.new(1, 1, 1),
+			seconds = 0.6,
+		})
+	end
+	local hits = plan.hits
+	narration(timing.serveAt + 0.2, Strings.later("Sin manos. Solo cadera, rodilla y codo."), 2.4)
+	narration(math.max(hits[4].t + 0.1, plan.shotAt - 1.7), Strings.later("Un aro. Un tiro."), 1.5)
+	-- Cada golpe, en la viñeta donde empieza su vuelo: pase 1 (celda 1 de P2), 2 (celda 2), 3 (celda 3), 4 (celda 4 de P3)
+	-- y el tiro (celda 2 de P3).
+	local pam = Strings.later("¡PAM!")
+	sfx(hits[1].t + 0.05, pam, "four_a", 1, 0.6, 0.3, -12)
+	sfx(hits[2].t + 0.05, pam, "four_a", 2, 0.4, 0.3, 14)
+	sfx(hits[3].t + 0.05, pam, "four_a", 3, 0.6, 0.3, -13)
+	sfx(hits[4].t + 0.05, pam, "four_b", 4, 0.55, 0.3, 12)
+	sfx(plan.shotAt + 0.05, pam, "four_b", 2, 0.4, 0.3, -14)
+	if plan.rimAt then
+		sfx(plan.rimAt, Strings.later("¡TOC!"), "single", 1, 0.65, 0.3, -12)
+	end
+	-- Cartel final en la viñeta única: título, logo del juego y fundido a negro.
+	table.insert(events, { t = 13.3, kind = "title", text = BALLGAME_TITLE, seconds = 1 })
+	table.insert(events, {
+		t = 14.3,
+		kind = "logo",
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 0.5,
+	})
+	table.insert(events, { t = 14.5, kind = "fade", seconds = 0.4, toBlack = true })
+end
+
+-- `variant`: "full" (20 s, con bandas), "reel" (15 s, ventana alta 9:16) o "comic" (15 s, páginas con viñetas). Los eventos
+-- de los actores y de la pelota son los mismos; cada variante pone su cámara y sus textos.
 local function ballgameScene(variant: string): Scene
-	assert(variant == "full", `Ballgame: la variante {variant} aún no existe`)
-	local plan = ballgamePlan()
+	assert(variant == "full" or variant == "reel" or variant == "comic", `Ballgame: la variante {variant} no existe`)
+	local full = variant == "full"
+	local timing = if full then BALLGAME_TIMING.full else BALLGAME_TIMING.short
+	local plan = ballgamePlan(timing)
 	local events: EventList = {}
 	local function add(event: { t: number, kind: string, [string]: any })
 		table.insert(events, event)
 	end
 
-	add({ t = 0, kind = "letterbox" })
+	if full then
+		add({ t = 0, kind = "letterbox" })
+	end
 	-- La pelota: una trayectoria por pase (la última, el tiro con la cámara lenta) y la velocidad de las animaciones.
 	for _, path in plan.paths do
 		add({ t = path.times[1], kind = "ballPath", samples = path.samples, times = path.times, team = path.team })
 	end
 	add({ t = plan.shotAt, kind = "animSpeed", speed = BALLGAME_SLOW })
-	add({ t = BALLGAME_SLOW_END, kind = "animSpeed", speed = 1 })
+	add({ t = timing.slowEnd, kind = "animSpeed", speed = 1 })
 	if plan.rimAt then
 		add({ t = plan.rimAt, kind = "shake", amp = 0.15, seconds = 0.5 })
 	end
@@ -4649,7 +5020,7 @@ local function ballgameScene(variant: string): Scene
 	end
 	for actor, list in byActor do
 		local pos = BALLGAME_START[actor]
-		local freeAt = BALLGAME_SERVE_AT - 0.1 -- el montaje los enseña quietos
+		local freeAt = timing.serveAt - 0.1 -- el montaje los enseña quietos
 		for _, hit in list do
 			local feet =
 				Vector3.new(hit.ball.X - hit.dir.X * BALLGAME_BEHIND, 0, hit.ball.Z - hit.dir.Z * BALLGAME_BEHIND)
@@ -4686,7 +5057,7 @@ local function ballgameScene(variant: string): Scene
 	for actor, x in BALLGAME_QUETZAL_X do
 		local pos = BALLGAME_START[actor]
 		for index, hit in plan.hits do
-			local ws = if index == 1 then BALLGAME_SERVE_AT + 0.1 else plan.hits[index - 1].t + 0.1
+			local ws = if index == 1 then timing.serveAt + 0.1 else plan.hits[index - 1].t + 0.1
 			local we = hit.t - BALLGAME_HIT_LEAD
 			local target = Vector3.new(x, 0, math.clamp(hit.ball.Z + BALLGAME_QUETZAL_Z[actor], -12, 12))
 			local seconds = math.min(1.2, (we - ws) * 0.9)
@@ -4703,9 +5074,9 @@ local function ballgameScene(variant: string): Scene
 	local restZ = math.clamp(endPos.Z, -CourtGeometry.TALUD_OUTER_Z + 2, CourtGeometry.TALUD_OUTER_Z - 2)
 	local pickup = Vector3.new(endPos.X, CourtGeometry.surfaceY(restZ) or 0, restZ)
 	local from = lastQuetzal.quetzalB
-	local runAt = BALLGAME_SLOW_END + 0.05
+	local runAt = timing.slowEnd + 0.05
 	local arrive =
-		math.clamp(math.max(runAt + (pickup - from).Magnitude / 25, plan.endAt), runAt + 0.3, BALLGAME_PICKUP_MAX)
+		math.clamp(math.max(runAt + (pickup - from).Magnitude / 25, plan.endAt), runAt + 0.3, timing.pickupMax)
 	runTo(runAt, "quetzalB", from, pickup, arrive - runAt)
 	add({ t = arrive, kind = "anim", actor = "quetzalB", action = "Place", seconds = 1.2 })
 	add({
@@ -4717,35 +5088,52 @@ local function ballgameScene(variant: string): Scene
 	})
 
 	-- El avatar se queda mirando a los lados.
-	add({ t = BALLGAME_SLOW_END + 0.1, kind = "anim", actor = "avatar", action = "LookAround", seconds = 2.6 })
+	add({ t = timing.slowEnd + 0.1, kind = "anim", actor = "avatar", action = "LookAround", seconds = 2.6 })
 
-	-- Subtítulos, cartel final, logo y fundido (los mismos tiempos relativos que Pets y Mounts).
-	add({
-		t = BALLGAME_SERVE_AT + 0.6,
-		kind = "caption",
-		text = Strings.later("Sin manos. Solo cadera, rodilla y codo."),
-		seconds = 2.4,
-	})
-	add({ t = plan.shotAt - 2.5, kind = "caption", text = Strings.later("Un aro. Un tiro."), seconds = 1.6 })
-	add({
-		t = 17.5,
-		kind = "title",
-		text = BALLGAME_TITLE,
-		sub = Strings.later("3 contra 3 en la Isla de dunas"),
-		seconds = 1.4,
-	})
-	add({
-		t = 18.9,
-		kind = "logo",
-		text = Strings.later("Primal Banana Islands"),
-		sub = Strings.later("Monkey Survival"),
-		seconds = 0.9,
-	})
-	add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
+	-- Cámara y textos de cada variante.
+	local camera: { CameraPoint }
+	if full then
+		-- Subtítulos, cartel final, logo y fundido (los mismos tiempos relativos que Pets y Mounts).
+		camera = ballgameCamera(plan, timing)
+		add({
+			t = timing.serveAt + 0.6,
+			kind = "caption",
+			text = Strings.later("Sin manos. Solo cadera, rodilla y codo."),
+			seconds = 2.4,
+		})
+		add({ t = plan.shotAt - 2.5, kind = "caption", text = Strings.later("Un aro. Un tiro."), seconds = 1.6 })
+		add({
+			t = 17.5,
+			kind = "title",
+			text = BALLGAME_TITLE,
+			sub = Strings.later("3 contra 3 en la Isla de dunas"),
+			seconds = 1.4,
+		})
+		add({
+			t = 18.9,
+			kind = "logo",
+			text = Strings.later("Primal Banana Islands"),
+			sub = Strings.later("Monkey Survival"),
+			seconds = 0.9,
+		})
+		add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
+	elseif variant == "reel" then
+		local cuts = ballgameReelCuts(plan, timing)
+		camera = cutShots(battleReelShots(cuts)) :: any
+		-- Colores de la cancha: rojo de la pared y crema de la arena.
+		addReelPanels(events, cuts, Color3.fromRGB(190, 60, 44), Color3.fromRGB(246, 232, 196))
+		addBallgameReelText(events, plan, timing)
+		addBattleFade(events, true, timing.seconds)
+	else
+		local cuts = ballgameComicCuts(plan, timing)
+		camera = cutShots(comicShots(cuts)) :: any
+		addComicPages(events, cuts)
+		addBallgameComicText(events, plan, timing)
+	end
 
 	local start = BALLGAME_START
 	return {
-		duration = BALLGAME_SECONDS,
+		duration = timing.seconds,
 		audience = "Self",
 		freeze = true,
 		skippable = true,
@@ -4758,20 +5146,32 @@ local function ballgameScene(variant: string): Scene
 			quetzalB = ballgameDummy("Quetzal", start.quetzalB, 90, Color3.fromRGB(233, 183, 140)),
 			quetzalC = ballgameDummy("Quetzal", start.quetzalC, 90, Color3.fromRGB(198, 134, 92)),
 		},
-		camera = ballgameCamera(plan),
+		camera = camera,
 		events = events,
 	}
 end
 
--- Si la simulación falla no se pierde el resto de cinemáticas: la escena queda sin registrar y se avisa.
+-- Si la simulación falla no se pierde el resto de cinemáticas: la escena queda sin registrar y se avisa. Cada variante va
+-- en su pcall, para que una que falle no tumbe a las otras.
 local ballgameOk, ballgameBuilt = pcall(ballgameScene, "full")
 if not ballgameOk then
 	warn(`Cinematics: no se pudo construir la escena Ballgame: {ballgameBuilt}`)
 end
+local ballgameReelOk, ballgameReelBuilt = pcall(ballgameScene, "reel")
+if not ballgameReelOk then
+	warn(`Cinematics: no se pudo construir la escena Ballgame_Reel: {ballgameReelBuilt}`)
+end
+local ballgameComicOk, ballgameComicBuilt = pcall(ballgameScene, "comic")
+if not ballgameComicOk then
+	warn(`Cinematics: no se pudo construir la escena Ballgame_Comic: {ballgameComicBuilt}`)
+end
 
 local Cinematics: { [string]: Scene } = {
-	-- Juego de pelota (G9a): solo para grabar; la lanza «🎬 Juego de pelota» del panel de Dunas (BallgameCineController).
+	-- Juego de pelota (G9a y G9b): solo para grabar; las lanzan «🎬 Juego de pelota», «… reel» y «… cómic» del panel de
+	-- Dunas (BallgameCineController).
 	Ballgame = if ballgameOk then ballgameBuilt :: Scene else nil,
+	Ballgame_Reel = if ballgameReelOk then ballgameReelBuilt :: Scene else nil,
+	Ballgame_Comic = if ballgameComicOk then ballgameComicBuilt :: Scene else nil,
 
 	-- Monturas (G8a): solo para grabar; las lanzan «🐎 Monturas», «… reel» y «… cómic» del panel de pruebas.
 	Mounts = mountsScene("full"),

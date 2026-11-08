@@ -20,7 +20,7 @@ local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
 local BallController = require(script.Parent.BallController)
 
 local ATTRIBUTE = "BallgameCine"
-local SCENES: { [string]: boolean } = { Ballgame = true }
+local SCENES: { [string]: boolean } = { Ballgame = true, Ballgame_Reel = true, Ballgame_Comic = true }
 local CLOCK_TIME = 17.5
 local COURT_FORMAT = 3 -- el formato (jugadores por equipo) con el que se calibró la escena
 local COURT_WAIT_SECONDS = 8 -- espera a la cancha del formato y a su suelo

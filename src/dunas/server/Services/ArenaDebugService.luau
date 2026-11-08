@@ -168,6 +168,25 @@ local function teamArg(arg: any): string?
 	return if arg == "Jaguar" or arg == "Quetzal" then arg else nil
 end
 
+-- Lanza una cinemática del Juego de pelota (Fase 25, G9a y G9b): pone el modo Juego de pelota y el formato 3 si hace
+-- falta, aparta los rivales de prueba y apaga la pelota; BallgameCineController (cliente) espera a la cancha y lanza la
+-- escena. El atributo lleva «<id de la escena>:<contador>» para que repetir la misma orden también dispare el cambio.
+local function startCine(player: Player, sceneId: string)
+	if ArenaModes.current() ~= "Ballgame" then
+		ArenaMatchService.debugSetMode("Ballgame")
+	end
+	for _ = 1, Config.Arena.MaxFormat do
+		if Arena.format() == CINE_FORMAT then
+			break
+		end
+		ArenaMatchService.debugNextFormat()
+	end
+	BallBotService.clear()
+	BallService.setActive(false)
+	cineCounter += 1
+	player:SetAttribute("BallgameCine", `{sceneId}:{cineCounter}`)
+end
+
 -- BallPlace con un atajo: en el campo del jugador («mine»), en el del rival («rival») o al centro («center»).
 -- Devuelve el punto local, o nil si "arg" no es un atajo.
 local function presetPlace(player: Player, arg: any): Vector3?
@@ -303,19 +322,14 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	-- Cinemática del Juego de pelota (Fase 25, G9a): pone el modo Juego de pelota y el formato 3 si hace falta, aparta los
 	-- rivales de prueba y apaga la pelota; BallgameCineController (cliente) espera a la cancha y lanza la escena.
 	CineBallgame = function(player)
-		if ArenaModes.current() ~= "Ballgame" then
-			ArenaMatchService.debugSetMode("Ballgame")
-		end
-		for _ = 1, Config.Arena.MaxFormat do
-			if Arena.format() == CINE_FORMAT then
-				break
-			end
-			ArenaMatchService.debugNextFormat()
-		end
-		BallBotService.clear()
-		BallService.setActive(false)
-		cineCounter += 1
-		player:SetAttribute("BallgameCine", `Ballgame:{cineCounter}`)
+		startCine(player, "Ballgame")
+	end,
+	-- Las versiones de 15 s para grabar (G9b): reel 9:16 y cómic de página.
+	CineBallgameReel = function(player)
+		startCine(player, "Ballgame_Reel")
+	end,
+	CineBallgameComic = function(player)
+		startCine(player, "Ballgame_Comic")
 	end,
 	Format = function()
 		local format = ArenaMatchService.debugNextFormat()
