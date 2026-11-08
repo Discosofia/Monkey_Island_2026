@@ -145,7 +145,7 @@ local function runPets(player: Player, sceneId: string)
 	end
 end
 
--- Lanza las monturas "sceneId" (Mounts; Fase 25, G8a), igual que runPets.
+-- Lanza las monturas "sceneId" (Mounts, Mounts_Reel o Mounts_Comic; Fase 25, G8a y G8b), igual que runPets.
 local function runMounts(player: Player, sceneId: string)
 	local started = CinematicService.play(sceneId, {
 		audience = { player },
@@ -935,6 +935,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	-- «🐎 Monturas» (Fase 25, G8a): la Llama, el Jaguar y el Quetzalcóatl con el avatar montado en tres sitios de la isla.
 	CineMounts = function(player)
 		runMounts(player, "Mounts")
+	end,
+	CineMountsReel = function(player)
+		runMounts(player, "Mounts_Reel")
+	end,
+	CineMountsComic = function(player)
+		runMounts(player, "Mounts_Comic")
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

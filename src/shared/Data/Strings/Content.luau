@@ -894,6 +894,10 @@ return {
 	["Siempre a tu lado, hasta la cima"] = "By your side, all the way to the top",
 	["Tus mascotas, tu manada"] = "Your pets, your pack",
 	["Elige tu montura"] = "Choose your mount",
+	-- Onomatopeyas de Mounts_Comic (G8b).
+	["¡PTUI!"] = "SPIT!",
+	["¡GRRR!"] = "GRRR!",
+	["¡FSSS!"] = "HISSS!",
 	-- Variante cómic de las mascotas (Pets_Comic, G7c).
 	["¡Buen chico!"] = "Good boy!",
 	["¡A por ellos!"] = "Get them!",

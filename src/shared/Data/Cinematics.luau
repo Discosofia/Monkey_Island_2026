@@ -3713,11 +3713,333 @@ local function mountActor(mountId: string): { [string]: any }
 	}
 end
 
--- `variant`: "full" (20 s). Reel y cómic se añadirán después.
+local MOUNTS_REEL_SECONDS = 15
+local MOUNTS_TITLE = Strings.later("Elige tu montura")
+
+-- Los cortes de Mounts_Reel (9:16): los de la escena completa con los tiempos × 0,75 (MOUNTS_REEL_SECONDS / MOUNTS_SECONDS).
+-- Posiciones de diseño: a medir en Studio. En la montaña la mirada sigue al Quetzalcóatl (mountainQuetzalAt con el tiempo
+-- de la escena completa, t / K).
+local function mountsReelCuts(keys: { { t: number, pos: Vector3, pitch: number } }): { ReelCut }
+	local k = MOUNTS_REEL_SECONDS / MOUNTS_SECONDS
+	local bodyLift = Vector3.new(0, MOUNT_BODY_LIFT, 0)
+	local finalLift = Vector3.new(0, MOUNTAIN_FINAL_LIFT, 0)
+	local function quetzal(t: number, lift: Vector3): Vector3
+		return mountainQuetzalAt(keys, t / k) + lift
+	end
+	return {
+		-- Montaje: las tres monturas en fila (seis cortes de ~0,43 s).
+		{
+			t0 = 0,
+			t1 = 0.43,
+			shape = "reelTall",
+			bg = "speed",
+			pos = Vector3.new(-19.4, 18.7, 262.6),
+			subject = Vector3.new(-23.2, 18.3, 266),
+			width = 4.5,
+		},
+		{
+			t0 = 0.43,
+			t1 = 0.86,
+			shape = "reelDiagR",
+			bg = "halftone",
+			pos = Vector3.new(-14.5, 16.7, 276),
+			subject = Vector3.new(-21.3, 16.1, 272),
+			width = 5,
+		},
+		{
+			t0 = 0.86,
+			t1 = 1.29,
+			shape = "reelSlant",
+			bg = "flat",
+			pos = Vector3.new(-11.5, 18, 281.8),
+			subject = Vector3.new(-19, 17.1, 278),
+			width = 7.5,
+		},
+		{
+			t0 = 1.29,
+			t1 = 1.72,
+			shape = "reelDiagL",
+			bg = "speed",
+			pos = Vector3.new(-32.5, 20.1, 266), -- la silla por detrás
+			subject = Vector3.new(-25, 17.5, 266),
+			width = 7,
+		},
+		{
+			t0 = 1.72,
+			t1 = 2.15,
+			shape = "reelTop", -- cenital
+			bg = "halftone",
+			pos = Vector3.new(-25, 26.7, 272),
+			subject = Vector3.new(-25, 12.7, 272),
+			width = 12,
+		},
+		{
+			t0 = 2.15,
+			t1 = 2.59,
+			shape = "reelTall",
+			bg = "flat",
+			pos = jungle(-6, 3.2, 290),
+			subject = jungle(-25, 1.5, 272),
+			width = 18,
+		},
+		-- Playa: la Llama galopa por la orilla y escupe a la cámara.
+		{
+			t0 = 2.62,
+			t1 = 4.95,
+			shape = "reelSlant",
+			bg = "speed",
+			pos = Vector3.new(-35, 9.4, 909),
+			subject = Vector3.new(-69, 6.9, 925),
+			subjectB = Vector3.new(-3, 6.9, 925),
+			width = 14,
+		},
+		{
+			t0 = 4.95,
+			t1 = 5.96,
+			shape = "reelTall",
+			bg = "halftone",
+			pos = Vector3.new(1.5, 8.6, 918.5),
+			subject = Vector3.new(0, 8.2, 925),
+			width = 5,
+		},
+		-- Selva: el Jaguar corre y, al final, llega de frente a la cámara fija.
+		{
+			t0 = 5.97,
+			t1 = 7.4,
+			shape = "reelDiagL",
+			bg = "flat",
+			pos = Vector3.new(-18, 15.4, 286),
+			subject = Vector3.new(5, 15.4, 272),
+			subjectB = Vector3.new(-22, 15.4, 272),
+			width = 14,
+		},
+		{
+			t0 = 7.45,
+			t1 = 9.26,
+			shape = "reelDiagR",
+			bg = "speed",
+			pos = Vector3.new(-49, 15.6, 272),
+			subject = Vector3.new(-42.4, 15.9, 272),
+			width = 5.5,
+		},
+		-- Montaña: el Quetzalcóatl baja de frente, salta y planea hasta quedarse flotando.
+		{
+			t0 = 9.3,
+			t1 = 10.8,
+			shape = "reelTall",
+			bg = "halftone",
+			pos = MOUNTAIN_CAMERA,
+			subject = quetzal(9.3, bodyLift),
+			subjectB = quetzal(10.8, bodyLift),
+			width = 16,
+		},
+		{
+			t0 = 10.85,
+			t1 = 11.75,
+			shape = "reelDiagR",
+			bg = "speed",
+			pos = MOUNTAIN_CAMERA,
+			subject = quetzal(10.85, bodyLift),
+			subjectB = quetzal(11.75, bodyLift),
+			width = 14,
+		},
+		{
+			t0 = 11.8,
+			t1 = 12.75,
+			shape = "reelSlant",
+			bg = "flat",
+			pos = MOUNTAIN_FINAL_CAMERA,
+			subject = quetzal(11.8, finalLift),
+			subjectB = quetzal(12.75, finalLift),
+			width = 18,
+		},
+		{
+			t0 = 12.8,
+			t1 = MOUNTS_REEL_SECONDS,
+			shape = "reelDiagL",
+			bg = "halftone",
+			pos = MOUNTAIN_FINAL_CAMERA,
+			subject = MOUNTAIN_GLIDE_TO + finalLift,
+			width = 16,
+		},
+	}
+end
+
+-- Narración y cartel final del reel: el nombre de cada montura abajo a la izquierda al empezar su tramo, el título
+-- arriba y el nombre del juego bajo en la zona segura.
+local function addMountsReelText(events: EventList)
+	local function narration(t: number, text: string, corner: string, seconds: number)
+		table.insert(
+			events,
+			{ t = t, kind = "bubble", balloon = "narration", corner = corner, text = text, seconds = seconds }
+		)
+	end
+	narration(2.62, Mounts.Llama.name, "BL", 2.4)
+	narration(5.97, Mounts.Jaguar.name, "BL", 2.4)
+	narration(9.3, Mounts.Quetzalcoatl.name, "BL", 2.4)
+	narration(13.1, MOUNTS_TITLE, "TL", 1.8)
+	addReelTitle(events, 13.3)
+end
+
+-- Los cortes de Mounts_Comic (G8b): la misma escena en páginas con viñetas (tiempos × 0,75, como Mounts_Reel).
+--    0 a 2,59      P1 montaje 3×2 (grid6), seis viñetas de ~0,43 s con las tres monturas, en amarillo cómic
+--  2,62 a 5,96     P2 playa (four_a): la Llama galopa, salta y escupe
+--  5,97 a 9,26     P3 selva (four_b): el Jaguar corre, llega de frente y ruge
+--  9,27 a 12,75    P4 montaña (four_c): el Quetzalcóatl baja, salta y planea
+--  12,8 a 15       P5 cartel (single): flotando de tres cuartos, título, logo y fundido
+local function mountsComicCuts(keys: { { t: number, pos: Vector3, pitch: number } }): { ComicCut }
+	local k = MOUNTS_REEL_SECONDS / MOUNTS_SECONDS
+	local bodyLift = Vector3.new(0, MOUNT_BODY_LIFT, 0)
+	local finalLift = Vector3.new(0, MOUNTAIN_FINAL_LIFT, 0)
+	local function quetzal(t: number, lift: Vector3): Vector3
+		return mountainQuetzalAt(keys, t / k) + lift
+	end
+	local cuts: { ComicCut } = {}
+	-- `order`: qué viñeta de la plantilla enseña cada plano. Las páginas de cuatro abren por la grande (la 4).
+	local BIG_FIRST = { 4, 1, 2, 3 }
+	local function addPage(layout: string, colors: { Color3 }, wipe: string?, cells: { ComicCell }, order: { number }?)
+		for index, c in cells do
+			table.insert(cuts, {
+				t0 = c.t0,
+				t1 = c.t1,
+				layout = layout,
+				page = if index == 1 then { layout = layout, colors = colors, wipe = wipe } else nil,
+				cell = if order then order[index] else index,
+				pos = c.pos,
+				posB = c.posB,
+				subject = c.subject,
+				subjectB = c.subjectB,
+				width = c.width,
+				bg = c.bg,
+			})
+		end
+	end
+	-- P1: los seis encuadres del montaje.
+	addPage("grid6", COMIC_COLORS.montage, nil, {
+		comicCell(0, 0.43, Vector3.new(-19.4, 18.7, 262.6), Vector3.new(-23.2, 18.3, 266), 4.5, "flat"),
+		comicCell(0.43, 0.86, Vector3.new(-14.5, 16.7, 276), Vector3.new(-21.3, 16.1, 272), 5, "dots"),
+		comicCell(0.86, 1.29, Vector3.new(-11.5, 18, 281.8), Vector3.new(-19, 17.1, 278), 7.5, "flat"),
+		comicCell(1.29, 1.72, Vector3.new(-32.5, 20.1, 266), Vector3.new(-25, 17.5, 266), 7, "dots"),
+		comicCell(1.72, 2.15, Vector3.new(-25, 26.7, 272), Vector3.new(-25, 12.7, 272), 12, "flat"),
+		comicCell(2.15, 2.59, jungle(-6, 3.2, 290), jungle(-25, 1.5, 272), 18, "dots"),
+	})
+	-- P2: playa. La Llama cruza en tres viñetas y escupe a la cámara en la última.
+	addPage("four_a", COMIC_COLORS.jungle, "left", {
+		comicCell(
+			2.62,
+			3.45,
+			Vector3.new(-50, 9.4, 906),
+			Vector3.new(-70, 6.9, 925),
+			12,
+			"flat",
+			Vector3.new(-47, 6.9, 925)
+		),
+		comicCell(
+			3.45,
+			4.3,
+			Vector3.new(-30, 9.4, 906),
+			Vector3.new(-47, 6.9, 925),
+			12,
+			"dots",
+			Vector3.new(-22, 6.9, 925)
+		),
+		comicCell(4.3, 5, Vector3.new(-10, 9.4, 906), Vector3.new(-22, 6.9, 925), 12, "flat", Vector3.new(0, 6.9, 925)),
+		comicCell(5, 5.96, Vector3.new(1.5, 8.6, 918.5), Vector3.new(0, 8.2, 925), 5, "dots"),
+	}, BIG_FIRST)
+	-- P3: selva. El Jaguar corre y llega de frente a la cámara fija.
+	addPage("four_b", COMIC_COLORS.mangrove, "left", {
+		comicCell(
+			5.97,
+			6.9,
+			Vector3.new(-8, 15.4, 286),
+			Vector3.new(5, 15.4, 272),
+			14,
+			"flat",
+			Vector3.new(-15, 15.4, 272)
+		),
+		comicCell(
+			6.9,
+			7.7,
+			Vector3.new(-30, 15.4, 286),
+			Vector3.new(-15, 15.4, 272),
+			13,
+			"dots",
+			Vector3.new(-35, 15.4, 272)
+		),
+		comicCell(7.7, 8.5, Vector3.new(-49, 15.6, 272), Vector3.new(-42.4, 15.9, 272), 5.5, "flat"),
+		comicCell(8.5, 9.26, Vector3.new(-47, 15.6, 272), Vector3.new(-42.4, 15.9, 272), 4.5, "dots"),
+	}, BIG_FIRST)
+	-- P4: montaña. Baja de frente, salta y pasa por encima; la última viñeta ya con la cámara del plano final.
+	addPage("four_c", COMIC_COLORS.mountain, "down", {
+		comicCell(9.27, 10.2, MOUNTAIN_CAMERA, quetzal(9.27, bodyLift), 16, "flat", quetzal(10.2, bodyLift)),
+		comicCell(10.2, 11, MOUNTAIN_CAMERA, quetzal(10.2, bodyLift), 14, "dots", quetzal(11, bodyLift)),
+		comicCell(11, 11.8, MOUNTAIN_CAMERA, quetzal(11, bodyLift), 12, "flat", quetzal(11.8, bodyLift)),
+		comicCell(11.8, 12.75, MOUNTAIN_FINAL_CAMERA, quetzal(11.8, finalLift), 18, "dots", quetzal(12.75, finalLift)),
+	}, BIG_FIRST)
+	-- P5: el Quetzalcóatl flotando de tres cuartos (cartel final).
+	addPage("single", COMIC_COLORS.mountain, "left", {
+		comicCell(12.8, MOUNTS_REEL_SECONDS, MOUNTAIN_FINAL_CAMERA, MOUNTAIN_GLIDE_TO + finalLift, 16, "flat"),
+	})
+	return cuts
+end
+
+-- Narración y onomatopeyas de Mounts_Comic. Con BIG_FIRST la viñeta k de la lista muestra la celda order[k] de la
+-- plantilla ({4, 1, 2, 3}): las onomatopeyas llevan el índice de la celda de la plantilla.
+local function addMountsComicText(events: EventList)
+	local function narration(t: number, text: string, seconds: number)
+		table.insert(events, {
+			t = t,
+			kind = "bubble",
+			balloon = "narration",
+			corner = "BL",
+			onPage = true,
+			text = text,
+			seconds = seconds,
+		})
+	end
+	local function sfx(t: number, text: string, layout: string, cell: number, fx: number, fy: number, rot: number)
+		table.insert(events, {
+			t = t,
+			kind = "sfx",
+			text = text,
+			pos = ComicPages.cellPoint(layout, cell, fx, fy),
+			rot = rot,
+			size = 0.3,
+			color = Color3.new(1, 1, 1),
+			seconds = 0.6,
+		})
+	end
+	narration(2.8, Mounts.Llama.name, 2.4)
+	narration(6.1, Mounts.Jaguar.name, 2.4)
+	narration(9.4, Mounts.Quetzalcoatl.name, 2.4)
+	sfx(5.25, Strings.later("¡PTUI!"), "four_a", 3, 0.6, 0.3, -12) -- la Llama escupe
+	sfx(8.2, Strings.later("¡GRRR!"), "four_b", 2, 0.5, 0.3, 12) -- el Jaguar ruge
+	sfx(10.9, Strings.later("¡FIUU!"), "four_c", 2, 0.35, 0.3, 14) -- el Quetzalcóatl salta
+	sfx(13.1, Strings.later("¡FSSS!"), "single", 1, 0.65, 0.3, -10) -- el Quetzalcóatl sisea
+	-- Cartel final en la viñeta única: título, logo del juego y fundido a negro.
+	table.insert(events, { t = 13.3, kind = "title", text = MOUNTS_TITLE, seconds = 1 })
+	table.insert(events, {
+		t = 14.3,
+		kind = "logo",
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 0.5,
+	})
+	table.insert(events, { t = 14.5, kind = "fade", seconds = 0.4, toBlack = true })
+end
+
+-- `variant`: "full" (20 s, con bandas), "reel" (15 s, ventana alta 9:16) o "comic" (15 s, páginas con viñetas). Reel y cómic
+-- usan los mismos eventos de movimiento con el tiempo × 0,75 (también la duración de los `move`).
 local function mountsScene(variant: string): Scene
-	assert(variant == "full", "Monturas: solo existe la variante «full» por ahora")
+	local full = variant == "full"
+	local comic = variant == "comic"
+	local scale = if full then 1 else MOUNTS_REEL_SECONDS / MOUNTS_SECONDS
 	local events: EventList = {}
 	local function add(event: { t: number, kind: string, [string]: any })
+		event.t *= scale
+		if event.kind == "move" then
+			event.seconds *= scale
+		end
 		table.insert(events, event)
 	end
 	-- Atajos de los eventos de montura y de movimiento (los `move` llevan la Y del suelo; el actor suma su altura).
@@ -3742,12 +4064,17 @@ local function mountsScene(variant: string): Scene
 		})
 	end
 	local function caption(t: number, mountId: string)
-		-- El nombre de la montura de Data/Mounts (se traduce al dibujarlo, ya está en Data/Strings/Content). Sin la rareza:
-		-- el rótulo es de una sola línea y no hay plantilla «{nombre} · {rareza}» en las frases.
-		add({ t = t, kind = "caption", text = Mounts[mountId].name, seconds = MOUNT_CAPTION_SECONDS })
+		-- Solo en la completa (reel y cómic ponen su propia narración). El nombre de la montura de Data/Mounts (se traduce
+		-- al dibujarlo, ya está en Data/Strings/Content). Sin la rareza: el rótulo es de una sola línea y no hay plantilla
+		-- «{nombre} · {rareza}» en las frases.
+		if full then
+			add({ t = t, kind = "caption", text = Mounts[mountId].name, seconds = MOUNT_CAPTION_SECONDS })
+		end
 	end
 
-	add({ t = 0, kind = "letterbox" })
+	if full then
+		add({ t = 0, kind = "letterbox" })
+	end
 	-- Los monos reales de la isla se esconden en los tres sitios mientras dura la escena; por eso lleva freeze.
 	add({
 		t = 0,
@@ -3822,20 +4149,33 @@ local function mountsScene(variant: string): Scene
 	gesture(MOUNTAIN_GLIDE_END + 0.3, "Quetzalcoatl")
 	put(MOUNTS_SECONDS - 0.05, "Quetzalcoatl", MOUNT_PARK, -90)
 
-	-- Cartel final, logo del juego y fundido a negro (los mismos tiempos relativos que Pets).
-	add({ t = 17.5, kind = "title", text = Strings.later("Elige tu montura"), seconds = 1.4 })
-	add({
-		t = 18.9,
-		kind = "logo",
-		text = Strings.later("Primal Banana Islands"),
-		sub = Strings.later("Monkey Survival"),
-		seconds = 0.9,
-	})
-	add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
-
-	local camera = mountsCamera(keys)
+	local camera: { CameraPoint }
+	if comic then
+		local cuts = mountsComicCuts(keys)
+		camera = cutShots(comicShots(cuts))
+		addComicPages(events, cuts)
+		addMountsComicText(events)
+	elseif not full then
+		local cuts = mountsReelCuts(keys)
+		camera = cutShots(battleReelShots(cuts))
+		addReelPanels(events, cuts, Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196))
+		addMountsReelText(events)
+		addBattleFade(events, true, MOUNTS_REEL_SECONDS)
+	else
+		-- Cartel final, logo del juego y fundido a negro (los mismos tiempos relativos que Pets).
+		add({ t = 17.5, kind = "title", text = MOUNTS_TITLE, seconds = 1.4 })
+		add({
+			t = 18.9,
+			kind = "logo",
+			text = Strings.later("Primal Banana Islands"),
+			sub = Strings.later("Monkey Survival"),
+			seconds = 0.9,
+		})
+		add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
+		camera = mountsCamera(keys)
+	end
 	return {
-		duration = MOUNTS_SECONDS,
+		duration = if full then MOUNTS_SECONDS else MOUNTS_REEL_SECONDS,
 		audience = "Self",
 		freeze = true,
 		skippable = true,
@@ -3860,8 +4200,10 @@ local function mountsScene(variant: string): Scene
 end
 
 local Cinematics: { [string]: Scene } = {
-	-- Monturas (G8a): solo para grabar; la lanza la orden «🐎 Monturas» del panel de pruebas.
+	-- Monturas (G8a): solo para grabar; las lanzan «🐎 Monturas», «… reel» y «… cómic» del panel de pruebas.
 	Mounts = mountsScene("full"),
+	Mounts_Reel = mountsScene("reel"),
+	Mounts_Comic = mountsScene("comic"),
 
 	-- Mascotas (G7b y G7c): solo para grabar; las lanzan las órdenes «🐾 Mascotas», «… reel» y «… cómic» del panel de pruebas.
 	Pets = petsScene("normal"),

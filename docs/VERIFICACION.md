@@ -6616,6 +6616,41 @@ Escena `Mounts` (20 s) en `Data/Cinematics`, solo para grabar: no sale sola en e
 13. [ ] Anota en esta sección si `Rendimiento` cuenta bien las piezas de los modelos de la escena. Hoy no se ha ejecutado para `Mounts`.
    ✅ Hay que ejecutarlo en el Studio de la Isla y las cifras deben quedar por debajo de `Config.Budgets`.
 
+## 174. Fase 25 G8b: Mounts_Reel y Mounts_Comic (07-11-2026)
+
+Dos versiones de 15 s de la cinemática de las monturas, derivadas de `Mounts` (20 s) con los eventos escalados ×0,75. `Mounts_Reel` es la ventana alta 9:16 (orden «🐎 Monturas reel», `CineMountsReel`). `Mounts_Comic` es el cómic de página con viñetas (orden «🐎 Monturas cómic», `CineMountsComic`). Páginas: P1 grid6 (montaje), P2 four_a (Llama), P3 four_b (Jaguar), P4 four_c (Quetzalcóatl), P5 single (final). Como `Mounts`, solo sirven para grabar: no salen solas en el juego. Onomatopeyas: ¡PTUI! (escupitajo), ¡GRRR! (rugido), ¡FIUU! (salto, ya existía) y ¡FSSS! (silbido). Frases nuevas: ¡PTUI!, ¡GRRR! y ¡FSSS! (inglés SPIT!, GRRR! y HISSS!). En Studio (modo edición) solo se comprobó que las tres escenas se construyen (40, 54 y 67 eventos, ninguno fuera de rango) y que la cámara es muestreable. Nada se ha probado en Play ni se ha encuadrado en edición. `Rendimiento` no se ha ejecutado para estas escenas. Riesgo conocido: el `move` de aparcado del Quetzalcóatl cae a t ≈ 14,96 s, casi al final de los 15 s.
+
+1. [ ] En la Isla, en Play, pulsa «🐎 Monturas reel» y mira la ventana alta 9:16 entera.
+   ✅ Salen cortes del montaje con formas y fondos alternados, el nombre de cada montura abajo a la izquierda, el cartel «Elige tu montura» arriba a la izquierda y el logo, con fundido al final.
+2. [ ] En el reel, mira cada tramo: la Llama en la playa, el Jaguar en la selva con la cámara fija final y el Quetzalcóatl bajando y quedando flotando.
+   ✅ Cada tramo se ve completo en la ventana estrecha y ninguna montura sale de cuadro.
+3. [ ] En el reel, mira las patas y los gestos con el tiempo escalado ×0,75.
+   ✅ Run y Jump se ven a ritmo normal (ni a cámara rápida ni lenta) y el escupir, el rugido y el silbido llegan a tiempo con su efecto.
+4. [ ] Pulsa «🐎 Monturas cómic» y mira las 5 páginas: grid6 (montaje), four_a (Llama), four_b (Jaguar), four_c (Quetzalcóatl) y single (final).
+   ✅ Salen las cinco páginas con su borde y su fondo, sin franjas negras.
+5. [ ] En cada página de cuatro, mira que cada viñeta enseñe la celda correcta. BIG_FIRST: la primera de cada página de cuatro es la grande.
+   ✅ Cada viñeta muestra la montura y el plano de su celda, y la primera celda de four_a, four_b y four_c es la grande.
+6. [ ] Mide con `Rendimiento` (o en Play) las piezas congeladas de la página con más monturas (four_a, four_b y four_c, con su jinete) y compáralas con `Config.Budgets.Comic.FrozenParts`. Tres monturas con jinete tienen muchas piezas.
+   ✅ Cada página queda por debajo de 1.500. Si alguna lo supera, hay que bajar las piezas congeladas de esa página o cambiar el tope en `Config.Budgets` (y anotarlo aquí). Anota la cifra medida.
+7. [ ] Mira la onomatopeya ¡PTUI! en four_a, celda 3, a 5,25 s.
+   ✅ Sale dentro de su viñeta (celda 3), sin cortarse por el borde ni caer en otra celda.
+8. [ ] Mira la onomatopeya ¡GRRR! en four_b, celda 2, a 8,2 s.
+   ✅ Sale dentro de su viñeta (celda 2), sin cortarse por el borde ni caer en otra celda.
+9. [ ] Mira la onomatopeya ¡FIUU! en four_c, celda 2, a 10,9 s.
+   ✅ Sale dentro de su viñeta (celda 2), sin cortarse por el borde ni caer en otra celda.
+10. [ ] Mira la onomatopeya ¡FSSS! en single, a 13,1 s.
+    ✅ Sale dentro de la viñeta única, sin cortarse por el borde.
+11. [ ] Mira el aparcado del Quetzalcóatl, hacia los 14,96 s, tanto en el reel como en el cómic.
+    ✅ No se ve: sale de cuadro o queda tapado. Si se ve la maniobra, hay que mover ese `move` en `Data/Cinematics` o acortarlo.
+12. [ ] En el cómic, mira la narración con el nombre de cada montura, el cartel, el logo y el fundido.
+    ✅ Cada narración nombra su montura, sale el cartel «Elige tu montura» con el logo y el final cae a fundido.
+13. [ ] Con el idioma en inglés, mira las onomatopeyas del cómic y el cartel.
+    ✅ Salen traducidas (SPIT!, GRRR!, HISSS! y FIUU!) y el cartel sale como «Elige tu montura» en inglés.
+14. [ ] Deja acabar el reel y el cómic. Después repite uno de los dos y sáltalo a mitad.
+    ✅ Al acabar o al saltar, el jugador vuelve a controlar a su personaje, sin capas de cómic, viñetas ni `ViewportFrame` en pantalla.
+15. [ ] Frases nuevas: ¡PTUI!, ¡GRRR! y ¡FSSS!. Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`.
+    ✅ El CSV lleva solo esas 3 frases con su inglés. Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
