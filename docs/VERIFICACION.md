@@ -6651,6 +6651,52 @@ Dos versiones de 15 s de la cinemática de las monturas, derivadas de `Mounts` (
 15. [ ] Frases nuevas: ¡PTUI!, ¡GRRR! y ¡FSSS!. Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`.
     ✅ El CSV lleva solo esas 3 frases con su inglés. Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
 
+## 175. Fase 25 G9a: cinemática «Ballgame», el juego de pelota en Dunas (07-11-2026)
+
+Escena `Ballgame` (~20 s) en `Data/Cinematics`, con su versión `ballgameScene("full")`. Dunas carga ahora el motor de cinemáticas (`CinematicController`) y tiene `BallgameCineController`: se activa con el atributo `BallgameCine`, fija la hora en 17,5 solo en el cliente, oculta la pelota real con `BallController.setHiddenByScene`, ancla al personaje, lo lleva a la cancha y lo devuelve al acabar. `Shared/Cinematics/BallActor` mueve la pelota por el evento `ballPath` y `animSpeed`; `Actors` tiene `weapon=false` y `ballGear`. La orden «🎬 Juego de pelota (cinemática)» (`CineBallgame` en `ArenaDebugService`) pone el modo Ballgame y el formato 3 de la cancha. Comprobado en Edit: la escena se construye sin avisos (el tiro da `ringRim` sin `ringPass`, sale a ~11,4 s y toca el aro a ~13,5 s) y los planos se encuadraron con maniquíes (el avatar se sustituyó por un maniquí Jaguar). El adelanto del golpe `BALLGAME_HIT_LEAD` = 0,15 s está sin afinar. Sin probar lo de abajo. Reel y cómic de esta escena son G9b y tienen su propia sección cuando se hagan; no están aquí.
+
+### 175.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Pulsa «🎬 Juego de pelota (cinemática)» en el panel de pruebas de Dunas y mira la escena entera de ~20 s con el avatar real.
+   ✅ Arranca sin pantalla negra larga y no sale ningún aviso en la Salida.
+2. [ ] Graba el vídeo real de la escena y revisa el tiro.
+   ✅ La pelota sale de la mano cuando el brazo termina el gesto (~11,4 s) y toca el aro en el corte de ~13,5 s. Si va pronto o tarde, anota el desfase en esta sección para afinar `BALLGAME_HIT_LEAD`.
+3. [ ] Mira el lanzamiento con las animaciones BallHip, BallKnee y BallElbow, de frente y de lado con buena luz.
+   ✅ Cadera, rodilla y codo siguen el gesto sin giros bruscos ni huecos; la pelota no aparece en la mano antes del gesto.
+4. [ ] Mira el personaje durante la escena: se lleva a la cancha y queda anclado.
+   ✅ No puede andar mientras dura la escena, y al acabar vuelve a su sitio con el control devuelto.
+5. [ ] Mira la pelota real del juego durante la escena y al acabar.
+   ✅ No se ve durante la escena (solo se ve la de la cinemática) y reaparece al acabar, en su sitio.
+6. [ ] Cambia la hora del ciclo de día de Dunas (o deja la que tenga) y lanza la escena.
+   ✅ La luz se queda en la de las 17,5 mientras dura la escena, sin seguir el ciclo de día.
+7. [ ] Repite con un personaje R6 (cambia el tipo de cuerpo del personaje de prueba).
+   ✅ La escena acaba sin errores en la Salida. Si el tiro o las animaciones no se ven igual que con R15, anótalo en esta sección.
+8. [ ] Pulsa Saltar a mitad de la escena y mira el personaje y la pelota real.
+   ✅ La escena se corta, el personaje vuelve a controlarse (no queda anclado) y la pelota real vuelve a verse en su sitio.
+9. [ ] Mira de cerca al avatar durante la escena: ahora es una copia (`Cinematic_Avatar`, `copy = true` en `Actors`) y el personaje real se esconde solo en tu cliente. Medido en Play: la copia sigue la ruta del plan y las 158 piezas del real vuelven a verse al acabar.
+   ✅ El avatar del plano lleva tu aspecto y el equipo del Jaguar (yugo, rodilleras, tocado) de principio a fin, y el real no se ve nunca en el cuadro.
+10. [ ] Lanza la orden justo tras abrir Play (primera ejecución) y mira si se ve el personaje real.
+   ✅ No aparece un segundo avatar. (En Play el probador vio que en la primera ejecución el servidor devolvió al real a la sala de espera (0, 34, -71) a los 0,3 s y las piezas del real volvieron a verse; está fuera del cuadro, pero si se asoma en algún plano, hay que volver a esconderlo cada fotograma.)
+11. [ ] Tras Saltar, mira dónde acaba el personaje real.
+   ✅ Vuelve a un sitio jugable. (Medido: tras Saltar acaba en (0, 20, 0) del mundo, la sala de espera; sin verificar si es lo esperado.)
+
+### 175.2 Con dos jugadores (*Test → Clientes y servidores*, 2 clientes, en Dunas)
+
+1. [ ] Con el otro jugador ya en la partida, lanza la orden «🎬 Juego de pelota (cinemática)» desde el panel de pruebas.
+   ✅ El otro jugador no queda anclado ni se le lleva a la cancha. Anota en esta sección si la partida entera pasa a formato 3 o solo lo ve quien lanzó la orden.
+
+### 175.3 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Lanza la escena en el teléfono y mira el tiro y los planos en vertical.
+   ✅ Se ve entera en la pantalla del teléfono, sin cortes del cuadro, y se entiende el tiro.
+2. [ ] Busca el botón Saltar en el teléfono.
+   ✅ Está a mano, no tapa la pelota ni el aro, y al pulsarlo la escena se salta.
+
+### 175.4 En el juego publicado (con 2 servidores abiertos o un amigo en otro servidor)
+
+1. [ ] Lanza la orden «🎬 Juego de pelota (cinemática)» en el juego publicado y espera a que el servidor reconstruya la cancha de formato 3.
+   ✅ La cancha aparece y la escena no se cancela por la espera de 8 s. Si tarda más de 8 s, anota cuánto tarda y si la escena llega a arrancar.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -907,4 +907,8 @@ return {
 	["¡ZAS!"] = "SWIPE!",
 	["¡PUF!"] = "POOF!",
 	["¡FIUU!"] = "WHOOSH!",
+	-- Cinemática del juego de pelota (Ballgame, G9a). «Juego de pelota» ya está en Lobby.
+	["Sin manos. Solo cadera, rodilla y codo."] = "No hands. Only hip, knee and elbow.",
+	["Un aro. Un tiro."] = "One ring. One shot.",
+	["3 contra 3 en la Isla de dunas"] = "3 vs 3 on Dune Island",
 }

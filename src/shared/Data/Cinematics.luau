@@ -28,11 +28,17 @@
 --   Battle_Pack, Battle_Pack_Comic, Battle_Pack_Reel ... 18,8
 --   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
 --   Pets, Pets_Reel y Pets_Comic ......... 17,5  (atardecer dorado; sin luces propias: las mascotas se ven con el sol bajo)
+--   Mounts, Mounts_Reel y Mounts_Comic ... 17,5  (atardecer dorado, como Pets)
+--   Ballgame ............................. 17,5  (Dunas no tiene ciclo de día: BallgameCineController pone Lighting.ClockTime)
 
+local BallHit = require(script.Parent.Parent.BallHit)
+local BallSim = require(script.Parent.Parent.BallSim)
+local BallgameData = require(script.Parent.Ballgame)
 local Bosses = require(script.Parent.Bosses)
 local CameraPath = require(script.Parent.Parent.Cinematics.CameraPath)
 local ComicPages = require(script.Parent.ComicPages)
 local Config = require(script.Parent.Parent.Config)
+local CourtGeometry = require(script.Parent.Parent.CourtGeometry)
 local ShipwreckSet = require(script.Parent.Parent.Cinematics.ShipwreckSet)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
@@ -4199,7 +4205,574 @@ local function mountsScene(variant: string): Scene
 	}
 end
 
+-- ============================================================================ Juego de pelota (Fase 25, G9a)
+-- «Ballgame»: el 3 contra 3 de la Isla de dunas (cancha de formato 3, hora 17,5, solo para grabar; la lanza la orden
+-- «🎬 Juego de pelota» del panel de Dunas con el cliente BallgameCineController, anclada al centro de la cancha: todas las
+-- posiciones son LOCALES de la cancha, el origen es el centro del pasillo a nivel del suelo y los Jaguar defienden X < 0).
+--   0 a 4        montaje de 5 cortes: el yugo de un Jaguar, el aro desde arriba, la rodillera, el tocado de plumas de un
+--                Quetzal y el avatar visto por detrás
+--   4 a ~11      un saque que bota una vez y cuatro pases de Jaguar (cadera, rodilla, codo y cadera) entre dos maniquíes y
+--                el avatar, mientras los tres Quetzal corren a cortar; planos laterales que siguen la pelota
+--   ~11 a 17     el avatar tira de cadera al aro y la escena pasa a cámara lenta ×0,3: la pelota da en el borde del aro y
+--                sale (ringRim, nunca ringPass)
+--   17 a 20      plano medio del avatar mirando a los lados (LookAround), un Quetzal recoge la pelota, cartel, logo y fundido
+-- Nada de la pelota se improvisa: las trayectorias salen de la misma simulación del juego (BallSim) y de las mismas
+-- velocidades de golpe (BallHit.velocity), así que lo que se ve es lo que haría la pelota de verdad. Cada pase empieza
+-- donde acabó el anterior, y los pies de quien lo recibe se ponen donde cae la pelota a la altura de su zona de golpe
+-- (Data/Ballgame.Hit). El tiro final se busca con una bisección (como ArenaDebugService.shootAtRing) para que el centro
+-- cruce el plano del aro BALLGAME_RIM studs sobre su centro: roza la piedra. Los tiempos de los cortes y de los golpes
+-- salen de esas trayectorias (el tiro sale cuando acaba el último pase): son de diseño, a ajustar en Studio.
+-- La cámara lenta no es del Sequencer: las muestras del tiro se reparten en más segundos de escena (evento ballPath con
+-- times) y un evento animSpeed baja la velocidad de las pistas de los maniquíes (Cinematics/BallActor).
+local BALLGAME_SECONDS = 20
+local BALLGAME_HOUR = 17.5 -- atardecer dorado, como Pets y Mounts
+local BALLGAME_FORMAT = 3 -- la cancha de 3 contra 3
+local BALLGAME_LAYOUT = CourtGeometry.forFormat(BALLGAME_FORMAT)
+local BALLGAME_SERVE_AT = 4 -- el saque sale al acabar el montaje
+local BALLGAME_SLOW = 0.3 -- velocidad de la cámara lenta del tiro
+local BALLGAME_SLOW_END = 17 -- cuándo vuelve la velocidad normal
+local BALLGAME_AFTER_SIM = 2 -- segundos de simulación tras la cámara lenta (la pelota sigue rodando hasta pararse)
+local BALLGAME_RING_SIDE = -1 -- el tiro va al aro del lado de z negativo
+local BALLGAME_RIM = 3.4 -- studs sobre el centro del aro por donde cruza la pelota (el hueco mide 3,2: roza la piedra)
+local BALLGAME_BOOST_RANGE = { 0.2, 1.3 } -- límites de la bisección del multiplicador de rapidez del tiro
+local BALLGAME_BEHIND = 1.4 -- studs de la pelota a la raíz de quien la golpea, contra su dirección de salida
+local BALLGAME_RUN_SPEED = 20 -- studs/s al correr a un contacto
+local BALLGAME_HIT_LEAD = 0.15 -- la animación de golpe sale este tiempo antes de que salga la pelota
+local BALLGAME_PICKUP_MAX = 19 -- el Quetzal llega a la pelota como tarde a este segundo
+-- Altura del centro de la pelota al contacto (raíz del maniquí a ~3 studs del suelo + la mitad de cada zona de Hit.Zone*).
+local BALLGAME_RECEIVE_Y: { [string]: number } = { Hip = 3.4, Knee = 1.6, Elbow = 4.7 }
+local BALLGAME_HIT_ANIMATION: { [string]: string } = { Hip = "BallHip", Knee = "BallKnee", Elbow = "BallElbow" }
+-- Saque: parte del centro, a la altura del saque (Ballgame.Serve) y cae al Jaguar A tras un bote.
+local BALLGAME_SERVE_FROM = Vector3.new(0, 10, 0)
+local BALLGAME_SERVE_VELOCITY = Vector3.new(-13.3, 16, 2.2)
+-- Los cuatro pases: quién golpea, con qué zona y calidad, hacia dónde (grados desde +X hacia +Z), cuántos botes de suelo
+-- da antes de llegar y a qué altura lo recibe el siguiente. El quinto golpe es el tiro del avatar.
+local BALLGAME_LEGS = {
+	{ hitter = "jaguarA", zone = "Hip", quality = "Weak", heading = 0, bounces = 0, receive = "Elbow" },
+	{ hitter = "jaguarB", zone = "Elbow", quality = "Weak", heading = 200, bounces = 1, receive = "Knee" },
+	{ hitter = "avatar", zone = "Knee", quality = "Good", heading = 50, bounces = 0, receive = "Hip" },
+	{ hitter = "jaguarA", zone = "Hip", quality = "Weak", heading = 280, bounces = 0, receive = "Hip" },
+}
+-- Dónde está cada uno al empezar (el montaje los enseña quietos): pies sobre el suelo (y = 0) y yaw (-90 mira a +X).
+local BALLGAME_START = {
+	jaguarA = Vector3.new(-33, 0, 9),
+	jaguarB = Vector3.new(-15, 0, 11),
+	avatar = Vector3.new(-22, 0, -1),
+	quetzalA = Vector3.new(12, 0, 8),
+	quetzalB = Vector3.new(18, 0, -2),
+	quetzalC = Vector3.new(11, 0, -10),
+}
+local BALLGAME_QUETZAL_X = { quetzalA = 6.5, quetzalB = 11, quetzalC = 15.5 } -- por dónde cortan
+local BALLGAME_QUETZAL_Z = { quetzalA = 0, quetzalB = 8, quetzalC = -8 } -- su desvío lateral respecto a la pelota
+local BALLGAME_TITLE = Strings.later("Juego de pelota")
+
+type BallHitPlan = { hitter: string, zone: string, t: number, ball: Vector3, dir: Vector3 }
+type BallPath = { samples: { Vector3 }, times: { number }, team: string }
+type BallPlan = {
+	hits: { BallHitPlan }, -- cinco: los cuatro pases y el tiro (el último)
+	paths: { BallPath },
+	keyTimes: { number }, -- la pelota en cada instante, para las cámaras (ballgameBallAt)
+	keyPositions: { Vector3 },
+	shotAt: number, -- segundo del tiro (= fin del último pase)
+	rimAt: number?, -- segundo en que la pelota toca el aro
+	endAt: number, -- segundo en que la pelota se para (o acaba la simulación)
+	endPos: Vector3,
+}
+type BallFlight = { samples: { Vector3 }, events: { { t: number, kind: string, surface: string? } }, reached: boolean }
+
+-- Vuela la pelota con BallSim desde start hasta que stop devuelva true (o se pare, salga o pase maxSeconds). stop recibe
+-- el estado, los segundos de vuelo, la altura de antes del paso y los botes en el suelo.
+local function ballgameFly(
+	start: Vector3,
+	velocity: Vector3,
+	maxSeconds: number,
+	stop: ((state: BallSim.State, elapsed: number, previousY: number, bounces: number) -> boolean)?
+): BallFlight
+	local state = BallSim.new(start, velocity)
+	local samples = { start }
+	local events = {}
+	local bounces = 0
+	local reached = false
+	for index = 1, math.floor(maxSeconds / BallSim.STEP) do
+		local previousY = state.pos.Y
+		local elapsed = index * BallSim.STEP
+		for _, event in BallSim.step(state, BALLGAME_LAYOUT, BallSim.STEP) do
+			table.insert(events, { t = elapsed, kind = event.kind, surface = event.surface })
+			if event.kind == "bounce" and event.surface == "Floor" then
+				bounces += 1
+			end
+		end
+		table.insert(samples, state.pos)
+		if stop and stop(state, elapsed, previousY, bounces) then
+			reached = true
+			break
+		end
+		if state.dead or state.resting then
+			break
+		end
+	end
+	return { samples = samples, events = events, reached = reached }
+end
+
+-- La pelota llega a la altura de contacto de una zona (bajando, tras `bounces` botes en el suelo).
+local function ballgameReceive(zone: string, bounces: number)
+	local height = BALLGAME_RECEIVE_Y[zone]
+	return function(state: BallSim.State, elapsed: number, previousY: number, floorBounces: number): boolean
+		return floorBounces >= bounces
+			and state.vel.Y < 0
+			and previousY > height
+			and state.pos.Y <= height
+			and elapsed > 0.3
+	end
+end
+
+-- Altura del centro de la pelota al recorrer `distance` studs en horizontal con la velocidad dada (gravedad y arrastre de
+-- BallSim, sin choques): sirve para la bisección del tiro.
+local function ballgameHeightAfter(start: Vector3, velocity: Vector3, distance: number): number
+	local step = 1 / 240
+	local damp = 1 - BallgameData.AirDrag * step
+	local travelled, y, horizontal, vertical = 0, start.Y, Vector2.new(velocity.X, velocity.Z).Magnitude, velocity.Y
+	for _ = 1, 2400 do
+		vertical = (vertical - BallgameData.Gravity * step) * damp
+		horizontal *= damp
+		travelled += horizontal * step
+		y += vertical * step
+		if travelled >= distance then
+			return y
+		end
+	end
+	return -math.huge
+end
+
+-- Todo lo que sale de la simulación: golpes, trayectorias con su tiempo de escena y qué pasa con el aro.
+local function ballgamePlan(): BallPlan
+	local ring = CourtGeometry.ring
+	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
+	local hits: { BallHitPlan } = {}
+	local paths: { BallPath } = {}
+	local keyTimes: { number } = {}
+	local keyPositions: { Vector3 } = {}
+
+	-- Anota una trayectoria que empieza en t0 con el tiempo de escena de cada muestra (timeOf); devuelve el del final.
+	local function addPath(samples: { Vector3 }, t0: number, timeOf: (index: number) -> number): number
+		local times = {}
+		for index = 1, #samples do
+			local t = t0 + timeOf(index)
+			times[index] = t
+			table.insert(keyTimes, t)
+			table.insert(keyPositions, samples[index])
+		end
+		table.insert(paths, { samples = samples, times = times, team = "Jaguar" })
+		return times[#times]
+	end
+	local function realTime(index: number): number
+		return (index - 1) * BallSim.STEP
+	end
+
+	-- Saque: baja al Jaguar A tras un bote; el primer golpe es al llegar.
+	local serve = ballgameFly(BALLGAME_SERVE_FROM, BALLGAME_SERVE_VELOCITY, 8, ballgameReceive("Hip", 1))
+	if not serve.reached then
+		warn("Ballgame: el saque no llega a la altura de cadera")
+	end
+	local t = addPath(serve.samples, BALLGAME_SERVE_AT, realTime)
+	local contact = serve.samples[#serve.samples]
+
+	for _, leg in BALLGAME_LEGS do
+		local radians = math.rad(leg.heading)
+		local dir = Vector3.new(math.cos(radians), 0, math.sin(radians))
+		table.insert(hits, { hitter = leg.hitter, zone = leg.zone, t = t, ball = contact, dir = dir })
+		local flight = ballgameFly(
+			contact,
+			BallHit.velocity(leg.zone, leg.quality, dir, 1),
+			8,
+			ballgameReceive(leg.receive, leg.bounces)
+		)
+		if not flight.reached then
+			warn(`Ballgame: el pase de {leg.hitter} no llega a la altura de {leg.receive}`)
+		end
+		t = addPath(flight.samples, t, realTime)
+		contact = flight.samples[#flight.samples]
+	end
+
+	-- El tiro del avatar: de cadera, hacia el centro del aro, con la rapidez que da (bisección) la altura pedida.
+	local shotAt = t
+	assert(shotAt < BALLGAME_SLOW_END - 2.5, `Ballgame: el tiro sale demasiado tarde ({shotAt}); acorta los pases`)
+	local toRing = Vector3.new(ringPos.X - contact.X, 0, ringPos.Z - contact.Z)
+	local dir = toRing.Unit
+	table.insert(hits, { hitter = "avatar", zone = "Hip", t = shotAt, ball = contact, dir = dir })
+	local aimY = ring.centerY + BALLGAME_RIM
+	local function shotVelocity(boost: number): Vector3
+		return BallHit.velocity("Hip", "Perfect", dir, 1, boost)
+	end
+	local low, high = BALLGAME_BOOST_RANGE[1], BALLGAME_BOOST_RANGE[2]
+	if ballgameHeightAfter(contact, shotVelocity(high), toRing.Magnitude) < aimY then
+		warn("Ballgame: el tiro no llega a la altura del aro ni con la rapidez máxima")
+	end
+	for _ = 1, 40 do
+		local mid = (low + high) / 2
+		if ballgameHeightAfter(contact, shotVelocity(mid), toRing.Magnitude) < aimY then
+			low = mid
+		else
+			high = mid
+		end
+	end
+	local slowSim = (BALLGAME_SLOW_END - shotAt) * BALLGAME_SLOW -- segundos de simulación que caben en la cámara lenta
+	local shotFlight = ballgameFly(contact, shotVelocity((low + high) / 2), slowSim + BALLGAME_AFTER_SIM, nil)
+	local function shotTime(simSeconds: number): number
+		if simSeconds <= slowSim then
+			return shotAt + simSeconds / BALLGAME_SLOW
+		end
+		return BALLGAME_SLOW_END + (simSeconds - slowSim)
+	end
+	local endAt = addPath(shotFlight.samples, 0, function(index)
+		return shotTime((index - 1) * BallSim.STEP)
+	end)
+	-- Comprobación: debe haber roce con el aro y ningún pase por él.
+	local rimAt: number? = nil
+	for _, event in shotFlight.events do
+		if event.kind == "ringPass" then
+			warn("Ballgame: el tiro final PASA por el aro (ringPass); cambia BALLGAME_RIM")
+		elseif event.kind == "ringRim" and rimAt == nil then
+			rimAt = shotTime(event.t)
+		end
+	end
+	if rimAt == nil then
+		warn("Ballgame: el tiro final no toca el aro (sin ringRim); cambia BALLGAME_RIM")
+	end
+	return {
+		hits = hits,
+		paths = paths,
+		keyTimes = keyTimes,
+		keyPositions = keyPositions,
+		shotAt = shotAt,
+		rimAt = rimAt,
+		endAt = endAt,
+		endPos = shotFlight.samples[#shotFlight.samples],
+	}
+end
+
+-- Dónde está la pelota en el segundo t (lineal entre muestras; fuera del rango, la primera o la última).
+local function ballgameBallAt(plan: BallPlan, t: number): Vector3
+	local times, positions = plan.keyTimes, plan.keyPositions
+	local count = #times
+	if t <= times[1] then
+		return positions[1]
+	end
+	if t >= times[count] then
+		return positions[count]
+	end
+	local lo, hi = 1, count
+	while hi - lo > 1 do
+		local mid = (lo + hi) // 2
+		if times[mid] <= t then
+			lo = mid
+		else
+			hi = mid
+		end
+	end
+	local span = times[hi] - times[lo]
+	return positions[lo]:Lerp(positions[hi], if span > 0 then (t - times[lo]) / span else 1)
+end
+
+-- Un plano que se muestrea cada 0,3 s: `at(t)` da la posición, la mirada y el fov de la cámara en ese segundo. Se repiten el
+-- primer y el último punto 1 ms después para que la spline no curve el plano con los vecinos del corte.
+local function ballgameFollow(
+	camera: { CameraPoint },
+	t0: number,
+	t1: number,
+	at: (t: number) -> (Vector3, Vector3, number)
+)
+	local steps = math.max(1, math.ceil((t1 - t0) / 0.3))
+	for index = 0, steps do
+		local t = t0 + (t1 - t0) * index / steps
+		local pos, look, fov = at(t)
+		table.insert(camera, { t = t, pos = pos, look = look, fov = fov })
+		if index == 0 or index == steps then
+			table.insert(camera, { t = t + 0.001, pos = pos, look = look, fov = fov })
+		end
+	end
+end
+
+-- Mirada que sigue a la pelota sin dar saltos con cada bote: la altura se queda a medio camino de una fija.
+local function ballgameLook(ball: Vector3): Vector3
+	return Vector3.new(ball.X, 3 + (ball.Y - 3) * 0.45, ball.Z)
+end
+
+-- La cámara: montaje de 5 cortes (0 a 3,95), tres planos laterales de los pases, el tiro (el avatar y después el aro) y el
+-- plano medio final. Posiciones de diseño: a encuadrar en Studio.
+local function ballgameCamera(plan: BallPlan): { CameraPoint }
+	local ring = CourtGeometry.ring
+	local ringPos = Vector3.new(ring.centerX, ring.centerY, BALLGAME_RING_SIDE * ring.centerZ)
+	local start = BALLGAME_START
+	local yoke = start.jaguarA
+	local knee = start.jaguarB
+	local crest = start.quetzalA
+	local camera = (
+		CameraPath.montage({
+			-- 1. El yugo de piedra del Jaguar A, de frente (mira a +X) y un poco de lado.
+			still(
+				yoke + Vector3.new(6.2, 3.6, 2.8),
+				yoke + Vector3.new(0, 2.8, 0),
+				0.7,
+				42,
+				yoke + Vector3.new(5.6, 3.5, 2.5)
+			),
+			-- 2. El aro del lado del tiro desde arriba.
+			CameraPath.zenith(ringPos, 12, 0, 0.8, 60),
+			-- 3. La rodillera del Jaguar B.
+			still(
+				knee + Vector3.new(5, 2.8, 2.4),
+				knee + Vector3.new(0, 1.6, 0),
+				0.7,
+				40,
+				knee + Vector3.new(4.5, 2.7, 2.1)
+			),
+			-- 4. El tocado de plumas del Quetzal A (mira a -X), de frente.
+			still(
+				crest + Vector3.new(-3.2, 5.9, 0.9),
+				crest + Vector3.new(0, 5.6, 0),
+				0.75,
+				38,
+				crest + Vector3.new(-2.8, 5.8, 0.7)
+			),
+			-- 5. El avatar visto por detrás, como lo ve el jugador.
+			CameraPath.behind(start.avatar + Vector3.new(0, 3, 0), -90, 7.5, 2.6, 0, 0.8, 52),
+		}) :: any
+	) :: { CameraPoint }
+
+	-- Los pases: tres planos laterales fijos (por el lado de +Z, el de -Z y otra vez +Z) que siguen la pelota.
+	local hits = plan.hits
+	local function lateral(camPos: Vector3, fov: number): (number) -> (Vector3, Vector3, number)
+		return function(t)
+			return camPos, ballgameLook(ballgameBallAt(plan, t)), fov
+		end
+	end
+	-- Por encima del banco y del talud (a 8 studs la pared roja del lado opuesto cortaba la imagen): y = 14, mirando abajo.
+	ballgameFollow(camera, BALLGAME_SERVE_AT, hits[2].t - 0.05, lateral(Vector3.new(-21, 11, 20), 54))
+	ballgameFollow(camera, hits[2].t, hits[4].t - 0.05, lateral(Vector3.new(-21, 11, -20), 54))
+	ballgameFollow(camera, hits[4].t, plan.shotAt - 0.05, lateral(Vector3.new(-24, 11, 20), 52))
+
+	-- El tiro. Primero el avatar de lado, a la altura de la cadera, con la pelota saliendo hacia el aro.
+	local shooter = hits[5]
+	local feet = Vector3.new(
+		shooter.ball.X - shooter.dir.X * BALLGAME_BEHIND,
+		0,
+		shooter.ball.Z - shooter.dir.Z * BALLGAME_BEHIND
+	)
+	local side = Vector3.new(-shooter.dir.Z, 0, shooter.dir.X)
+	-- El plano del avatar acaba un segundo antes del toque del aro, para que el aro se vea al llegar la pelota.
+	local closeEnd = math.max(plan.shotAt + 0.8, (plan.rimAt or plan.shotAt + 3.2) - 1)
+	pushShot(
+		camera,
+		plan.shotAt,
+		closeEnd,
+		shot(
+			feet + side * 11 + shooter.dir * 0.5 + Vector3.new(0, 3.6, 0),
+			feet + shooter.dir * 0.8 + Vector3.new(0, 3, 0),
+			46
+		),
+		shot(
+			feet + side * 10 + shooter.dir * 2.5 + Vector3.new(0, 3.6, 0),
+			feet + shooter.dir * 3.5 + Vector3.new(0, 3.4, 0),
+			40
+		)
+	)
+	-- Después, lateral al aro (el plano de BallReplayController): mira entre el aro y la pelota y se acerca; fov 55 a 40.
+	local ringStart = closeEnd + 0.05
+	local ringEnd = BALLGAME_SLOW_END - 0.03
+	ballgameFollow(camera, ringStart, ringEnd, function(t)
+		local ball = ballgameBallAt(plan, t)
+		local progress = math.clamp((t - ringStart) / (ringEnd - ringStart), 0, 1)
+		local far = math.clamp(math.abs(ball.X - ringPos.X) / 50, 0, 1)
+		local focus = ringPos:Lerp(ball, 0.5 * far)
+		local lateralDistance = 24 + 16 * far - 8 * progress
+		local pos = focus + Vector3.new(-8, -3, -BALLGAME_RING_SIDE * lateralDistance)
+		return pos, focus, 55 - 15 * progress
+	end)
+
+	-- Final: plano medio del avatar, de frente, con un leve acercamiento.
+	local face = shooter.dir
+	pushShot(
+		camera,
+		BALLGAME_SLOW_END + 0.05,
+		BALLGAME_SECONDS,
+		-- El avatar queda a un lado del cuadro: el cartel «Juego de pelota» sale en el centro y no debe taparlo.
+		shot(feet + face * 14 + Vector3.new(0, 4.6, 0), feet + side * 4.6 + Vector3.new(0, 3.3, 0), 38),
+		shot(feet + face * 12 + Vector3.new(0, 4.4, 0), feet + side * 4 + Vector3.new(0, 3.3, 0), 34)
+	)
+	return camera
+end
+
+-- Un maniquí del partido: sin arma y con el equipo de su bando.
+local function ballgameDummy(team: string, pos: Vector3, yaw: number, skin: Color3): { [string]: any }
+	return { kind = "dummy", weapon = false, ballGear = team, pos = pos, yaw = yaw, skinColor = skin }
+end
+
+-- `variant`: por ahora solo "full" (20 s, con bandas). Reel y cómic (G9b) irán aquí, con los mismos eventos escalados.
+local function ballgameScene(variant: string): Scene
+	assert(variant == "full", `Ballgame: la variante {variant} aún no existe`)
+	local plan = ballgamePlan()
+	local events: EventList = {}
+	local function add(event: { t: number, kind: string, [string]: any })
+		table.insert(events, event)
+	end
+
+	add({ t = 0, kind = "letterbox" })
+	-- La pelota: una trayectoria por pase (la última, el tiro con la cámara lenta) y la velocidad de las animaciones.
+	for _, path in plan.paths do
+		add({ t = path.times[1], kind = "ballPath", samples = path.samples, times = path.times, team = path.team })
+	end
+	add({ t = plan.shotAt, kind = "animSpeed", speed = BALLGAME_SLOW })
+	add({ t = BALLGAME_SLOW_END, kind = "animSpeed", speed = 1 })
+	if plan.rimAt then
+		add({ t = plan.rimAt, kind = "shake", amp = 0.15, seconds = 0.5 })
+	end
+
+	-- Los tres Jaguar: cada uno corre al contacto de cada uno de sus golpes, se gira hacia donde sale la pelota y golpea
+	-- con la animación de su zona. Quien golpea tiene la pelota delante: su raíz queda BALLGAME_BEHIND detrás de ella.
+	local byActor: { [string]: { BallHitPlan } } = {}
+	for _, hit in plan.hits do
+		byActor[hit.hitter] = byActor[hit.hitter] or {}
+		table.insert(byActor[hit.hitter], hit)
+	end
+	local function runTo(t: number, actor: string, from: Vector3, to: Vector3, seconds: number)
+		add({ t = t, kind = "anim", actor = actor, action = "Run", seconds = seconds })
+		add({
+			t = t,
+			kind = "move",
+			actor = actor,
+			pos = to,
+			yaw = yawBetween(from, to),
+			seconds = seconds,
+			easing = Enum.EasingStyle.Linear,
+		})
+	end
+	for actor, list in byActor do
+		local pos = BALLGAME_START[actor]
+		local freeAt = BALLGAME_SERVE_AT - 0.1 -- el montaje los enseña quietos
+		for _, hit in list do
+			local feet =
+				Vector3.new(hit.ball.X - hit.dir.X * BALLGAME_BEHIND, 0, hit.ball.Z - hit.dir.Z * BALLGAME_BEHIND)
+			local arrive = hit.t - BALLGAME_HIT_LEAD
+			local seconds = math.min((feet - pos).Magnitude / BALLGAME_RUN_SPEED, arrive - freeAt)
+			if seconds >= 0.15 then
+				runTo(arrive - seconds, actor, pos, feet, seconds)
+			else
+				add({ t = freeAt, kind = "move", actor = actor, pos = feet, seconds = 0 })
+			end
+			-- Se gira hacia la salida de la pelota y golpea (el tiro, a cámara lenta, dura más).
+			add({
+				t = arrive,
+				kind = "move",
+				actor = actor,
+				pos = feet,
+				yaw = yawBetween(feet, feet + hit.dir),
+				seconds = 0.1,
+			})
+			add({
+				t = arrive,
+				kind = "anim",
+				actor = actor,
+				action = BALLGAME_HIT_ANIMATION[hit.zone],
+				seconds = if hit == plan.hits[5] then 3.5 else 1,
+			})
+			pos = feet
+			freeAt = hit.t + 0.4
+		end
+	end
+
+	-- Los tres Quetzal cortan: tras cada golpe corren a ponerse entre la pelota y su aro (x fija, z según la pelota).
+	local lastQuetzal: { [string]: Vector3 } = {}
+	for actor, x in BALLGAME_QUETZAL_X do
+		local pos = BALLGAME_START[actor]
+		for index, hit in plan.hits do
+			local ws = if index == 1 then BALLGAME_SERVE_AT + 0.1 else plan.hits[index - 1].t + 0.1
+			local we = hit.t - BALLGAME_HIT_LEAD
+			local target = Vector3.new(x, 0, math.clamp(hit.ball.Z + BALLGAME_QUETZAL_Z[actor], -12, 12))
+			local seconds = math.min(1.2, (we - ws) * 0.9)
+			if seconds >= 0.15 and (target - pos).Magnitude > 0.5 then
+				runTo(ws, actor, pos, target, seconds)
+				pos = target
+			end
+		end
+		lastQuetzal[actor] = pos
+	end
+
+	-- Al final el Quetzal B recoge la pelota donde se queda: corre, se agacha y se la lleva a la mano.
+	local endPos = plan.endPos
+	local restZ = math.clamp(endPos.Z, -CourtGeometry.TALUD_OUTER_Z + 2, CourtGeometry.TALUD_OUTER_Z - 2)
+	local pickup = Vector3.new(endPos.X, CourtGeometry.surfaceY(restZ) or 0, restZ)
+	local from = lastQuetzal.quetzalB
+	local runAt = BALLGAME_SLOW_END + 0.05
+	local arrive =
+		math.clamp(math.max(runAt + (pickup - from).Magnitude / 25, plan.endAt), runAt + 0.3, BALLGAME_PICKUP_MAX)
+	runTo(runAt, "quetzalB", from, pickup, arrive - runAt)
+	add({ t = arrive, kind = "anim", actor = "quetzalB", action = "Place", seconds = 1.2 })
+	add({
+		t = arrive + 0.3,
+		kind = "ballPath",
+		samples = { endPos, pickup + Vector3.new(0, 2.4, 0) },
+		times = { arrive + 0.3, arrive + 0.7 },
+		team = "Quetzal",
+	})
+
+	-- El avatar se queda mirando a los lados.
+	add({ t = BALLGAME_SLOW_END + 0.1, kind = "anim", actor = "avatar", action = "LookAround", seconds = 2.6 })
+
+	-- Subtítulos, cartel final, logo y fundido (los mismos tiempos relativos que Pets y Mounts).
+	add({
+		t = BALLGAME_SERVE_AT + 0.6,
+		kind = "caption",
+		text = Strings.later("Sin manos. Solo cadera, rodilla y codo."),
+		seconds = 2.4,
+	})
+	add({ t = plan.shotAt - 2.5, kind = "caption", text = Strings.later("Un aro. Un tiro."), seconds = 1.6 })
+	add({
+		t = 17.5,
+		kind = "title",
+		text = BALLGAME_TITLE,
+		sub = Strings.later("3 contra 3 en la Isla de dunas"),
+		seconds = 1.4,
+	})
+	add({
+		t = 18.9,
+		kind = "logo",
+		text = Strings.later("Primal Banana Islands"),
+		sub = Strings.later("Monkey Survival"),
+		seconds = 0.9,
+	})
+	add({ t = 19.3, kind = "fade", seconds = 0.7, toBlack = true })
+
+	local start = BALLGAME_START
+	return {
+		duration = BALLGAME_SECONDS,
+		audience = "Self",
+		freeze = true,
+		skippable = true,
+		hour = BALLGAME_HOUR,
+		actors = {
+			jaguarA = ballgameDummy("Jaguar", start.jaguarA, -90, Color3.fromRGB(255, 204, 153)),
+			jaguarB = ballgameDummy("Jaguar", start.jaguarB, -90, Color3.fromRGB(198, 134, 92)),
+			avatar = { kind = "localPlayer", copy = true, ballGear = "Jaguar", pos = start.avatar, yaw = -90 },
+			quetzalA = ballgameDummy("Quetzal", start.quetzalA, 90, Color3.fromRGB(141, 85, 58)),
+			quetzalB = ballgameDummy("Quetzal", start.quetzalB, 90, Color3.fromRGB(233, 183, 140)),
+			quetzalC = ballgameDummy("Quetzal", start.quetzalC, 90, Color3.fromRGB(198, 134, 92)),
+		},
+		camera = ballgameCamera(plan),
+		events = events,
+	}
+end
+
+-- Si la simulación falla no se pierde el resto de cinemáticas: la escena queda sin registrar y se avisa.
+local ballgameOk, ballgameBuilt = pcall(ballgameScene, "full")
+if not ballgameOk then
+	warn(`Cinematics: no se pudo construir la escena Ballgame: {ballgameBuilt}`)
+end
+
 local Cinematics: { [string]: Scene } = {
+	-- Juego de pelota (G9a): solo para grabar; la lanza «🎬 Juego de pelota» del panel de Dunas (BallgameCineController).
+	Ballgame = if ballgameOk then ballgameBuilt :: Scene else nil,
+
 	-- Monturas (G8a): solo para grabar; las lanzan «🐎 Monturas», «… reel» y «… cómic» del panel de pruebas.
 	Mounts = mountsScene("full"),
 	Mounts_Reel = mountsScene("reel"),

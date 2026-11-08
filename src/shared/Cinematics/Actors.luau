@@ -2,10 +2,14 @@
 -- Actores de las cinemáticas (Fase 25). Actors.spawn(def, anchor, ctx) crea o encuentra el modelo de un
 -- actor según def.kind:
 --   dummy        rig R15 vestido con el equipo del juego (ArmorModels.wear + WeaponTools.build, como Portada).
---                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap? }
+--                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap?, ballGear? }
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
+--                weapon = false: sin arma (por defecto lleva la de su rol). ballGear = "Jaguar" | "Quetzal": lleva el equipo
+--                del Juego de pelota de ese bando (Shared/BallgameGear). Sin snap, la Y de pos es la del suelo (la cancha de
+--                Dunas son piezas, no Terrain: el suelo está en y = 0 de su anchor).
 --   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca (y se le devuelve su sitio
 --                al acabar). snap = true: la Y de pos y de cada `move` sale de un rayo al Terrain, como en un maniquí.
+--                ballGear: le pone el equipo del Juego de pelota solo en este cliente y se lo quita al acabar.
 --   boss         el modelo del jefe que ya está en el mundo, buscado por su atributo "Boss" (def.id opcional).
 --   prop         lo que devuelva def.build(anchor, ctx) (un Model con lo que haga falta). Puede usar
 --                Cinematics/MountedRider.build(mountId, character?, { pose? }): una montura con su jinete sentado.
@@ -26,7 +30,9 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local ArmorModels = require(script.Parent.Parent.ArmorModels)
+local BallgameGear = require(script.Parent.Parent.BallgameGear)
 local Config = require(script.Parent.Parent.Config)
+local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
 local WeaponTools = require(script.Parent.Parent.WeaponTools)
 
@@ -38,7 +44,9 @@ export type ActorDef = {
 	armor: string?,
 	outfit: string?,
 	grade: number?,
-	weapon: string?,
+	weapon: (string | boolean)?, -- false = sin arma
+	ballGear: string?, -- "Jaguar" | "Quetzal": equipo del Juego de pelota
+	copy: boolean?, -- localPlayer: dibuja una copia del personaje y esconde el real (el servidor no puede moverla)
 	skin: string?,
 	id: string?,
 	pos: Vector3?,
@@ -214,13 +222,25 @@ local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context)
 	if def.armor or def.outfit then
 		ArmorModels.wear(rig, def.armor, role, def.outfit, def.grade or ArmorModels.MAX_GRADE)
 	end
-	local weaponId = def.weapon or WeaponTools.roleWeapon(role, WeaponTools.MAX_LEVEL)
+	local weaponId: string? = nil
+	if def.weapon ~= false then
+		weaponId = if typeof(def.weapon) == "string"
+			then def.weapon
+			else WeaponTools.roleWeapon(role, WeaponTools.MAX_LEVEL)
+	end
 	if weaponId then
 		holdWeapon(rig, weaponId, def.skin)
+	end
+	if def.ballGear then
+		BallgameGear.build(def.ballGear, rig)
 	end
 	local humanoid = rig:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		-- Sin arma nadie le pone el Animator (lo hace la pose del arma): los gestos y la carrera lo necesitan.
+		if not humanoid:FindFirstChildOfClass("Animator") then
+			Instance.new("Animator").Parent = humanoid
+		end
 	end
 	local ground = def.pos or Vector3.zero
 	if def.snap then
@@ -254,6 +274,54 @@ local function findBoss(id: string?): Model?
 	return nil
 end
 
+-- Piezas de un rig R15: lo único que se queda de la copia del personaje (más sus Accessory: pelo, sombrero de avatar).
+local R15_PARTS: { [string]: boolean } = {
+	Head = true,
+	UpperTorso = true,
+	LowerTorso = true,
+	LeftUpperArm = true,
+	LeftLowerArm = true,
+	LeftHand = true,
+	RightUpperArm = true,
+	RightLowerArm = true,
+	RightHand = true,
+	LeftUpperLeg = true,
+	LeftLowerLeg = true,
+	LeftFoot = true,
+	RightUpperLeg = true,
+	RightLowerLeg = true,
+	RightFoot = true,
+	HumanoidRootPart = true,
+}
+
+-- Deja la copia del personaje solo con su cuerpo y su pelo: sin armadura ni traje del juego, arma, alas, auras ni luces
+-- (el equipo del Juego de pelota lo pone BallgameGear después).
+local function stripCosmetics(rig: Model)
+	for _, child in rig:GetChildren() do
+		if child:IsA("Model") or child:IsA("Tool") then
+			child:Destroy()
+		end
+	end
+	for _, descendant in rig:GetDescendants() do
+		if descendant.Parent and descendant:IsA("BasePart") and not R15_PARTS[descendant.Name] then
+			if not descendant:FindFirstAncestorOfClass("Accessory") then
+				descendant:Destroy()
+			end
+		elseif
+			descendant:IsA("ParticleEmitter")
+			or descendant:IsA("Light")
+			or descendant:IsA("Trail")
+			or descendant:IsA("Beam")
+			or descendant:IsA("Fire")
+			or descendant:IsA("Smoke")
+			or descendant:IsA("Sparkles")
+			or descendant:IsA("Highlight")
+		then
+			descendant:Destroy()
+		end
+	end
+end
+
 -- Crea (o encuentra) el actor de "def". Devuelve nil si no se puede, con un aviso.
 function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Model?
 	if def.kind == "dummy" then
@@ -261,12 +329,50 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 	elseif def.kind == "localPlayer" then
 		local player = Players.LocalPlayer
 		local character = if player then player.Character else nil
-		if character then
+		if character and def.copy then
+			-- Copia con su aspecto (Dunas: el servidor devuelve al personaje real a la sala de espera en plena escena, y
+			-- la copia no depende de él). El real se esconde en este cliente y se devuelve al acabar (cleanup).
+			local rig = RescueCrew.cloneCharacter(character)
+			if not rig then
+				warn("Actors: no se pudo copiar el personaje del jugador")
+				return character
+			end
+			table.insert(created(ctx), rig)
+			rig.Name = "Cinematic_Avatar"
+			stripCosmetics(rig)
+			if def.ballGear then
+				BallgameGear.build(def.ballGear, rig)
+			end
+			local humanoid = rig:FindFirstChildOfClass("Humanoid")
+			if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
+				Instance.new("Animator").Parent = humanoid
+			end
+			place(rig, anchor, def.pos or Vector3.zero, def.yaw or 0)
+			local root = rig:FindFirstChild("HumanoidRootPart")
+			if root and root:IsA("BasePart") then
+				root.Anchored = true
+			end
+			rig.Parent = Workspace
+			local hidden: { { inst: Instance, old: number } } = {}
+			for _, descendant in character:GetDescendants() do
+				if descendant:IsA("BasePart") or descendant:IsA("Decal") then
+					local item: any = descendant
+					table.insert(hidden, { inst = descendant, old = item.LocalTransparencyModifier })
+					item.LocalTransparencyModifier = 1
+				end
+			end
+			ctx._hiddenReal = hidden
+			return rig
+		elseif character then
 			-- El jugador es nuestro solo prestado: se anota para devolverle su sitio y quitarle las marcas al acabar, y se le
 			-- pone la altura de su raíz (CinematicLift) para que un `move` lo deje de pie. snap = true: cada `move` apoya
 			-- sus pies en el Terrain, como un maniquí.
 			ctx._player = character
 			character:SetAttribute("CinematicLift", liftOf(character))
+			if def.ballGear then
+				BallgameGear.build(def.ballGear, character)
+				ctx._ballGearOn = character
+			end
 			if def.snap then
 				character:SetAttribute("CinematicSnap", true)
 			end
@@ -314,8 +420,23 @@ function Actors.cleanup(ctx: Sequencer.Context)
 		end
 		ctx._restore = nil
 	end
+	local hiddenReal = ctx._hiddenReal
+	if hiddenReal then
+		for _, item in hiddenReal do
+			if item.inst.Parent then
+				pcall(function()
+					(item.inst :: any).LocalTransparencyModifier = item.old
+				end)
+			end
+		end
+		ctx._hiddenReal = nil
+	end
 	local player = ctx._player
 	if player then
+		if ctx._ballGearOn then
+			BallgameGear.remove(ctx._ballGearOn)
+			ctx._ballGearOn = nil
+		end
 		player:SetAttribute("CinematicSnap", nil)
 		player:SetAttribute("CinematicLift", nil)
 		ctx._player = nil

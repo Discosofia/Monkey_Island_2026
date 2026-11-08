@@ -44,6 +44,7 @@ local lastT = -math.huge
 local accumulator = 0
 local offset = Vector3.zero -- lo que lo dibujado se aparta de lo predicho
 local drawn: Vector3? = nil -- última posición local dibujada
+local hiddenByScene = false -- una cinemática (Fase 25, G9a) dibuja su propia pelota: la del juego no se ve
 
 local function currentLayout(): CourtGeometry.Layout
 	local format = Arena.format()
@@ -200,6 +201,10 @@ local function onHitEvent(event: any)
 end
 
 local function onRender(dt: number)
+	if hiddenByScene then
+		hide()
+		return
+	end
 	if not hasState then
 		return
 	end
@@ -252,6 +257,14 @@ end
 -- Una pelota nueva igual a la del juego, sin padre ni simulación (la repetición del aro la mueve a mano).
 function BallController.newBall(): Part
 	return newBallPart()
+end
+
+-- Esconde (o devuelve) la pelota del juego mientras suena una cinemática con su propia pelota (BallgameCineController).
+function BallController.setHiddenByScene(hidden: boolean)
+	hiddenByScene = hidden
+	if hidden then
+		hide()
+	end
 end
 
 -- La pelota que se dibuja (para colgarle el anillo de tiempo); nil si no se ve.

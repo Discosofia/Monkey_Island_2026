@@ -9,6 +9,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
@@ -33,10 +34,13 @@ local RING_SHOT_Y = 18
 local RING_SHOT_SPEED = 40
 -- BallPlace «center»: altura (local) a la que se deja la pelota en el centro.
 local CENTER_PLACE_HEIGHT = 2
+-- Cinemática del Juego de pelota (Fase 25, G9a): el formato (jugadores por equipo) de la cancha en que se graba.
+local CINE_FORMAT = 3
 
 local ArenaDebugService = {}
 
 local dummy: Model? = nil
+local cineCounter = 0
 
 -- Rival de práctica: un muñeco con la etiqueta de enemigo, 12 studs delante del jugador. Recibe el
 -- daño de las armas y habilidades contra monos (no el de PvP), pero sirve para ver los efectos.
@@ -295,6 +299,23 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	end,
 	Solo = function()
 		ArenaMatchService.debugSolo()
+	end,
+	-- Cinemática del Juego de pelota (Fase 25, G9a): pone el modo Juego de pelota y el formato 3 si hace falta, aparta los
+	-- rivales de prueba y apaga la pelota; BallgameCineController (cliente) espera a la cancha y lanza la escena.
+	CineBallgame = function(player)
+		if ArenaModes.current() ~= "Ballgame" then
+			ArenaMatchService.debugSetMode("Ballgame")
+		end
+		for _ = 1, Config.Arena.MaxFormat do
+			if Arena.format() == CINE_FORMAT then
+				break
+			end
+			ArenaMatchService.debugNextFormat()
+		end
+		BallBotService.clear()
+		BallService.setActive(false)
+		cineCounter += 1
+		player:SetAttribute("BallgameCine", `Ballgame:{cineCounter}`)
 	end,
 	Format = function()
 		local format = ArenaMatchService.debugNextFormat()
