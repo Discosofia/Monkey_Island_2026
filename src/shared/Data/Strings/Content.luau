@@ -914,4 +914,15 @@ return {
 	["Sin manos. Solo cadera, rodilla y codo."] = "No hands. Only hip, knee and elbow.",
 	["Un aro. Un tiro."] = "One ring. One shot.",
 	["3 contra 3 en la Isla de dunas"] = "3 vs 3 on Dune Island",
+	-- Cinemática de Captura la bandera (Flag y Flag_Comic, G10). «Captura la bandera» ya está en Lobby.
+	["Dos bases. Una bandera cada una."] = "Two bases. One flag each.",
+	["Roba la bandera rival."] = "Steal the enemy flag.",
+	["Y llévala a tu base."] = "And carry it back to your base.",
+	["¡Bandera capturada!"] = "Flag captured!",
+	["5 contra 5 en la Isla de dunas"] = "5 vs 5 on Dune Island",
+	["¡ÑAP!"] = "GRAB!",
+	-- Cómic de Captura la bandera (Flag_Comic, G10).
+	["¡Mía!"] = "Mine!",
+	["¡Alto ahí!"] = "Halt!",
+	["¡ZUM!"] = "VROOM!",
 }

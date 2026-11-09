@@ -8,6 +8,7 @@
 --   four_a  tres viñetas arriba (de tamaños distintos) y la cuarta, grande, abajo a todo lo ancho
 --   four_b  dos viñetas apiladas a la izquierda, una arriba a la derecha y la cuarta, grande, abajo a la derecha
 --   four_c  dos viñetas arriba, una pequeña abajo a la izquierda y la cuarta, grande, abajo a la derecha
+--   two     dos viñetas altas, una al lado de la otra (la persecución de Captura la bandera)
 --   single  una sola viñeta a toda página (el cartel final)
 
 export type Rect = { number }
@@ -89,6 +90,7 @@ ComicPages.PAGES = {
 	four_a = four_a(),
 	four_b = four_b(),
 	four_c = four_c(),
+	two = row({ 1, 1 }, TOP, BOTTOM),
 	single = { rect(LEFT, TOP, RIGHT, BOTTOM) },
 } :: { [string]: { Rect } }
 

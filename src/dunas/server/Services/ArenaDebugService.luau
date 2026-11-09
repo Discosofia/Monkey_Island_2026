@@ -36,6 +36,9 @@ local RING_SHOT_SPEED = 40
 local CENTER_PLACE_HEIGHT = 2
 -- Cinemática del Juego de pelota (Fase 25, G9a): el formato (jugadores por equipo) de la cancha en que se graba.
 local CINE_FORMAT = 3
+-- Cinemática de Captura la bandera (Fase 25, G10): el modo y el formato (5 contra 5) en que se graba.
+local FLAG_CINE_MODE = "CaptureFlag"
+local FLAG_CINE_FORMAT = 5
 
 local ArenaDebugService = {}
 
@@ -169,7 +172,7 @@ local function teamArg(arg: any): string?
 end
 
 -- Lanza una cinemática del Juego de pelota (Fase 25, G9a y G9b): pone el modo Juego de pelota y el formato 3 si hace
--- falta, aparta los rivales de prueba y apaga la pelota; BallgameCineController (cliente) espera a la cancha y lanza la
+-- falta, aparta los rivales de prueba y apaga la pelota; DunasCineController (cliente) espera a la cancha y lanza la
 -- escena. El atributo lleva «<id de la escena>:<contador>» para que repetir la misma orden también dispare el cambio.
 local function startCine(player: Player, sceneId: string)
 	if ArenaModes.current() ~= "Ballgame" then
@@ -185,6 +188,23 @@ local function startCine(player: Player, sceneId: string)
 	BallService.setActive(false)
 	cineCounter += 1
 	player:SetAttribute("BallgameCine", `{sceneId}:{cineCounter}`)
+end
+
+-- Lanza una cinemática de Captura la bandera (Fase 25, G10): pone el modo y el formato 5 si hace falta (sin pelota ni bots) y
+-- DunasCineController (cliente) espera a la arena y a las banderas y lanza la escena. El atributo DunasCine lleva
+-- «<id de la escena>:<contador>», como startCine.
+local function startFlagCine(player: Player, sceneId: string)
+	if ArenaModes.current() ~= FLAG_CINE_MODE then
+		ArenaMatchService.debugSetMode(FLAG_CINE_MODE)
+	end
+	for _ = 1, Config.Arena.MaxFormat do
+		if Arena.format() == FLAG_CINE_FORMAT then
+			break
+		end
+		ArenaMatchService.debugNextFormat()
+	end
+	cineCounter += 1
+	player:SetAttribute("DunasCine", `{sceneId}:{cineCounter}`)
 end
 
 -- BallPlace con un atajo: en el campo del jugador («mine»), en el del rival («rival») o al centro («center»).
@@ -320,7 +340,7 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		ArenaMatchService.debugSolo()
 	end,
 	-- Cinemática del Juego de pelota (Fase 25, G9a): pone el modo Juego de pelota y el formato 3 si hace falta, aparta los
-	-- rivales de prueba y apaga la pelota; BallgameCineController (cliente) espera a la cancha y lanza la escena.
+	-- rivales de prueba y apaga la pelota; DunasCineController (cliente) espera a la cancha y lanza la escena.
 	CineBallgame = function(player)
 		startCine(player, "Ballgame")
 	end,
@@ -330,6 +350,13 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	end,
 	CineBallgameComic = function(player)
 		startCine(player, "Ballgame_Comic")
+	end,
+	-- Captura la bandera 5 contra 5 (Fase 25, G10): la normal y la de cómic de 15 s.
+	CineFlag = function(player)
+		startFlagCine(player, "Flag")
+	end,
+	CineFlagComic = function(player)
+		startFlagCine(player, "Flag_Comic")
 	end,
 	Format = function()
 		local format = ArenaMatchService.debugNextFormat()

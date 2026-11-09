@@ -6653,7 +6653,7 @@ Dos versiones de 15 s de la cinemática de las monturas, derivadas de `Mounts` (
 
 ## 175. Fase 25 G9a: cinemática «Ballgame», el juego de pelota en Dunas (07-11-2026)
 
-Escena `Ballgame` (~20 s) en `Data/Cinematics`, con su versión `ballgameScene("full")`. Dunas carga ahora el motor de cinemáticas (`CinematicController`) y tiene `BallgameCineController`: se activa con el atributo `BallgameCine`, fija la hora en 17,5 solo en el cliente, oculta la pelota real con `BallController.setHiddenByScene`, ancla al personaje, lo lleva a la cancha y lo devuelve al acabar. `Shared/Cinematics/BallActor` mueve la pelota por el evento `ballPath` y `animSpeed`; `Actors` tiene `weapon=false` y `ballGear`. La orden «🎬 Juego de pelota (cinemática)» (`CineBallgame` en `ArenaDebugService`) pone el modo Ballgame y el formato 3 de la cancha. Comprobado en Edit: la escena se construye sin avisos (el tiro da `ringRim` sin `ringPass`, sale a ~11,4 s y toca el aro a ~13,5 s) y los planos se encuadraron con maniquíes (el avatar se sustituyó por un maniquí Jaguar). El adelanto del golpe `BALLGAME_HIT_LEAD` = 0,15 s está sin afinar. Sin probar lo de abajo. Reel y cómic de esta escena son G9b y tienen su propia sección cuando se hagan; no están aquí.
+Escena `Ballgame` (~20 s) en `Data/Cinematics`, con su versión `ballgameScene("full")`. Dunas carga ahora el motor de cinemáticas (`CinematicController`) y tiene `DunasCineController` (antes `BallgameCineController`): se activa con el atributo `BallgameCine`, fija la hora en 17,5 solo en el cliente, oculta la pelota real con `BallController.setHiddenByScene`, ancla al personaje, lo lleva a la cancha y lo devuelve al acabar. `Shared/Cinematics/BallActor` mueve la pelota por el evento `ballPath` y `animSpeed`; `Actors` tiene `weapon=false` y `ballGear`. La orden «🎬 Juego de pelota (cinemática)» (`CineBallgame` en `ArenaDebugService`) pone el modo Ballgame y el formato 3 de la cancha. Comprobado en Edit: la escena se construye sin avisos (el tiro da `ringRim` sin `ringPass`, sale a ~11,4 s y toca el aro a ~13,5 s) y los planos se encuadraron con maniquíes (el avatar se sustituyó por un maniquí Jaguar). El adelanto del golpe `BALLGAME_HIT_LEAD` = 0,15 s está sin afinar. Sin probar lo de abajo. Reel y cómic de esta escena son G9b y tienen su propia sección cuando se hagan; no están aquí.
 
 ### 175.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
 
@@ -6733,6 +6733,126 @@ Dos versiones de 15 s de la cinemática del juego de pelota, derivadas de `Ballg
 
 12. [ ] Frases pendientes de G7c, G8, G9a y G9b (entre ellas ¡PAM! y ¡TOC!). Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube el CSV a Creator Hub (o los `_1`, `_2`… si pasa de 90 filas) y después `python tools/strings.py --marcar-subidas`. Es el mismo CSV del paso 15 de la §174, así que se sube una sola vez.
     ✅ El CSV lleva esas frases con su inglés. Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
+
+## 177. Fase 25 G10: Captura la bandera 5 contra 5, `Flag` y `Flag_Comic` (09-11-2026)
+
+Dos escenas de la captura de la bandera en Dunas, solo para grabar (no salen solas en el juego): `Flag` (30 s) y `Flag_Comic` (15 s, cómic de tres páginas). Orden «🎬 Captura la bandera (cinemática)» (`CineFlag`) y «🎬 Captura la bandera cómic» (`CineFlagComic`) en el panel de pruebas de Dunas. Motor: `flagScene` dentro de `buildFlagScenes` en `Data/Cinematics` (el límite de 200 locales obliga a ese bloque), `Shared/Cinematics/FlagActor` (`flagProp`, `flagGrab`, `flagDrop`, `flagCapture`) y `DunasCineController`, que sustituye a `BallgameCineController` y lee el atributo `DunasCine`. Probado en Play en Dunas: arrancan sin errores de consola, las copias de la bandera se borran al acabar y se restauran la cámara, el personaje y las puertas.
+
+Ronda de arreglos del 09-11-2026, tras el vídeo del usuario: rutas sobre el suelo medido (rampa de 12°, Calzada y Altar), carrera con una pista en bucle (`playLocomotion`, velocidad según studs/s), cómic rehecho con encuadres por la posición real de los actores, puertas Gate ocultas solo en el cliente durante Flag, guardia `quetzalG` y `noBlur` en las dos escenas. Por datos del probador en Studio: corre sin errores, 0 de 58 muestras con los pies a más de 0,6 del suelo, puertas y efectos restaurados, y una captura del cómic con personajes en las viñetas. Lo de abajo no se ha visto en vídeo salvo lo que dice cada paso.
+
+Segunda ronda del 09-11-2026 (equipo, habilidades, pies, cómic y rendimiento): los 11 actores de `Flag` y `Flag_Comic` tienen `role` y `team`, armadura (`VolcanicArmor`, y `SilverArmor` en `quetzalD` y `quetzalG`), arma de rol al nivel máximo, y no llevan trajes ni `ballGear`. En `Actors` van el campo `team` y `markTeam` (brazalete `TeamBand`, capa `TeamCape` y banda `TeamSash`, en 240, 150, 40 para Jaguar y 40, 165, 230 para Quetzal), un `equip` común y el avatar copia admite `role` y `armor`. Reparto: jaguarA Guerrero, jaguarB Cazador, jaguarC Mago, jaguarD Médico, avatar Guerrero, quetzalA Guerrero, quetzalB Médico, quetzalC Cazador, quetzalD Guerrero, quetzalE Mago y quetzalG Cazador (guardia en (164, 2,1, -5,5)). Las habilidades van dentro del movimiento, con el rebote `hop` de las víctimas: WarCry, Fireball, MultiShot, Charge, Whirlwind, FrostNova (Lightning en el cómic), Slash, Bandage y AreaHeal. La guardia y el mago Quetzal disparan al avatar en la persecución, y el bloqueo final es la embestida de jaguarA. El cómic tiene en su página 1 tres retratos que rellenan su viñeta en 1,65 s, y los planos son más cerrados.
+
+Comprobado por el probador en Play, con las escenas de 30 s y 15 s: compila; los 11 actores tienen rol y equipo, Tool y armadura (de 210 a 336 partes cada uno); las marcas de bando tienen su color; no quedan piezas de pelota; la consola sale limpia; 57–61 FPS (mínimo 22, solo durante la carga); los viewports del cómic muestran modelos a 1, 2, 5 y 9 s y ninguno a 13 s; los pies del avatar están bien; y se revisó una captura. Lo de abajo no se ha visto en vídeo ni en un teléfono. Quedan sin comprobar: los pies de otros actores (177.4), la embestida de jaguarA, dos encuadres del cómic que pueden caer en la pirámide o en un muro, la capa y el brazalete con las animaciones de lanzar y en las viñetas congeladas (177.5), la guardia contra los pilares, el rendimiento en móvil y el perfil (177.6).
+
+### 177.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Pulsa «🎬 Captura la bandera (cinemática)» en el panel de pruebas de Dunas y mira la escena entera de 30 s.
+   ✅ Arranca sin pantalla negra larga y sin avisos en la Salida. Las dos banderas aparecen en sus pedestales. (El probador ya comprobó que no hay errores en la consola.)
+2. [ ] Mira el encuadre del montaje inicial y del choque en el centro. Anota cada plano en el que una criatura o un personaje tape la cámara más de un instante. (En la captura 2 un Quetzal tapaba casi todo el cuadro; la escena se rehízo con la posición real de los actores.)
+   ✅ Cada plano deja ver a quienes actúan, y ninguna criatura tapa el cuadro más de un instante.
+3. [ ] Mira si algún muro de carril se cruza con la cámara en los planos de carrera. La ruta de entrada ya no roza la Estela en (±108, ±14).
+   ✅ Ningún muro tapa la cámara. Si lo hace, anota el plano y el segundo.
+4. [ ] Mira los pies de los personajes al bajar por la rampa de la puerta, en la escena normal y en el cómic (la carrera de la rampa va a velocidad ×1,3 y ×2,7).
+   ✅ Pisan el suelo sin hundirse ni flotar. Medido: la rampa va de Y 140,5 a 150,3. En la medida de la ronda de arreglos ninguna de las 58 muestras tuvo los pies a más de 0,6 del suelo; en la de equipo hubo 9 de otros actores fuera de ±0,6 (ver 177.4). Si a ×2,7 se hunden, baja `LOCOMOTION_SPEED_MAX` en `CinematicClient`.
+5. [ ] Mira el robo de la bandera a cámara lenta (`FLAG_GRAB_WAIT` = 0,75 s).
+   ✅ La mano baja hasta el pedestal, la bandera sale cuando termina el gesto y la cámara lenta no se corta de golpe. Si el tiempo no encaja, anota el desfase.
+6. [ ] Mira la bandera a la espalda del avatar mientras corre con la cámara detrás (`behind`).
+   ✅ La bandera sigue a la espalda sin separarse ni atravesar el cuerpo, con la tela plana hacia atrás.
+7. [ ] Mira la carrera entre tramos, con la pista en bucle (`playLocomotion`) que sigue la velocidad de cada tramo.
+   ✅ No hay tirones ni paradas al empalmar los tramos, y los pasos acompañan a la velocidad sin patinar.
+8. [ ] Mira los efectos de habilidad cuando coinciden tres atacantes con habilidad pesada (el tercero con `FrostNova`).
+   ✅ Se ven como mucho dos efectos pesados a la vez (`AbilityShow`). Si el tercero no sale o se ve a medias, anótalo.
+9. [ ] Mira la captura final en su base.
+   ✅ La bandera vuelve al pedestal con el destello, y el título, el logo y el fundido salen sin pantalla negra colgada.
+10. [ ] Pulsa Saltar a mitad de la escena.
+    ✅ La escena se corta, las copias de las banderas desaparecen, las reales vuelven a verse en sus pedestales y el personaje recupera el control.
+11. [ ] Al acabar y al saltar, mira dónde queda el avatar real frente a donde estaba al empezar.
+    ✅ Vuelve a un sitio jugable, sin quedar lejos de su sitio. Una medida anterior dio 186 studs de distancia, probablemente tomada antes de aparecer; si vuelve a pasar, anota cuándo se midió.
+12. [ ] Durante la escena, mira las puertas Gate de Dunas.
+    ✅ En tu cliente no se ven mientras dura Flag, y vuelven al acabar o al saltar. Solo se ocultan en tu cliente.
+13. [ ] En la versión larga, mira la guardia `quetzalG` (Cazador, en (164, 2,1, -5,5)) en su tramo.
+    ✅ Sale dentro del cuadro y no queda metida en ningún muro ni en un pilar. Si queda fuera de plano o dentro de un muro o de un pilar, anota el plano y el segundo.
+14. [ ] Lanza «🎬 Captura la bandera cómic» y mira sus páginas.
+    ✅ Salen las páginas con su borde y su fondo, sin franjas negras. Las onomatopeyas caen en los golpes, los personajes se ven en las viñetas y la escena acaba con título, logo y fundido.
+15. [ ] Mira la viñeta izquierda de la página 2 (el layout `two`, la persecución).
+    ✅ El personaje llena la viñeta y no queda mucho fondo vacío. Hoy se ve mucho fondo vacío: anota si sigue igual tras el arreglo.
+16. [ ] Mira la última viñeta del cómic, hacia el segundo 13.
+    ✅ Muestra a quienes actúan. En la última comprobación no hubo viewports a los 13 s (sí a 1, 2, 5 y 9 s); si sale vacía, anota el segundo exacto.
+17. [ ] Mira las banderas dentro de las viñetas congeladas.
+    ✅ Se ven en su sitio en cada viñeta, congeladas en la posición de su viñeta.
+18. [ ] Lanza la escena del cómic dos veces seguidas, primero sin saltarla y después saltándola a mitad.
+    ✅ Arranca las dos veces sin avisos, y al saltar la escena se corta y el personaje vuelve a controlarse.
+19. [ ] Durante las dos escenas, mira la luz.
+    ✅ Se queda en la hora de la escena (16,5) mientras dura, sin seguir el ciclo de día. Al acabar o al saltar vuelve la hora que tenía el ciclo.
+20. [ ] Mira el desenfoque de fondo en las dos escenas.
+    ✅ Ningún plano se ve desenfocado. No hay DepthOfField ni Blur en el código (`noBlur` los apaga mientras suena); si el desenfoque persiste, es compresión del vídeo o un efecto guardado en el place de Dunas. Anota cuál.
+21. [ ] Con el idioma en inglés, mira el cartel, los rótulos y las onomatopeyas de las dos escenas.
+    ✅ Salen en inglés (por ejemplo «Two bases. One flag each.», «Steal the enemy flag.», «Mine!», «Halt!» y «Flag captured!»), sin claves en español.
+22. [ ] Graba la escena normal con OBS en 16:9 y revisa el encuadre entero de los 30 s.
+    ✅ Ningún plano falla. Anota aquí los momentos a repetir.
+
+### 177.2 Equipo y marcas de bando (en Play, en Dunas)
+
+1. [ ] Pulsa «🎬 Captura la bandera (cinemática)» y mira la marca de cada actor cuando sale en plano: los de los dos bandos.
+   ✅ Cada uno lleva brazalete, capa y banda del color de su bando: 240, 150, 40 para Jaguar y 40, 165, 230 para Quetzal. Ninguno sale sin marca ni con el color del otro bando.
+2. [ ] Mira la armadura de los 11 actores en un plano cercano (por ejemplo el choque del centro).
+   ✅ Todos llevan armadura: `VolcanicArmor`, y `SilverArmor` en `quetzalD` y `quetzalG`. Ninguno lleva traje ni `ballGear`.
+3. [ ] Mira el arma de cada actor y compárala con su rol: Guerrero (jaguarA, avatar, quetzalA y quetzalD), Cazador (jaguarB, quetzalC y quetzalG), Mago (jaguarC y quetzalE) y Médico (jaguarD y quetzalB).
+   ✅ Cada arma es la de su rol, al nivel máximo. Anota el actor que no coincida.
+
+### 177.3 Habilidades en el movimiento
+
+1. [ ] Mira WarCry de jaguarA, Fireball, MultiShot y Charge mientras los actores se mueven.
+   ✅ Cada habilidad sale durante el movimiento, sin que el actor se pare a lanzarla. Las víctimas rebotan (`hop`) al recibirla.
+2. [ ] Mira Whirlwind y FrostNova en la escena normal, y Lightning en el cómic.
+   ✅ Se ven completas y en su tramo. Lightning sale en el cómic en lugar de FrostNova.
+3. [ ] Mira Slash, Bandage y AreaHeal.
+   ✅ La víctima de Slash rebota. Bandage y AreaHeal son curación y salen en verde, como manda el proyecto.
+4. [ ] En la persecución, mira al guardia `quetzalG` y al mago `quetzalE` disparar.
+   ✅ Disparan al avatar y no a otro actor, y el avatar rebota al recibir el disparo. Si alguno no dispara o apunta a otro, anota el segundo.
+5. [ ] Mira el bloqueo final, la embestida de jaguarA (Charge).
+   ✅ La carga se lee como una embestida y acaba en el bloqueo, sin tirones ni saltos del actor. Hoy recorre 20 studs en 0,6 s: si parece demasiado rápida o brusca, anota el segundo.
+
+### 177.4 Pies de los actores (persecución y bloqueo)
+
+1. [ ] Mira los pies de jaguarA (Guerrero) y del Mago (jaguarC y quetzalE) en la persecución y en el bloqueo.
+   ✅ Pisan el suelo sin hundirse ni flotar. Hay 9 muestras de pies de otros actores fuera de ±0,6, sin atribuir a un actor: las negativas (de −1,3 a −1,8, con c≈19–20) parecen hundidas. Anota el actor y el segundo de cada una.
+2. [ ] Mira los pies de los demás actores al correr, sobre todo en la rampa a ×1,3 y ×2,7.
+   ✅ Sin hundirse ni flotar. Si a ×2,7 se hunden, baja `LOCOMOTION_SPEED_MAX` (ver 177.1, paso 4).
+
+### 177.5 Cómic de la ronda de equipo
+
+1. [ ] Mira la página 1: los tres retratos.
+   ✅ Los tres retratos rellenan su viñeta en 1,65 s, sin fondo vacío ni franjas negras.
+2. [ ] Mira los planos más cerrados de todo el cómic y anota cualquiera que deje la cámara dentro de la pirámide o de un muro. Sobre todo el retrato del Quetzal y el encuadre del bloqueo.
+   ✅ Cada encuadre muestra a quien actúa. Si el retrato del Quetzal o el del bloqueo queda dentro de la pirámide o de un muro, anota el plano y el segundo.
+3. [ ] Mira la capa y el brazalete en las animaciones de lanzar y en las viñetas congeladas.
+   ✅ Siguen al cuerpo sin separarse ni atravesarlo, y en las viñetas congeladas quedan en su sitio.
+
+### 177.6 Rendimiento en móvil y perfil
+
+1. [ ] Ejecuta `Rendimiento` sobre `Flag` y `Flag_Comic` (modo edición, Studio de Dunas) y compara las piezas con `Config.Budgets`.
+   ✅ Las piezas quedan dentro de los topes. Hoy no se ha medido: cada actor con armadura pesa entre 210 y 336 partes, unas 2.200 en total con los 11. Si pasa del tope, anota la cifra medida y el tope que toca.
+2. [ ] En un teléfono (emulador o móvil), lanza «🎬 Captura la bandera (cinemática)» y mira el FPS en la persecución y en el choque, con los 11 actores armados.
+   ✅ Se mueve con fluidez. Si cae de forma sostenida, pasa los actores de `VolcanicArmor` a `SilverArmor` y anótalo.
+3. [ ] Compara el perfil con la copia `u_8620190944_cineflag3` de `PlayerData_v1_backups`. Si cambió algo, restáurala.
+   ✅ Queda igual que la copia. Las cinemáticas no tocan el progreso, así que es solo seguridad. Anota si no se restauró.
+
+### 177.7 Con dos o más jugadores (*Test → Clientes y servidores*, en Dunas)
+
+1. [ ] Con el otro jugador ya en la partida, lanza «🎬 Captura la bandera (cinemática)» desde el panel de pruebas.
+   ✅ El otro jugador no queda anclado ni se le lleva a la escena, y en su cliente las banderas reales se ven en sus pedestales. Anota si la partida entera cambia o solo lo ve quien lanzó la orden.
+2. [ ] Con una partida 5 contra 5 de verdad (jugadores reales en los dos equipos), lanza la escena.
+   ✅ Arranca sin fallos. Los jugadores reales no quedan anclados ni se les lleva a la escena. Anota si los rivales de prueba o la pelota de la partida interfieren con la escena.
+3. [ ] Tras la escena, con la partida en curso, mira que las banderas reales siguen en su sitio en todos los clientes.
+   ✅ Las banderas reales vuelven a sus pedestales en todos los clientes, sin copias sueltas, y la partida sigue con normalidad.
+4. [ ] Con la partida en curso, lanza la escena y mira las puertas Gate de Dunas en tu cliente y en el del otro jugador.
+   ✅ En tu cliente se ocultan solo durante Flag. En el cliente del otro jugador no cambian. Las puertas de la partida se abren y cierran con `ArenaWorldService.setGates`, y la escena no las toca en el servidor.
+
+### 177.8 Textos en Creator Hub
+
+1. [ ] Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` (hoy salen 9 filas, las frases de G10), sube el CSV a Creator Hub y después `python tools/strings.py --marcar-subidas`.
+   ✅ El CSV lleva las 9 frases de G10 con su inglés: «5 vs 5 on Dune Island», «Two bases. One flag each.», «Steal the enemy flag.», «And carry it back to your base.», «Halt!», «Flag captured!», «Mine!», «VROOM!» y «GRAB!». Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
 
 ## Cuando termines
 

@@ -29,6 +29,7 @@ local Actors = require(script.Parent.Actors)
 local BallActor = require(script.Parent.BallActor)
 local CameraShake = require(script.Parent.CameraShake)
 local Comic = require(script.Parent.Comic)
+local FlagActor = require(script.Parent.FlagActor)
 local MountedRider = require(script.Parent.MountedRider)
 local PetActor = require(script.Parent.PetActor)
 local Branding = require(script.Parent.Parent.Data.Branding)
@@ -514,6 +515,54 @@ local function playWeaponAnimation(
 	)
 end
 
+-- Andar y correr (Run, Walk) de un actor que se mueve con `move`: una pista en bucle por actor y animación, que se
+-- reutiliza. Un evento nuevo mientras suena la anterior (los tramos de un recorrido) alarga la pista y le cambia la
+-- velocidad, en vez de ignorarse y dejar que la vieja se pare. La velocidad de la pista es `event.speed` (1 = el paso
+-- normal, ~16 studs/s); a Action para que no la tape ningún resto de pose de Movement.
+local LOCOMOTION_SPEED_MAX = 3
+type LocomotionState = { track: AnimationTrack, animator: Animator, token: number }
+local locomotion: { [Model]: { [string]: LocomotionState } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function playLocomotion(BodyAnimations: any, actor: Model, key: string, event: Sequencer.Event)
+	local id = BodyAnimations.idOf(key)
+	local humanoid = ensureAnimator(actor)
+	local animator = if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
+	if not (id and animator) then
+		return
+	end
+	local perActor = locomotion[actor] or {}
+	locomotion[actor] = perActor
+	local state = perActor[key]
+	if not state or state.animator ~= animator then
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		local ok, loaded = pcall(function()
+			return animator:LoadAnimation(animation)
+		end)
+		if not ok then
+			return
+		end
+		loaded.Priority = Enum.AnimationPriority.Action
+		loaded.Looped = true
+		state = { track = loaded, animator = animator, token = 0 }
+		perActor[key] = state
+	end
+	local current = state :: LocomotionState
+	local speed = math.clamp(event.speed or 1, 0.3, LOCOMOTION_SPEED_MAX)
+	current.token += 1
+	local token = current.token
+	if current.track.IsPlaying then
+		current.track:AdjustSpeed(speed)
+	else
+		current.track:Play(0.15, 1, speed)
+	end
+	task.delay(event.seconds or 1, function()
+		if current.token == token and current.track.IsPlaying then
+			current.track:Stop(0.2)
+		end
+	end)
+end
+
 -- "place" solo sirve para los avisos; los dos places cargan CombatClient, así que el animador es el mismo.
 function CinematicClient.start(place: string)
 	Presentation.install(Sequencer)
@@ -525,6 +574,7 @@ function CinematicClient.start(place: string)
 	PetActor.install(Sequencer)
 	MountedRider.install(Sequencer)
 	BallActor.install(Sequencer)
+	FlagActor.install(Sequencer)
 	CameraShake.install(Sequencer)
 
 	local shared = ReplicatedStorage:FindFirstChild("Shared")
@@ -547,6 +597,10 @@ function CinematicClient.start(place: string)
 		Actors.setAnimator(function(actor, action, event)
 			if action == "WeaponPose" then
 				startWeaponPose(BodyAnimations, actor)
+				return
+			end
+			if action == "Run" or action == "Walk" then
+				playLocomotion(BodyAnimations, actor, action, event)
 				return
 			end
 			if (PlayerAnimations.Animations :: any)[action] then

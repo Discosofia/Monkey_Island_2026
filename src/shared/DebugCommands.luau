@@ -119,6 +119,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "CineBallgame", label = "🎬 Juego de pelota (cinemática)" },
 		{ id = "CineBallgameReel", label = "🎬 Juego de pelota reel" },
 		{ id = "CineBallgameComic", label = "🎬 Juego de pelota cómic" },
+		{ id = "CineFlag", label = "🎬 Captura la bandera (cinemática)" },
+		{ id = "CineFlagComic", label = "🎬 Captura la bandera cómic" },
 		{ header = "Pelota" },
 		{ id = "BallOn", label = "🏀 Pelota: activar" },
 		{ id = "BallOff", label = "⏹️ Pelota: desactivar" },

@@ -47,9 +47,34 @@ local function restoreBloom()
 	end
 end
 
+-- Desenfoques (DepthOfField y Blur) de Lighting y de la cámara apagados por la escena con noBlur = true, para devolverlos.
+local blurSaved: { Instance } = {}
+
+local function restoreBlur()
+	for _, effect in blurSaved do
+		if effect.Parent then
+			(effect :: any).Enabled = true
+		end
+	end
+	table.clear(blurSaved)
+end
+
+local function disableBlur()
+	local camera = Workspace.CurrentCamera
+	for _, parent in { Lighting :: Instance, camera :: Instance? } do
+		for _, child in parent:GetChildren() do
+			if (child:IsA("DepthOfFieldEffect") or child:IsA("BlurEffect")) and child.Enabled then
+				child.Enabled = false
+				table.insert(blurSaved, child)
+			end
+		end
+	end
+end
+
 local function clear()
 	stopFollowing()
 	restoreBloom()
+	restoreBlur()
 	Lighting:SetAttribute("CinematicBrightnessScale", nil)
 	Lighting:SetAttribute("CinematicClockTime", nil)
 	Lighting:SetAttribute("CinematicClockSeconds", nil)
@@ -179,6 +204,10 @@ function SceneLight.install(sequencer: any)
 		start = function(scene: any)
 			table.clear(built)
 			clear()
+			-- Campo noBlur: sin desenfoque de profundidad ni de pantalla mientras suena (planos cerca y rápidos).
+			if scene.noBlur == true then
+				disableBlur()
+			end
 			-- Campo hour de la escena: equivale a un evento clock a t = 0.
 			if typeof(scene.hour) == "number" then
 				setClock(scene.hour, nil)

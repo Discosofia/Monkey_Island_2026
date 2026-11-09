@@ -2,7 +2,9 @@
 -- Actores de las cinemáticas (Fase 25). Actors.spawn(def, anchor, ctx) crea o encuentra el modelo de un
 -- actor según def.kind:
 --   dummy        rig R15 vestido con el equipo del juego (ArmorModels.wear + WeaponTools.build, como Portada).
---                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap?, ballGear? }
+--                def = { kind, role?, armor?, outfit?, grade?, weapon?, skin?, pos?, yaw?, skinColor?, pantsColor?, snap?, ballGear?, team? }
+--                team = "Jaguar" | "Quetzal": un brazalete y una capa corta en el color del bando (Config.Arena.Teams), que se ve
+--                también de espalda; sirve para distinguir bandos sin cambiar la armadura.
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
 --                weapon = false: sin arma (por defecto lleva la de su rol). ballGear = "Jaguar" | "Quetzal": lleva el equipo
 --                del Juego de pelota de ese bando (Shared/BallgameGear). Sin snap, la Y de pos es la del suelo (la cancha de
@@ -46,6 +48,7 @@ export type ActorDef = {
 	grade: number?,
 	weapon: (string | boolean)?, -- false = sin arma
 	ballGear: string?, -- "Jaguar" | "Quetzal": equipo del Juego de pelota
+	team: string?, -- "Jaguar" | "Quetzal" (Config.Arena.Teams): brazalete y capa corta del color del equipo
 	copy: boolean?, -- localPlayer: dibuja una copia del personaje y esconde el real (el servidor no puede moverla)
 	skin: string?,
 	id: string?,
@@ -211,14 +214,42 @@ local function created(ctx: Sequencer.Context): { Instance }
 	return list
 end
 
-local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Model?
-	local rig = baseRig(def)
-	if not rig then
-		return nil
+-- Marca de bando: un brazalete en el brazo izquierdo y una capa corta a la espalda (con una banda al frente), del color del
+-- equipo. Piezas pequeñas, sin colisión y soldadas al cuerpo, para que sigan las animaciones.
+local function markTeam(rig: Model, team: string?)
+	local info = if team then Config.Arena.Teams[team] else nil
+	local torso = rig:FindFirstChild("UpperTorso")
+	local arm = rig:FindFirstChild("LeftUpperArm")
+	if not (info and torso and torso:IsA("BasePart")) then
+		return
 	end
-	table.insert(created(ctx), rig)
+	local function piece(name: string, size: Vector3, parent: BasePart, offset: CFrame)
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Size = size
+		part.Color = info.color
+		part.Material = Enum.Material.SmoothPlastic
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Massless = true
+		part.CFrame = parent.CFrame * offset
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = parent
+		weld.Part1 = part
+		weld.Parent = part
+		part.Parent = rig
+	end
+	piece("TeamCape", Vector3.new(1.9, 2.1, 0.18), torso, CFrame.new(0, -0.55, 0.62))
+	piece("TeamSash", Vector3.new(0.5, 1.7, 0.12), torso, CFrame.new(0, -0.2, -0.56))
+	if arm and arm:IsA("BasePart") then
+		piece("TeamBand", Vector3.new(1.25, 0.45, 1.25), arm, CFrame.new(0, 0.1, 0))
+	end
+end
+
+-- Pone a "rig" la armadura y el arma de su rol (y la marca del bando) según "def". Devuelve el id del arma, si lleva.
+local function equip(rig: Model, def: ActorDef): string?
 	local role = def.role or DEFAULT_ROLE
-	rig.Name = `Cinematic_{role}`
 	if def.armor or def.outfit then
 		ArmorModels.wear(rig, def.armor, role, def.outfit, def.grade or ArmorModels.MAX_GRADE)
 	end
@@ -231,6 +262,19 @@ local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context)
 	if weaponId then
 		holdWeapon(rig, weaponId, def.skin)
 	end
+	markTeam(rig, def.team)
+	return weaponId
+end
+
+local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Model?
+	local rig = baseRig(def)
+	if not rig then
+		return nil
+	end
+	table.insert(created(ctx), rig)
+	local role = def.role or DEFAULT_ROLE
+	rig.Name = `Cinematic_{role}`
+	local weaponId = equip(rig, def)
 	if def.ballGear then
 		BallgameGear.build(def.ballGear, rig)
 	end
@@ -340,19 +384,31 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 			table.insert(created(ctx), rig)
 			rig.Name = "Cinematic_Avatar"
 			stripCosmetics(rig)
+			local weaponId: string? = nil
 			if def.ballGear then
 				BallgameGear.build(def.ballGear, rig)
+			elseif def.role or def.armor then
+				-- Con rol: la armadura y el arma de su rol, como un maniquí (sin trajes; el bando, con su marca).
+				weaponId = equip(rig, def)
+			else
+				markTeam(rig, def.team)
 			end
 			local humanoid = rig:FindFirstChildOfClass("Humanoid")
 			if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
 				Instance.new("Animator").Parent = humanoid
 			end
 			place(rig, anchor, def.pos or Vector3.zero, def.yaw or 0)
+			if weaponId then
+				alignWeapon(rig)
+			end
 			local root = rig:FindFirstChild("HumanoidRootPart")
 			if root and root:IsA("BasePart") then
 				root.Anchored = true
 			end
 			rig.Parent = Workspace
+			if weaponId and animator then
+				animator(rig, "WeaponPose", { t = 0, kind = "anim", weapon = weaponId })
+			end
 			local hidden: { { inst: Instance, old: number } } = {}
 			for _, descendant in character:GetDescendants() do
 				if descendant:IsA("BasePart") or descendant:IsA("Decal") then

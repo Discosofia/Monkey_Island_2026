@@ -29,7 +29,8 @@
 --   Battle_Boss_<jefe>, _Comic y _Reel (Orangután y Caudillo) ... 18,8
 --   Pets, Pets_Reel y Pets_Comic ......... 17,5  (atardecer dorado; sin luces propias: las mascotas se ven con el sol bajo)
 --   Mounts, Mounts_Reel y Mounts_Comic ... 17,5  (atardecer dorado, como Pets)
---   Ballgame ............................. 17,5  (Dunas no tiene ciclo de día: BallgameCineController pone Lighting.ClockTime)
+--   Ballgame ............................. 17,5  (Dunas no tiene ciclo de día: DunasCineController pone Lighting.ClockTime)
+--   Flag y Flag_Comic .................... 16,5  (idem)
 
 local BallHit = require(script.Parent.Parent.BallHit)
 local BallSim = require(script.Parent.Parent.BallSim)
@@ -3182,6 +3183,7 @@ type ComicCell = {
 	bg: string, -- "flat" | "dots" (el fondo de la viñeta cuando se congela)
 	posB: Vector3?,
 	subjectB: Vector3?,
+	widthB: number?, -- ancho al final del plano (por defecto, el 90 % del inicial)
 }
 
 type ComicCut = {
@@ -3195,6 +3197,7 @@ type ComicCut = {
 	subject: Vector3,
 	subjectB: Vector3?,
 	width: number,
+	widthB: number?,
 	bg: string,
 }
 
@@ -3324,7 +3327,7 @@ local function comicShots(cuts: { ComicCut }): { CameraShot }
 			t0 = cut.t0,
 			t1 = cut.t1,
 			a = pageKey(cut.pos, cut.subject, cut.width, cx, cy, cellW, cellH),
-			b = pageKey(posB, subjectB, cut.width * 0.9, cx, cy, cellW, cellH),
+			b = pageKey(posB, subjectB, cut.widthB or cut.width * 0.9, cx, cy, cellW, cellH),
 		})
 	end
 	return shots
@@ -4207,7 +4210,7 @@ end
 
 -- ============================================================================ Juego de pelota (Fase 25, G9a)
 -- «Ballgame»: el 3 contra 3 de la Isla de dunas (cancha de formato 3, hora 17,5, solo para grabar; la lanza la orden
--- «🎬 Juego de pelota» del panel de Dunas con el cliente BallgameCineController, anclada al centro de la cancha: todas las
+-- «🎬 Juego de pelota» del panel de Dunas con el cliente DunasCineController, anclada al centro de la cancha: todas las
 -- posiciones son LOCALES de la cancha, el origen es el centro del pasillo a nivel del suelo y los Jaguar defienden X < 0).
 --   0 a 4        montaje de 5 cortes: el yugo de un Jaguar, el aro desde arriba, la rodillera, el tocado de plumas de un
 --                Quetzal y el avatar visto por detrás
@@ -5167,9 +5170,1039 @@ if not ballgameComicOk then
 	warn(`Cinematics: no se pudo construir la escena Ballgame_Comic: {ballgameComicBuilt}`)
 end
 
+-- ============================================================================ Captura la bandera (Fase 25, G10)
+-- «Flag» y «Flag_Comic»: el 5 contra 5 de Captura la bandera en la Isla de dunas (hora 16,5, solo para grabar; las lanzan
+-- «🎬 Captura la bandera» y «… cómic» del panel de Dunas con DunasCineController). Anclada al origen del mundo: todas las
+-- posiciones son las de la arena (suelo en y = 0; los patios de las bases, en y = 2; los Jaguar defienden x < 0 y atacan
+-- hacia +x; los Quetzal, al revés; el pedestal de cada bandera, en x = ±175 con su cara de arriba en y = 3,5; las puertas, en
+-- x = ±150; la pirámide del centro, de 36 de lado y 16 de alto, y su escalinata llega hasta |x| o |z| = 24 por los ejes).
+-- Lo que se ve (30 s):
+--    0 a  5   montaje: grúa sobre la bandera Jaguar, grúa sobre la Quetzal y los cinco Jaguar en línea ante su puerta
+--    5 a 12.4 carga de los cuatro Jaguar por el carril central contra los cinco Quetzal, que rodean la pirámide por los
+--             carriles de los lados; choque al oeste de la pirámide con ocho habilidades escalonadas (nunca más de 2
+--             grandes a la vez, 0,4 s entre inicios). El avatar rodea la pirámide por el carril del norte
+--   12.4 a 17.9 el avatar entra por la puerta Quetzal hasta el pedestal (x = 175), agacha la mano y, a cámara lenta ×0,35
+--             (animSpeed), se lleva la bandera (flagGrab)
+--   17.9 a 26.3 persecución de vuelta a x = -175 en tres planos con corte (la distancia, 350 studs, no cabe en 8 s a paso de
+--             carrera): dos Quetzal le siguen; en el último un Jaguar los frena (shake) y llega al pedestal propio:
+--             flagCapture
+--   26.3 a 30 captura, cartel «Captura la bandera», logo del juego y fundido a negro
+-- La variante cómic (15 s) usa las mismas acciones a la mitad de tiempo (escala FLAG_COMIC_SCALE; sin Rompehuesos, que a
+-- esa velocidad rebasaría el tope de efectos grandes) en seis viñetas: bases, carga, choque, robo, persecución y captura.
+-- Los cinco Jaguar son cuatro maniquíes y el avatar (copia, con el equipo de Jaguar); los cinco Quetzal, maniquíes. Van sin
+-- arma y con el equipo del Juego de pelota de su bando (ballGear): sin armadura de rol, `role` no cambiaría nada. Los
+-- tiempos, las posiciones y los encuadres son de diseño, a ajustar en Studio.
+-- Todo el bloque va dentro de una función: el ámbito principal del módulo está en el límite de 200 locales de Luau.
+local function buildFlagScenes(): { [string]: Scene? }
+	local FLAG_HOUR = 16.5 -- tarde baja, entre el atardecer dorado de Pets y la hora azul
+	local FLAG_SECONDS = 30
+	local FLAG_COMIC_SECONDS = 15
+	local FLAG_COMIC_SCALE = 0.5 -- el cómic corre la acción a la mitad de tiempo
+	local FLAG_TITLE = Strings.later("Captura la bandera")
+	local FLAG_STANDS = { Jaguar = Vector3.new(-175, 3.55, 0), Quetzal = Vector3.new(175, 3.55, 0) } -- techo del FlagStand
+	local FLAG_ANIM_STUDS = 16 -- studs/s a los que la pista de correr va a velocidad 1
+	local FLAG_RUN_SPEED = 22 -- studs/s del avatar al cruzar y de los Jaguar
+	local FLAG_QUETZAL_SPEED = 24 -- los Quetzal salen más tarde y rodean la pirámide
+	local FLAG_CHASE_SPEED = 21 -- la persecución
+	local FLAG_CHARGE_AT = 5 -- sale la carga de los Jaguar
+	local FLAG_QUETZAL_AT = 5.3 -- salen los Quetzal
+	local FLAG_GATE_AT = 12.4 -- el avatar entra por la puerta Quetzal
+	local FLAG_CHASE_AT = 17.9 -- empieza el primer plano de la persecución
+	local FLAG_LANE_Z = 27 -- carriles por los que se rodea la pirámide (la escalinata llega a |z| = 24 en x = 0)
+	local FLAG_GRAB_SLOW = 0.35 -- velocidad de la cámara lenta del robo
+	local FLAG_GRAB_WAIT = 0.75 -- segundos entre llegar al pedestal y soltar la bandera del pedestal (la mano baja a cámara lenta)
+	local FLAG_SLOW_SECONDS = 1.95 -- segundos de cámara lenta tras llegar al pedestal
+
+	-- Las Y son las del suelo medido en el Studio de Dunas (Sacbe 0,25; Plaza 0,2; rampa de 12° de x = ±140,5 a ±150,3; calzada
+	-- 2,10; altar 2,50): no hay Terrain donde apoyar a los actores, así que se colocan con la Y que se les da.
+	local FLAG_START: { [string]: Vector3 } = {
+		jaguarA = Vector3.new(-141, 0.25, -16),
+		jaguarB = Vector3.new(-139, 0.25, -8),
+		avatar = Vector3.new(-140, 0.25, 0),
+		jaguarC = Vector3.new(-139, 0.25, 8),
+		jaguarD = Vector3.new(-141, 0.25, 16),
+		quetzalA = Vector3.new(60, 0.2, -24),
+		quetzalB = Vector3.new(58, 0.2, -12),
+		quetzalC = Vector3.new(60, 0.2, 0),
+		quetzalD = Vector3.new(58, 0.2, 12),
+		quetzalE = Vector3.new(60, 0.2, 24),
+		quetzalG = Vector3.new(164, 2.1, -5.5), -- la guardia, junto al pedestal Quetzal: ve entrar al avatar y se gira a verlo robar
+	}
+	-- Dónde chocan (al oeste de la pirámide) y por qué carril rodea cada Quetzal (signo de z).
+	local FLAG_CLASH: { [string]: Vector3 } = {
+		jaguarA = Vector3.new(-37, 0.15, -12),
+		jaguarB = Vector3.new(-38, 0.15, -4),
+		jaguarC = Vector3.new(-38, 0.15, 5),
+		jaguarD = Vector3.new(-37, 0.15, 13),
+		quetzalA = Vector3.new(-30, 0.15, -12),
+		quetzalB = Vector3.new(-31, 0.15, -4),
+		quetzalC = Vector3.new(-30, 0.15, 5),
+		quetzalD = Vector3.new(-31, 0.15, 13),
+		quetzalE = Vector3.new(-29, 0.15, 21),
+	}
+	-- La embestida del Guerrero Jaguar: corre hasta FLAG_A_WINDUP, espera a que lleguen todos y embiste hasta FLAG_A_CHARGE_END.
+	local FLAG_A_WINDUP = Vector3.new(-53, 0.15, -12)
+	local FLAG_A_CHARGE_END = Vector3.new(-32.5, 0.15, -12)
+	local FLAG_A_WHIRL_END = Vector3.new(-28.5, 0.15, -12)
+	local FLAG_A_CHARGE_SECONDS = 0.6
+	local FLAG_A_WHIRL_SECONDS = 1.2
+	local FLAG_LANE: { [string]: number } = { quetzalA = -1, quetzalB = -1, quetzalC = 1, quetzalD = 1, quetzalE = 1 }
+	-- Los recorridos del avatar (los dos Quetzal que le siguen van desplazados de él, ver flagShift). Waypoints medidos con rayos
+	-- (sin obstáculos, a más de 3 studs de pilares y muros).
+	local FLAG_ROUTES: { [string]: { Vector3 } } = {
+		-- Rodea la pirámide por el carril del norte mientras los demás chocan.
+		charge = {
+			FLAG_START.avatar,
+			Vector3.new(-112, 0.1, 2),
+			Vector3.new(-80, 0, 18),
+			Vector3.new(-60, 0, 24),
+			Vector3.new(-30, 0.1, 24),
+			Vector3.new(-14, 0.2, FLAG_LANE_Z + 2),
+			Vector3.new(14, 0.2, FLAG_LANE_Z + 2),
+		},
+		-- Por la puerta Quetzal, la rampa y la calzada hasta el pedestal (el altar está a y = 2,5).
+		gate = {
+			Vector3.new(100, 0, 6),
+			Vector3.new(122, 0, 0),
+			Vector3.new(141, 0.47, 0),
+			Vector3.new(150, 2.39, 0),
+			Vector3.new(152, 2.1, 0),
+			Vector3.new(169.5, 2.1, 0),
+			Vector3.new(171.5, 2.5, 0),
+		},
+		chase1 = {
+			Vector3.new(171.5, 2.5, 0),
+			Vector3.new(169.5, 2.1, 0),
+			Vector3.new(152, 2.1, 0),
+			Vector3.new(150, 2.39, 0),
+			Vector3.new(141, 0.47, 0),
+			Vector3.new(139, 0.25, 0),
+			Vector3.new(122, 0.25, 0),
+		},
+		chase2 = { Vector3.new(48, 0.2, 26), Vector3.new(-8, 0.2, 26) },
+		chase3 = {
+			Vector3.new(-104, 0.25, 4),
+			Vector3.new(-139, 0.25, 0),
+			Vector3.new(-141, 0.47, 0),
+			Vector3.new(-150, 2.39, 0),
+			Vector3.new(-152, 2.1, 0),
+			Vector3.new(-169.5, 2.1, 0),
+			Vector3.new(-171.5, 2.5, 0),
+		},
+	}
+
+	local function flagRouteLength(points: { Vector3 }): number
+		local total = 0
+		for index = 2, #points do
+			total += (points[index] - points[index - 1]).Magnitude
+		end
+		return total
+	end
+
+	-- Dónde está quien recorre `points` a velocidad constante desde t0, en el segundo t.
+	local function flagRouteAt(points: { Vector3 }, t0: number, speed: number, t: number): Vector3
+		local distance = math.clamp((t - t0) * speed, 0, flagRouteLength(points))
+		for index = 2, #points do
+			local leg = (points[index] - points[index - 1]).Magnitude
+			if distance <= leg then
+				return points[index - 1]:Lerp(points[index], if leg > 0 then distance / leg else 1)
+			end
+			distance -= leg
+		end
+		return points[#points]
+	end
+
+	local function flagShift(points: { Vector3 }, dx: number, dz: number): { Vector3 }
+		local shifted = {}
+		for _, point in points do
+			table.insert(shifted, point + Vector3.new(dx, 0, dz))
+		end
+		return shifted
+	end
+
+	-- El recorrido de un Quetzal hasta el choque: rodea la pirámide por su carril.
+	local function flagLaneRoute(name: string): { Vector3 }
+		local z = FLAG_LANE[name] * FLAG_LANE_Z
+		return { FLAG_START[name], Vector3.new(38, 0.2, z), Vector3.new(-26, 0.15, z), FLAG_CLASH[name] }
+	end
+
+	-- El segundo en que el último llega al choque.
+	local function flagContact(): number
+		local contact = 0
+		for _, name in { "jaguarA", "jaguarB", "jaguarC", "jaguarD" } do
+			local length = flagRouteLength({ FLAG_START[name], FLAG_CLASH[name] })
+			contact = math.max(contact, FLAG_CHARGE_AT + length / FLAG_RUN_SPEED)
+		end
+		for name in FLAG_LANE do
+			contact = math.max(contact, FLAG_QUETZAL_AT + flagRouteLength(flagLaneRoute(name)) / FLAG_QUETZAL_SPEED)
+		end
+		return contact
+	end
+
+	type FlagTiming = {
+		contact: number, -- llegan al choque
+		gateEnd: number, -- el avatar llega al pedestal Quetzal
+		grabAt: number, -- suelta la bandera del pedestal (flagGrab)
+		slowEnd: number, -- vuelve la velocidad normal
+		c1Start: number,
+		c2Start: number,
+		c3Start: number,
+		captureAt: number, -- flagCapture
+	}
+
+	local function flagTiming(): FlagTiming
+		local gateEnd = FLAG_GATE_AT + flagRouteLength(FLAG_ROUTES.gate) / FLAG_RUN_SPEED
+		local c1Start = FLAG_CHASE_AT
+		local c2Start = c1Start + flagRouteLength(FLAG_ROUTES.chase1) / FLAG_CHASE_SPEED
+		local c3Start = c2Start + flagRouteLength(FLAG_ROUTES.chase2) / FLAG_CHASE_SPEED
+		local c3End = c3Start + flagRouteLength(FLAG_ROUTES.chase3) / FLAG_CHASE_SPEED
+		assert(
+			gateEnd + FLAG_SLOW_SECONDS < c1Start,
+			`Flag: la cámara lenta ({gateEnd}) no cabe antes de la persecución`
+		)
+		return {
+			contact = flagContact(),
+			gateEnd = gateEnd,
+			grabAt = gateEnd + FLAG_GRAB_WAIT,
+			slowEnd = gateEnd + FLAG_SLOW_SECONDS,
+			c1Start = c1Start,
+			c2Start = c2Start,
+			c3Start = c3Start,
+			captureAt = c3End + 0.15,
+		}
+	end
+
+	-- Dónde está `name` en el segundo t de la acción (sin escalar: el cómic lo divide entre FLAG_COMIC_SCALE), siguiendo los
+	-- mismos recorridos que flagScene. Sirve para encuadrar a los personajes en un instante, sin puntos fijos. Aproxima los
+	-- gestos sueltos (el empujón de la carga del Jaguar, la esquiva de los Quetzal).
+	local function flagActorAt(timing: FlagTiming, name: string, t: number): Vector3
+		if name == "avatar" then
+			if t < FLAG_GATE_AT then
+				return flagRouteAt(FLAG_ROUTES.charge, FLAG_CHARGE_AT, FLAG_RUN_SPEED, t)
+			elseif t < timing.c1Start then
+				return flagRouteAt(FLAG_ROUTES.gate, FLAG_GATE_AT, FLAG_RUN_SPEED, t)
+			elseif t < timing.c2Start then
+				return flagRouteAt(FLAG_ROUTES.chase1, timing.c1Start, FLAG_CHASE_SPEED, t)
+			elseif t < timing.c3Start then
+				return flagRouteAt(FLAG_ROUTES.chase2, timing.c2Start, FLAG_CHASE_SPEED, t)
+			end
+			return flagRouteAt(FLAG_ROUTES.chase3, timing.c3Start, FLAG_CHASE_SPEED, t)
+		end
+		if name == "quetzalG" then
+			return FLAG_START.quetzalG
+		end
+		if FLAG_LANE[name] == nil then -- un Jaguar
+			if name == "jaguarA" then
+				if t >= timing.c3Start then
+					local k = math.clamp((t - timing.c3Start - 0.35) / 0.35, 0, 1)
+					return Vector3.new(-92, 0.1, 1):Lerp(Vector3.new(-88, 0.1, 0), k)
+				end
+				local chargeAt = timing.contact - 0.35
+				if t >= chargeAt then
+					local k = math.clamp((t - chargeAt) / FLAG_A_CHARGE_SECONDS, 0, 1)
+					local whirl = math.clamp((t - timing.contact - 0.3) / FLAG_A_WHIRL_SECONDS, 0, 1)
+					return FLAG_A_WINDUP:Lerp(FLAG_A_CHARGE_END, k):Lerp(FLAG_A_WHIRL_END, whirl)
+				end
+				return flagRouteAt({ FLAG_START[name], FLAG_A_WINDUP }, FLAG_CHARGE_AT, FLAG_RUN_SPEED, t)
+			end
+			return flagRouteAt({ FLAG_START[name], FLAG_CLASH[name] }, FLAG_CHARGE_AT, FLAG_RUN_SPEED, t)
+		end
+		if (name == "quetzalD" or name == "quetzalE") and t >= timing.c1Start then
+			local isD = name == "quetzalD"
+			if t >= timing.c3Start then
+				local z = if isD then 4 else -4
+				local k = math.clamp((t - timing.c3Start - 0.7) / 0.4, 0, 1)
+				return Vector3.new(-82, 0.1, z):Lerp(Vector3.new(-72, 0.1, z * 1.25), k)
+			end
+			local dx, dz = if isD then 14 else 17, if isD then -2.5 else 2.5
+			if t >= timing.c2Start then
+				return flagRouteAt(flagShift(FLAG_ROUTES.chase2, dx, dz), timing.c2Start, FLAG_CHASE_SPEED, t)
+			end
+			return flagRouteAt(flagShift(FLAG_ROUTES.chase1, dx, dz), timing.c1Start, FLAG_CHASE_SPEED, t)
+		end
+		if name == "quetzalA" and t >= timing.contact + 0.75 then
+			return Vector3.new(-25.5, 0.15, -13.5) -- ya lanzada por la embestida
+		end
+		return flagRouteAt(flagLaneRoute(name), FLAG_QUETZAL_AT, FLAG_QUETZAL_SPEED, t)
+	end
+
+	-- La cámara de la persecución: detrás y a un lado de quien corre hacia -x, mirando un poco por delante.
+	local function flagChaseView(at: Vector3): (Vector3, Vector3, number)
+		return at + Vector3.new(8, 4.5, -5.5), at + Vector3.new(-6, 2.7, 0), 58
+	end
+
+	-- Los planos de la versión normal. Posiciones de diseño, dentro de la arena (sin pasar de los muros de los carriles, z = ±35,
+	-- ni de los muros de las bases).
+	local function flagCamera(timing: FlagTiming): { CameraPoint }
+		local camera: { CameraPoint } = {}
+		-- Corte seco: cada plano empieza 0,05 s después de acabar el anterior (los puntos repetidos evitan que la spline se curve).
+		local function put(t0: number, t1: number, a: CameraPoint, b: CameraPoint)
+			pushShot(camera, if t0 == 0 then 0 else t0 + 0.05, t1, a, b)
+		end
+		local function follow(t0: number, t1: number, at: (t: number) -> (Vector3, Vector3, number))
+			ballgameFollow(camera, t0 + 0.05, t1, at)
+		end
+		local jaguarFlag, quetzalFlag = FLAG_STANDS.Jaguar, FLAG_STANDS.Quetzal
+
+		-- Montaje: grúa sobre cada bandera (el patio de la base) y los Jaguar en línea ante su puerta.
+		put(
+			0,
+			1.9,
+			shot(jaguarFlag + Vector3.new(7, 1, -12), jaguarFlag + Vector3.new(0, 2.5, 0), 55),
+			shot(jaguarFlag + Vector3.new(9, 9.5, -14), jaguarFlag + Vector3.new(0, 3.5, 0), 50)
+		)
+		put(
+			1.9,
+			3.8,
+			shot(quetzalFlag + Vector3.new(-7, 1, -12), quetzalFlag + Vector3.new(0, 2.5, 0), 55),
+			shot(quetzalFlag + Vector3.new(-9, 9.5, -14), quetzalFlag + Vector3.new(0, 3.5, 0), 50)
+		)
+		put(
+			3.8,
+			FLAG_CHARGE_AT,
+			shot(Vector3.new(-120, 3.5, 0), Vector3.new(-140, 4, 0), 62),
+			shot(Vector3.new(-122, 3.6, 0), Vector3.new(-140, 4.2, 0), 58)
+		)
+		-- La carga, vista de lado desde el carril (los Jaguar corren hacia la cámara y la cruzan).
+		put(
+			FLAG_CHARGE_AT,
+			8,
+			shot(Vector3.new(-118, 6.5, -28), Vector3.new(-135, 3, -2), 58),
+			shot(Vector3.new(-100, 6.5, -28), Vector3.new(-95, 3.5, 0), 54)
+		)
+		-- El choque: general desde el hueco del centro y primer plano de lado.
+		put(
+			8,
+			10.9,
+			shot(Vector3.new(-22, 11, -30), Vector3.new(-42, 3, 0), 55),
+			shot(Vector3.new(-24, 10, -26), Vector3.new(-42, 3, 0), 50)
+		)
+		put(
+			10.9,
+			FLAG_GATE_AT,
+			shot(Vector3.new(-24, 5, 10), Vector3.new(-42, 4, -2), 50),
+			shot(Vector3.new(-26, 5, 8), Vector3.new(-43, 4, -2), 46)
+		)
+		-- El avatar entra por la puerta Quetzal, pasa el umbral y llega al pedestal.
+		put(
+			FLAG_GATE_AT,
+			14.2,
+			shot(Vector3.new(118, 5, 22), Vector3.new(95, 3, 12), 56),
+			shot(Vector3.new(130, 5, 20), Vector3.new(144, 3, 2), 52)
+		)
+		put(
+			14.2,
+			timing.gateEnd + 0.15,
+			shot(Vector3.new(158, 5.5, -13), Vector3.new(150, 3.5, 0), 55),
+			shot(Vector3.new(160, 5.5, -12), Vector3.new(168, 4, 0), 50)
+		)
+		-- El robo, a cámara lenta: de lado, con la mano del avatar y el mástil.
+		put(
+			timing.gateEnd + 0.15,
+			timing.c1Start,
+			shot(Vector3.new(167, 5, -8), Vector3.new(173, 4.2, 0), 44),
+			shot(Vector3.new(168.5, 5, -6.5), Vector3.new(174, 4.6, 0), 36)
+		)
+		-- La persecución: tres planos con corte, siempre detrás del avatar. El último empieza con el bloqueo del Jaguar.
+		follow(timing.c1Start, timing.c2Start, function(t)
+			return flagChaseView(flagRouteAt(FLAG_ROUTES.chase1, timing.c1Start, FLAG_CHASE_SPEED, t))
+		end)
+		follow(timing.c2Start, timing.c3Start, function(t)
+			return flagChaseView(flagRouteAt(FLAG_ROUTES.chase2, timing.c2Start, FLAG_CHASE_SPEED, t))
+		end)
+		put(
+			timing.c3Start,
+			timing.c3Start + 1.3,
+			shot(Vector3.new(-108, 5, -11), Vector3.new(-92, 3, 0), 58),
+			shot(Vector3.new(-106, 5, -11), Vector3.new(-96, 3, 0), 56)
+		)
+		follow(timing.c3Start + 1.3, timing.captureAt, function(t)
+			return flagChaseView(flagRouteAt(FLAG_ROUTES.chase3, timing.c3Start, FLAG_CHASE_SPEED, t))
+		end)
+		-- La captura en el pedestal propio.
+		put(
+			timing.captureAt,
+			FLAG_SECONDS,
+			shot(jaguarFlag + Vector3.new(15, 2.5, -10), jaguarFlag + Vector3.new(-1, 2, 0), 50),
+			shot(jaguarFlag + Vector3.new(20, 4, -12), jaguarFlag + Vector3.new(-1, 3, 0), 42)
+		)
+		return camera
+	end
+
+	-- Los cortes de Flag_Comic, en tres páginas y con los tiempos de la acción a la mitad (FLAG_COMIC_SCALE). Cada encuadre sale
+	-- de dónde están los personajes en ese instante (flagActorAt) y abarca solo a 2 o 3 armados, para que llenen la viñeta: una
+	-- viñeta congelada guarda solo a los personajes (y las banderas) sobre fondo liso.
+	--    P1 four_a  0 a ~ 6,2   Jaguar (grande), Quetzal y médico y mago Jaguar en 0,5 s cada uno; la carga y el choque
+	--    P2 two     ~ 6,2 a 11,45 la entrada por la puerta; el robo y la persecución
+	--    P3 single  11,45 a 15  el bloqueo del Jaguar, el último tramo y la captura, con el cartel, el logo y el fundido
+	local function flagComicCuts(timing: FlagTiming): { ComicCut }
+		local cuts: { ComicCut } = {}
+		local scale = FLAG_COMIC_SCALE
+		local CHASERS = { "avatar", "quetzalD", "quetzalE" }
+		local function addPage(
+			layout: string,
+			colors: { Color3 },
+			wipe: string?,
+			cells: { ComicCell },
+			order: { number }
+		)
+			for index, c in cells do
+				table.insert(cuts, {
+					t0 = c.t0,
+					t1 = c.t1,
+					layout = layout,
+					page = if index == 1 then { layout = layout, colors = colors, wipe = wipe } else nil,
+					cell = order[index],
+					pos = c.pos,
+					posB = c.posB,
+					subject = c.subject,
+					subjectB = c.subjectB,
+					width = c.width,
+					widthB = c.widthB,
+					bg = c.bg,
+				})
+			end
+		end
+
+		-- Centro y radio (en el suelo) de los personajes `names` en el segundo `t` de la acción.
+		local function groupAt(names: { string }, t: number): (Vector3, number)
+			local sum = Vector3.zero
+			local points = {}
+			for _, name in names do
+				local at = flagActorAt(timing, name, t)
+				table.insert(points, at)
+				sum += at
+			end
+			local center = sum / #points
+			local radius = 0
+			for _, at in points do
+				radius = math.max(radius, (at - center).Magnitude)
+			end
+			return center, radius
+		end
+		-- El plano que tiene a `names` en el segundo de cómic `c`: la cámara a `offset` del centro (a la altura del pecho) y un ancho
+		-- que los abarca con poco margen (nunca menos de `minWidth`).
+		local function framed(
+			names: { string },
+			c: number,
+			offset: Vector3,
+			minWidth: number
+		): (Vector3, Vector3, number)
+			local center, radius = groupAt(names, c / scale)
+			local subject = center + Vector3.new(0, 2.8, 0)
+			return subject + offset, subject, math.max(minWidth, radius * 2 + 3)
+		end
+		-- Una viñeta de c0 a c1 (segundos de cómic) que va del encuadre del principio al del final.
+		local function cellOf(
+			c0: number,
+			c1: number,
+			names: { string },
+			offset: Vector3,
+			minWidth: number,
+			bg: string
+		): ComicCell
+			local posA, subjectA, widthA = framed(names, c0, offset, minWidth)
+			local posB, subjectB, widthB = framed(names, c1, offset, minWidth)
+			local cell = comicCell(c0, c1, posA, subjectA, widthA, bg, subjectB)
+			cell.posB = posB
+			cell.widthB = widthB
+			return cell
+		end
+		-- Lo mismo en tramos de ~`step` s, para que la cámara siga a quien se mueve (la posición de un tramo a otro es continua).
+		local function followCells(
+			c0: number,
+			c1: number,
+			step: number,
+			names: { string },
+			offset: Vector3,
+			minWidth: number,
+			bg: string
+		): { ComicCell }
+			local out: { ComicCell } = {}
+			local count = math.max(1, math.round((c1 - c0) / step))
+			for index = 1, count do
+				local a = c0 + (c1 - c0) * (index - 1) / count
+				local b = c0 + (c1 - c0) * index / count
+				table.insert(out, cellOf(a, b, names, offset, minWidth, bg))
+			end
+			return out
+		end
+		local function append(list: { ComicCell }, order: { number }, index: number, items: { ComicCell })
+			for _, item in items do
+				table.insert(list, item)
+				table.insert(order, index)
+			end
+		end
+
+		local gateAt = FLAG_GATE_AT * scale
+		local gateEnd = timing.gateEnd * scale + 0.1
+		local chaseAt = timing.c1Start * scale
+		local chase2At = timing.c2Start * scale
+		local chase3At = timing.c3Start * scale
+		local captureAt = timing.captureAt * scale
+		local contactAt = timing.contact * scale
+
+		-- P1: tres retratos de 0,5 s (los Jaguar en su base, los Quetzal en la suya y el mago y el médico Jaguar) llenan los
+		-- recuadros al empezar; la cuarta viñeta sigue la carga del Guerrero y el Cazador Jaguar y luego el choque. Las páginas de
+		-- cuatro empiezan por la viñeta grande (la 4): de ahí el orden {4, 1, 2, 3}.
+		local cells1: { ComicCell } = {}
+		local order1: { number } = {}
+		append(cells1, order1, 4, {
+			cellOf(0, 0.55, { "jaguarB", "avatar", "jaguarC" }, Vector3.new(22, 2, -3), 24, "flat"),
+		})
+		append(cells1, order1, 1, {
+			cellOf(0.55, 1.1, { "quetzalB", "quetzalC", "quetzalD" }, Vector3.new(-15, 2.5, -9), 22, "dots"),
+		})
+		append(cells1, order1, 2, {
+			cellOf(1.1, 1.65, { "jaguarC", "jaguarD" }, Vector3.new(18, 2, -4), 14, "flat"),
+		})
+		local runEnd = contactAt - 0.3
+		append(
+			cells1,
+			order1,
+			3,
+			followCells(1.65, runEnd, 0.45, { "jaguarA", "jaguarB" }, Vector3.new(20, 2.5, -6), 14, "dots")
+		)
+		append(
+			cells1,
+			order1,
+			3,
+			followCells(runEnd, gateAt, 0.6, { "jaguarA", "quetzalA", "quetzalB" }, Vector3.new(8, 6, -20), 16, "dots")
+		)
+		addPage("four_a", COMIC_COLORS.montage, nil, cells1, order1)
+
+		-- P2: la entrada del avatar hasta junto a la guardia (viñeta 1); luego, en la 2, el robo, la persecución de frente por la
+		-- calzada y por el carril del norte. Los Quetzal que le siguen van detrás del avatar: la cámara, de frente, los tiene a
+		-- todos en línea.
+		local cells2: { ComicCell } = {}
+		local order2: { number } = {}
+		local entryEnd = gateAt + 1.2
+		append(
+			cells2,
+			order2,
+			1,
+			followCells(gateAt, entryEnd, 0.4, { "avatar", "quetzalG" }, Vector3.new(-9, 2, -9), 12, "dots")
+		)
+		append(
+			cells2,
+			order2,
+			2,
+			followCells(entryEnd, gateEnd, 0.4, { "avatar", "quetzalG" }, Vector3.new(-6, 1.8, -9), 11, "flat")
+		)
+		append(
+			cells2,
+			order2,
+			2,
+			{ cellOf(gateEnd, chaseAt, { "avatar", "quetzalG" }, Vector3.new(-4, 1.5, -9), 10, "flat") }
+		)
+		append(cells2, order2, 2, followCells(chaseAt, chase2At, 0.4, CHASERS, Vector3.new(-12, 2.2, -3), 11, "flat"))
+		append(cells2, order2, 2, followCells(chase2At, chase3At, 0.4, CHASERS, Vector3.new(-12, 2.2, 2), 11, "flat"))
+		addPage("two", COMIC_COLORS.mountain, "left", cells2, order2)
+
+		-- P3: el Guerrero Jaguar frena a los dos Quetzal, el último tramo hasta el pedestal propio y la captura. Una sola viñeta.
+		local cells3: { ComicCell } = {}
+		local order3: { number } = {}
+		local blockEnd = chase3At + 0.9
+		append(cells3, order3, 1, {
+			cellOf(chase3At, blockEnd, { "jaguarA", "quetzalD", "quetzalE" }, Vector3.new(-12, 4, -17), 18, "flat"),
+		})
+		append(
+			cells3,
+			order3,
+			1,
+			followCells(blockEnd, captureAt, 0.4, { "avatar" }, Vector3.new(9, 2, -6.5), 11, "flat")
+		)
+		append(
+			cells3,
+			order3,
+			1,
+			{ cellOf(captureAt, FLAG_COMIC_SECONDS, { "avatar" }, Vector3.new(11, 0.5, -9), 13, "flat") }
+		)
+		addPage("single", COMIC_COLORS.mangrove, "left", cells3, order3)
+		return cuts
+	end
+
+	-- Narración, bocadillos y onomatopeyas de Flag_Comic. Con el orden {4, 1, 2, 3} la viñeta k de la lista muestra la celda order[k] de
+	-- la plantilla: las onomatopeyas llevan el índice de la celda de la plantilla (P1: 3 la carga y el choque; P2 "two": 1 la entrada,
+	-- 2 el robo y la persecución; P3: 1). Un texto cada ~1,5 s, para que ninguna página se quede muda.
+	local function addFlagComicText(events: EventList, timing: FlagTiming)
+		local scale = FLAG_COMIC_SCALE
+		local function narration(t: number, text: string, seconds: number)
+			table.insert(events, {
+				t = t,
+				kind = "bubble",
+				balloon = "narration",
+				corner = "BL",
+				onPage = true,
+				text = text,
+				seconds = seconds,
+			})
+		end
+		local function speech(t: number, actor: string, text: string, seconds: number)
+			table.insert(
+				events,
+				{ t = t, kind = "bubble", balloon = "speech", actor = actor, text = text, seconds = seconds }
+			)
+		end
+		local lastSfx = -math.huge
+		local function sfx(t: number, text: string, layout: string, cell: number, fx: number, fy: number, rot: number)
+			if t - lastSfx < 0.7 then
+				return -- ninguna onomatopeya pisa a la anterior
+			end
+			lastSfx = t
+			table.insert(events, {
+				t = t,
+				kind = "sfx",
+				text = text,
+				pos = ComicPages.cellPoint(layout, cell, fx, fy),
+				rot = rot,
+				size = 0.3,
+				color = Color3.new(1, 1, 1),
+				seconds = 0.6,
+			})
+		end
+		local contact = timing.contact * scale
+		local grab = timing.grabAt * scale
+		local chase = timing.c1Start * scale
+		local block = timing.c3Start * scale
+		narration(0.2, Strings.later("Dos bases. Una bandera cada una."), 1.4)
+		sfx(FLAG_CHARGE_AT * scale + 0.1, Strings.later("¡ZUM!"), "four_a", 3, 0.5, 0.3, -10)
+		sfx(contact + 0.05, Strings.later("¡PAM!"), "four_a", 3, 0.5, 0.3, -12)
+		sfx(contact + 0.8, Strings.later("¡ZAS!"), "four_a", 3, 0.3, 0.7, 12)
+		narration(FLAG_GATE_AT * scale + 0.1, Strings.later("Roba la bandera rival."), 1.8)
+		speech(grab - 0.1, "avatar", Strings.later("¡Mía!"), 0.7)
+		sfx(grab + 0.05, Strings.later("¡ÑAP!"), "two", 2, 0.55, 0.25, -10)
+		sfx(chase + 0.7, Strings.later("¡FIUU!"), "two", 2, 0.6, 0.25, 12)
+		narration(block + 0.15, Strings.later("Y llévala a tu base."), 1.9)
+		speech(block + 0.1, "jaguarA", Strings.later("¡Alto ahí!"), 0.7)
+		sfx(block + 0.35, Strings.later("¡PAM!"), "single", 1, 0.3, 0.3, -12)
+		sfx(timing.captureAt * scale, Strings.later("¡BUM!"), "single", 1, 0.6, 0.3, -12)
+		-- Cartel final en la viñeta única: título, logo del juego y fundido a negro.
+		table.insert(events, { t = 13.7, kind = "title", text = FLAG_TITLE, seconds = 1 })
+		table.insert(events, {
+			t = 14.4,
+			kind = "logo",
+			text = Strings.later("Primal Banana Islands"),
+			sub = Strings.later("Monkey Survival"),
+			seconds = 0.5,
+		})
+		table.insert(events, { t = 14.55, kind = "fade", seconds = 0.4, toBlack = true })
+	end
+
+	-- Un maniquí armado de su bando: la armadura y el arma de su rol (WeaponTools.roleWeapon al nivel máximo) y la marca del equipo.
+	local function flagDummy(
+		team: string,
+		role: string,
+		armor: string,
+		pos: Vector3,
+		yaw: number,
+		skin: Color3
+	): { [string]: any }
+		return { kind = "dummy", role = role, armor = armor, team = team, pos = pos, yaw = yaw, skinColor = skin }
+	end
+
+	-- `variant`: "full" (30 s, con bandas) o "comic" (15 s, páginas con viñetas). Las acciones son las mismas; el cómic las corre a la
+	-- mitad de tiempo y pone su cámara y sus textos.
+	local function flagScene(variant: string): Scene
+		assert(variant == "full" or variant == "comic", `Flag: la variante {variant} no existe`)
+		local comic = variant == "comic"
+		local scale = if comic then FLAG_COMIC_SCALE else 1
+		local timing = flagTiming()
+		local events: EventList = {}
+		-- Un evento de la acción, con el tiempo y las duraciones a la escala de la variante.
+		local function add(event: { t: number, kind: string, [string]: any })
+			if scale ~= 1 then
+				event = table.clone(event)
+				event.t *= scale
+				if event.seconds then
+					event.seconds *= scale
+				end
+				if event.args and event.args.seconds then
+					event.args = table.clone(event.args)
+					event.args.seconds *= scale
+				end
+			end
+			table.insert(events, event)
+		end
+		-- `speed` (solo Run y Walk): velocidad de la pista (1 = ~16 studs/s); no se escala con la variante, la calcula quien llama.
+		local function anim(t: number, actor: string, action: string, seconds: number?, speed: number?)
+			add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds, speed = speed })
+		end
+		local function fx(t: number, name: string, from: string, to: any, args: { [string]: any }?)
+			add({ t = t, kind = "abilityFx", fx = name, from = from, to = to, args = args })
+		end
+		local function place(t: number, actor: string, pos: Vector3, yaw: number)
+			add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
+		end
+		-- Un recorrido a velocidad constante: en cada tramo se pone al actor mirando hacia donde va y se le mueve. Devuelve el segundo
+		-- en que llega.
+		local function route(actor: string, t0: number, points: { Vector3 }, speed: number): number
+			-- La pista corre al paso de lo que se mueve: studs/s reales (en el cómic, el doble) entre los ~16 de la animación.
+			anim(t0, actor, "Run", flagRouteLength(points) / speed, speed / scale / FLAG_ANIM_STUDS)
+			local t = t0
+			for index = 2, #points do
+				local seconds = (points[index] - points[index - 1]).Magnitude / speed
+				if seconds > 0.01 then
+					local yaw = yawBetween(points[index - 1], points[index])
+					place(t, actor, points[index - 1], yaw)
+					add({
+						t = t,
+						kind = "move",
+						actor = actor,
+						pos = points[index],
+						yaw = yaw,
+						seconds = seconds,
+						easing = Enum.EasingStyle.Linear,
+					})
+					t += seconds
+				end
+			end
+			return t
+		end
+
+		if not comic then
+			add({ t = 0, kind = "letterbox" })
+		end
+		add({ t = 0, kind = "flagProp", stands = FLAG_STANDS })
+
+		-- La carga: los cuatro Jaguar van derechos al choque; los Quetzal rodean la pirámide por su carril y llegan al choque.
+		local contact = 0 -- el segundo en que el último llega al choque
+		for _, name in { "jaguarB", "jaguarC", "jaguarD" } do
+			contact =
+				math.max(contact, route(name, FLAG_CHARGE_AT, { FLAG_START[name], FLAG_CLASH[name] }, FLAG_RUN_SPEED))
+		end
+		-- El Guerrero Jaguar corre hasta el arranque de su embestida (más abajo) y espera a que lleguen los demás.
+		route("jaguarA", FLAG_CHARGE_AT, { FLAG_START.jaguarA, FLAG_A_WINDUP }, FLAG_RUN_SPEED)
+		contact = math.max(
+			contact,
+			FLAG_CHARGE_AT + flagRouteLength({ FLAG_START.jaguarA, FLAG_CLASH.jaguarA }) / FLAG_RUN_SPEED
+		)
+		for name in FLAG_LANE do
+			contact = math.max(contact, route(name, FLAG_QUETZAL_AT, flagLaneRoute(name), FLAG_QUETZAL_SPEED))
+		end
+		-- El avatar se cuela por el carril del norte y, ya fuera de plano, aparece junto a la puerta Quetzal.
+		local sneakEnd = route("avatar", FLAG_CHARGE_AT, FLAG_ROUTES.charge, FLAG_RUN_SPEED)
+		if sneakEnd > FLAG_GATE_AT then
+			warn(`Flag: el avatar tarda {sneakEnd} s en rodear la pirámide y la puerta se abre a {FLAG_GATE_AT}`)
+		end
+
+		-- El choque, con las habilidades de cada rol saliendo del actor que corre (todos los tiempos, relativos a `contact`, son de
+		-- la versión larga: el cómic los corre a la mitad). Una habilidad por actor, el rival reacciona con anim y move, y nunca
+		-- más de 2 efectos grandes (AbilityShow.SPECS) a la vez ni a menos de 0,4 s: Torbellino (+0,3 a +2,0), Nova o Rayo
+		-- (+0,75), Curación en área (+2,05). La Nova (grande) solo en la larga: en el cómic la hace un Rayo.
+		local c = contact
+		-- Una víctima salta hacia atrás: sube con un impulso y cae un poco más allá (el suelo es y0 de `from`).
+		local function hop(t: number, actor: string, from: Vector3, to: Vector3, yaw: number)
+			anim(t, actor, "DodgeBack", 0.8)
+			add({
+				t = t,
+				kind = "move",
+				actor = actor,
+				pos = from:Lerp(to, 0.5) + Vector3.new(0, 1.8, 0),
+				yaw = yaw,
+				seconds = 0.25,
+				easing = Enum.EasingStyle.Quad,
+			})
+			add({
+				t = t + 0.25,
+				kind = "move",
+				actor = actor,
+				pos = to,
+				yaw = yaw,
+				seconds = 0.3,
+				easing = Enum.EasingStyle.Quad,
+			})
+		end
+		-- De lejos: el Guerrero Jaguar grita; el Mago Jaguar lanza una bola de fuego al Cazador Quetzal, el Cazador Jaguar dispara
+		-- una andanada al Médico Quetzal y el Cazador Quetzal le contesta. Las víctimas lo notan (con anim: aún corren).
+		anim(c - 3.4, "jaguarA", "WarCry", 0.9)
+		fx(c - 3.3, "WarCry", "jaguarA", nil, { seconds = 0.9 })
+		anim(c - 2.2, "jaguarC", "Spell", 0.6)
+		fx(c - 2.08, "Fireball", "jaguarC", "quetzalC")
+		anim(c - 1.2, "quetzalC", "DodgeBack", 0.7)
+		anim(c - 1.7, "jaguarB", "Arrow", 0.7)
+		fx(c - 1.54, "MultiShot", "jaguarB", "quetzalB")
+		anim(c - 0.9, "quetzalB", "DodgeBack", 0.7)
+		anim(c - 1.1, "quetzalC", "Arrow", 0.7)
+		fx(c - 0.94, "MultiShot", "quetzalC", "jaguarB")
+		anim(c - 0.3, "jaguarB", "DodgeBack", 0.7)
+		-- Embestida del Guerrero Jaguar contra el Guerrero Quetzal: llega a su sitio, el Quetzal sale despedido por los aires y el
+		-- Torbellino sigue avanzando entre ellos.
+		local charge = c - 0.35
+		anim(charge, "jaguarA", "Charge", 0.7)
+		fx(charge + 0.05, "Charge", "jaguarA", nil, { seconds = 0.7 })
+		add({
+			t = charge,
+			kind = "move",
+			actor = "jaguarA",
+			pos = FLAG_A_CHARGE_END,
+			yaw = -90,
+			seconds = FLAG_A_CHARGE_SECONDS,
+			easing = Enum.EasingStyle.Quad,
+		})
+		add({ t = c + 0.1, kind = "shake", amp = 0.2, seconds = 0.4 })
+		hop(c + 0.1, "quetzalA", FLAG_CLASH.quetzalA, Vector3.new(-25.5, 0.15, -13.5), 90)
+		anim(c + 0.3, "jaguarA", "Whirlwind", FLAG_A_WHIRL_SECONDS) -- grande (hasta c + 2,0)
+		fx(c + 0.3, "Whirlwind", "jaguarA", nil, { seconds = FLAG_A_WHIRL_SECONDS })
+		add({
+			t = c + 0.3,
+			kind = "move",
+			actor = "jaguarA",
+			pos = FLAG_A_WHIRL_END,
+			yaw = -90,
+			seconds = FLAG_A_WHIRL_SECONDS,
+			easing = Enum.EasingStyle.Linear,
+		})
+		-- El Mago Quetzal (que sigue el choque desde el sur) lanza su hechizo sobre el Mago Jaguar: Nova de hielo en la larga, Rayo
+		-- en el cómic. El Mago Jaguar sale despedido.
+		if comic then
+			anim(c + 0.65, "quetzalE", "CastForward", 0.6)
+			fx(c + 0.75, "Lightning", "quetzalE", "jaguarC")
+		else
+			anim(c + 0.65, "quetzalE", "CastArea", 1)
+			fx(c + 0.75, "FrostNova", "quetzalE", "jaguarC", { radius = 7 }) -- grande (hasta c + 2,55)
+		end
+		hop(c + 0.95, "jaguarC", FLAG_CLASH.jaguarC, Vector3.new(-42, 0.15, 6), -90)
+		-- El Guerrero Quetzal D tajea al Médico Jaguar, que sale despedido; el Médico Quetzal se venda.
+		anim(c + 1.0, "quetzalD", "Slash1")
+		hop(c + 1.2, "jaguarD", FLAG_CLASH.jaguarD, Vector3.new(-41.5, 0.15, 14), -90)
+		anim(c + 1.2, "quetzalB", "Bandage", 1.2)
+		-- El Médico Jaguar se levanta y cura al equipo (verde solo aquí: es la curación).
+		anim(c + 1.95, "jaguarD", "CastArea", 1.1)
+		fx(c + 2.05, "AreaHeal", "jaguarD", nil) -- grande (hasta c + 3,45)
+
+		-- El robo: el avatar sale por la puerta Quetzal, llega al pedestal y baja la mano a cámara lenta.
+		route("avatar", FLAG_GATE_AT, FLAG_ROUTES.gate, FLAG_RUN_SPEED)
+		anim(timing.gateEnd + 0.05, "avatar", "Place", 1.6)
+		add({ t = timing.gateEnd + 0.15, kind = "animSpeed", speed = FLAG_GRAB_SLOW })
+		add({ t = timing.grabAt, kind = "flagGrab", team = "Quetzal", actor = "avatar" })
+		add({ t = timing.slowEnd, kind = "animSpeed", speed = 1 })
+		place(timing.slowEnd + 0.02, "avatar", FLAG_ROUTES.gate[#FLAG_ROUTES.gate], 90)
+		-- La guardia Quetzal se vuelve hacia el avatar cuando este llega al pedestal.
+		place(
+			timing.gateEnd,
+			"quetzalG",
+			FLAG_START.quetzalG,
+			yawBetween(FLAG_START.quetzalG, FLAG_ROUTES.gate[#FLAG_ROUTES.gate])
+		)
+
+		-- La guardia Quetzal (Cazador) apunta con el arco al ver al avatar en el altar y le dispara cuando echa a correr.
+		anim(timing.gateEnd + 0.3, "quetzalG", "AimBow", timing.c1Start - timing.gateEnd - 0.5)
+		anim(timing.c1Start - 0.15, "quetzalG", "Arrow", 0.7)
+		fx(timing.c1Start, "MultiShot", "quetzalG", "avatar")
+		-- La persecución: tres planos con corte. Dos Quetzal le siguen a 14 studs; en el último, un Jaguar los frena.
+		local function chase(t0: number, points: { Vector3 })
+			route("avatar", t0, points, FLAG_CHASE_SPEED)
+			route("quetzalD", t0, flagShift(points, 14, -2.5), FLAG_CHASE_SPEED)
+			route("quetzalE", t0, flagShift(points, 17, 2.5), FLAG_CHASE_SPEED)
+		end
+		chase(timing.c1Start, FLAG_ROUTES.chase1)
+		chase(timing.c2Start, FLAG_ROUTES.chase2)
+		-- El Mago Quetzal, que corre tras él, le tira un Rayo.
+		anim(timing.c2Start + 0.4, "quetzalE", "CastForward", 0.6)
+		fx(timing.c2Start + 0.5, "Lightning", "quetzalE", "avatar")
+		-- Último tramo: el avatar sigue solo; los Quetzal salen más atrás y se topan con el Jaguar B.
+		local blockAt = timing.c3Start
+		route("avatar", blockAt, FLAG_ROUTES.chase3, FLAG_CHASE_SPEED)
+		place(blockAt, "jaguarA", Vector3.new(-92, 0.1, 1), -90)
+		place(blockAt, "quetzalD", Vector3.new(-76, 0.1, 4), 90)
+		place(blockAt, "quetzalE", Vector3.new(-76, 0.1, -4), 90)
+		route("quetzalD", blockAt + 0.05, { Vector3.new(-76, 0.1, 4), Vector3.new(-85, 0.1, 4) }, FLAG_CHASE_SPEED)
+		route("quetzalE", blockAt + 0.05, { Vector3.new(-76, 0.1, -4), Vector3.new(-85, 0.1, -4) }, FLAG_CHASE_SPEED)
+		anim(blockAt + 0.3, "jaguarA", "Charge", 0.6)
+		fx(blockAt + 0.35, "Charge", "jaguarA", nil, { seconds = 0.6 })
+		add({
+			t = blockAt + 0.35,
+			kind = "move",
+			actor = "jaguarA",
+			pos = Vector3.new(-88, 0.1, 0),
+			yaw = -90,
+			seconds = 0.35,
+			easing = Enum.EasingStyle.Quad,
+		})
+		add({ t = blockAt + 0.7, kind = "shake", amp = 0.3, seconds = 0.45 })
+		for _, name in { "quetzalD", "quetzalE" } do
+			local z = if name == "quetzalD" then 5 else -5
+			hop(blockAt + 0.7, name, Vector3.new(-85, 0.1, z * 0.8), Vector3.new(-71, 0.1, z), 90)
+		end
+
+		-- La captura en el pedestal propio: la bandera vuelve al suyo con un destello y el avatar celebra.
+		add({ t = timing.captureAt, kind = "flagCapture", team = "Quetzal", pos = FLAG_STANDS.Jaguar })
+		add({ t = timing.captureAt, kind = "shake", amp = 0.15, seconds = 0.5 })
+		anim(timing.captureAt + 0.2, "avatar", "Cheer", 1.6)
+
+		-- Cámara y textos de cada variante.
+		local camera: { CameraPoint }
+		if comic then
+			local cuts = flagComicCuts(timing)
+			camera = cutShots(comicShots(cuts)) :: any
+			addComicPages(events, cuts)
+			addFlagComicText(events, timing)
+		else
+			camera = flagCamera(timing)
+			table.insert(events, {
+				t = 0.4,
+				kind = "caption",
+				text = Strings.later("Dos bases. Una bandera cada una."),
+				seconds = 2.6,
+			})
+			table.insert(events, {
+				t = FLAG_GATE_AT + 0.6,
+				kind = "caption",
+				text = Strings.later("Roba la bandera rival."),
+				seconds = 2.2,
+			})
+			table.insert(events, {
+				t = timing.c1Start + 0.3,
+				kind = "caption",
+				text = Strings.later("Y llévala a tu base."),
+				seconds = 2.2,
+			})
+			table.insert(events, {
+				t = timing.captureAt + 0.1,
+				kind = "caption",
+				text = Strings.later("¡Bandera capturada!"),
+				seconds = 1,
+			})
+			-- Cartel final, logo del juego y fundido (los mismos tiempos relativos que Pets, Mounts y Ballgame).
+			table.insert(events, {
+				t = 27.2,
+				kind = "title",
+				text = FLAG_TITLE,
+				sub = Strings.later("5 contra 5 en la Isla de dunas"),
+				seconds = 1.3,
+			})
+			table.insert(events, {
+				t = 28.5,
+				kind = "logo",
+				text = Strings.later("Primal Banana Islands"),
+				sub = Strings.later("Monkey Survival"),
+				seconds = 0.9,
+			})
+			table.insert(events, { t = 29.3, kind = "fade", seconds = 0.7, toBlack = true })
+		end
+
+		local start = FLAG_START
+		return {
+			duration = if comic then FLAG_COMIC_SECONDS else FLAG_SECONDS,
+			audience = "Self",
+			freeze = true,
+			skippable = true,
+			hour = FLAG_HOUR,
+			noBlur = true, -- sin DepthOfField ni Blur del place mientras suena (SceneLight)
+			actors = {
+				-- Cinco por bando, con la armadura y el arma de su rol (nivel máximo, sin trajes) y la marca del bando. Los
+				-- repetidos (Guerrero del avatar Jaguar, Guerrero y Cazador extra Quetzal) llevan la armadura de plata: menos piezas.
+				jaguarA = flagDummy(
+					"Jaguar",
+					"Guerrero",
+					"VolcanicArmor",
+					start.jaguarA,
+					-90,
+					Color3.fromRGB(255, 204, 153)
+				),
+				jaguarB = flagDummy(
+					"Jaguar",
+					"Cazador",
+					"VolcanicArmor",
+					start.jaguarB,
+					-90,
+					Color3.fromRGB(198, 134, 92)
+				),
+				jaguarC = flagDummy("Jaguar", "Mago", "VolcanicArmor", start.jaguarC, -90, Color3.fromRGB(141, 85, 58)),
+				jaguarD = flagDummy(
+					"Jaguar",
+					"Medico",
+					"VolcanicArmor",
+					start.jaguarD,
+					-90,
+					Color3.fromRGB(233, 183, 140)
+				),
+				avatar = {
+					kind = "localPlayer",
+					copy = true,
+					role = "Guerrero",
+					armor = "VolcanicArmor",
+					team = "Jaguar",
+					pos = start.avatar,
+					yaw = -90,
+				},
+				quetzalA = flagDummy(
+					"Quetzal",
+					"Guerrero",
+					"VolcanicArmor",
+					start.quetzalA,
+					90,
+					Color3.fromRGB(141, 85, 58)
+				),
+				quetzalB = flagDummy(
+					"Quetzal",
+					"Medico",
+					"VolcanicArmor",
+					start.quetzalB,
+					90,
+					Color3.fromRGB(233, 183, 140)
+				),
+				quetzalC = flagDummy(
+					"Quetzal",
+					"Cazador",
+					"VolcanicArmor",
+					start.quetzalC,
+					90,
+					Color3.fromRGB(198, 134, 92)
+				),
+				quetzalD = flagDummy(
+					"Quetzal",
+					"Guerrero",
+					"SilverArmor",
+					start.quetzalD,
+					90,
+					Color3.fromRGB(255, 204, 153)
+				),
+				quetzalE = flagDummy(
+					"Quetzal",
+					"Mago",
+					"VolcanicArmor",
+					start.quetzalE,
+					90,
+					Color3.fromRGB(176, 112, 76)
+				),
+				quetzalG = flagDummy(
+					"Quetzal",
+					"Cazador",
+					"SilverArmor",
+					start.quetzalG,
+					yawBetween(start.quetzalG, FLAG_ROUTES.gate[1]),
+					Color3.fromRGB(233, 183, 140)
+				),
+			},
+			camera = camera,
+			events = events,
+		}
+	end
+
+	-- Cada variante va en su pcall, para que una que falle no tumbe a las otras ni al resto de cinemáticas.
+	local flagScenes: { [string]: Scene? } = {}
+	for name, variant in { Flag = "full", Flag_Comic = "comic" } do
+		local ok, built = pcall(flagScene, variant)
+		if ok then
+			flagScenes[name] = built :: Scene
+		else
+			warn(`Cinematics: no se pudo construir la escena {name}: {built}`)
+		end
+	end
+	return flagScenes
+end
+local flagScenes = buildFlagScenes()
+
 local Cinematics: { [string]: Scene } = {
+	-- Captura la bandera (G10): solo para grabar; las lanzan «🎬 Captura la bandera» y «… cómic» del panel de Dunas
+	-- (DunasCineController).
+	Flag = flagScenes.Flag,
+	Flag_Comic = flagScenes.Flag_Comic,
+
 	-- Juego de pelota (G9a y G9b): solo para grabar; las lanzan «🎬 Juego de pelota», «… reel» y «… cómic» del panel de
-	-- Dunas (BallgameCineController).
+	-- Dunas (DunasCineController).
 	Ballgame = if ballgameOk then ballgameBuilt :: Scene else nil,
 	Ballgame_Reel = if ballgameReelOk then ballgameReelBuilt :: Scene else nil,
 	Ballgame_Comic = if ballgameComicOk then ballgameComicBuilt :: Scene else nil,

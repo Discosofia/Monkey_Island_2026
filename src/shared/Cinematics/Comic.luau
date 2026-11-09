@@ -1136,6 +1136,15 @@ local function frozenSources(ctx: { [string]: any }): { { name: string, model: M
 			end
 		end
 	end
+	-- Las banderas de la escena de Captura la bandera (FlagActor): sin ellas, el robo y la captura se congelan sin su motivo.
+	local flags = workspace:FindFirstChild("CinematicFlags")
+	if flags then
+		for _, child in flags:GetChildren() do
+			if child:IsA("Model") then
+				table.insert(out, { name = child.Name, model = child })
+			end
+		end
+	end
 	local monkeys = workspace:FindFirstChild("CinematicActors")
 	if monkeys then
 		for _, child in monkeys:GetChildren() do

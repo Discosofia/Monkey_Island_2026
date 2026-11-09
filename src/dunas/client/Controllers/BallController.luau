@@ -259,7 +259,7 @@ function BallController.newBall(): Part
 	return newBallPart()
 end
 
--- Esconde (o devuelve) la pelota del juego mientras suena una cinemática con su propia pelota (BallgameCineController).
+-- Esconde (o devuelve) la pelota del juego mientras suena una cinemática con su propia pelota (DunasCineController).
 function BallController.setHiddenByScene(hidden: boolean)
 	hiddenByScene = hidden
 	if hidden then

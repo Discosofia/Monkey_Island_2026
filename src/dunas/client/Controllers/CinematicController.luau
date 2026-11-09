@@ -1,6 +1,6 @@
 --!strict
 -- Cinemáticas del juego (Fase 25). La lógica está en Shared/Cinematics/CinematicClient. En Dunas solo hay escenas
--- locales (BallgameCineController): no hay CinematicService, así que Remotes.Cinematic nunca llega.
+-- locales (DunasCineController): no hay CinematicService, así que Remotes.Cinematic nunca llega.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
