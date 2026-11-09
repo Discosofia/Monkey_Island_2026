@@ -12,12 +12,12 @@
 -- de los rayos del combate (Config.ShotCollisionGroup). CanQuery en false no basta: un rayo con los
 -- parámetros por defecto sí golpea una pieza que choca.
 
-local Lighting = game:GetService("Lighting")
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabLighting = require(ReplicatedStorage.Shared.LabLighting)
 local LabMapModels = require(ReplicatedStorage.Shared.LabMapModels)
 
 local PALETTE = LabMapModels.PALETTE
@@ -57,28 +57,8 @@ export type Geometry = {
 	gateHeight: number,
 }
 
--- Iluminación de un mapa: applyLighting pone todas estas propiedades (la iluminación es global, así que
--- cada mapa tiene que dejar las suyas). Sin bloom, desenfoque o rayos de sol, esos efectos se apagan.
-export type LightingPreset = {
-	clockTime: number,
-	latitude: number,
-	brightness: number,
-	exposure: number?,
-	ambient: Color3,
-	outdoorAmbient: Color3,
-	atmosphere: {
-		density: number,
-		offset: number,
-		color: Color3,
-		decay: Color3,
-		glare: number,
-		haze: number,
-	},
-	colorCorrection: { brightness: number?, contrast: number, saturation: number, tint: Color3 },
-	bloom: { intensity: number, size: number, threshold: number }?,
-	depthOfField: { farIntensity: number, focusDistance: number, inFocusRadius: number, nearIntensity: number }?,
-	sunRays: { intensity: number, spread: number }?,
-}
+-- Iluminación de un mapa (el tipo y los presets viven en Shared/LabLighting).
+export type LightingPreset = LabLighting.LightingPreset
 
 -- Punto de aparición libre (Todos contra todos): x, z, la altura del suelo ("y", 0 si falta) y "closable" si
 -- lo cubre el derrumbe de los formatos pequeños (no se usa mientras está cerrado).
@@ -247,75 +227,9 @@ end
 
 local tone = LabParts.tone
 
--- Pone la iluminación del mapa (todas las propiedades: la iluminación es global y el mapa anterior deja las
--- suyas) y apaga los efectos que el preset no trae.
+-- Pone la iluminación del mapa (la lógica está en Shared/LabLighting, que también usan las cinemáticas).
 function LabParts.applyLighting(preset: LightingPreset)
-	Lighting.ClockTime = preset.clockTime
-	Lighting.GeographicLatitude = preset.latitude
-	Lighting.Brightness = preset.brightness
-	Lighting.ExposureCompensation = preset.exposure or 0
-	Lighting.Ambient = preset.ambient
-	Lighting.OutdoorAmbient = preset.outdoorAmbient
-
-	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
-	atmosphere.Density = preset.atmosphere.density
-	atmosphere.Offset = preset.atmosphere.offset
-	atmosphere.Color = preset.atmosphere.color
-	atmosphere.Decay = preset.atmosphere.decay
-	atmosphere.Glare = preset.atmosphere.glare
-	atmosphere.Haze = preset.atmosphere.haze
-	atmosphere.Parent = Lighting
-
-	local grade = (Lighting:FindFirstChild("ColorLaboratorio") :: ColorCorrectionEffect?)
-		or Instance.new("ColorCorrectionEffect")
-	grade.Name = "ColorLaboratorio"
-	grade.Parent = Lighting
-	grade.Brightness = preset.colorCorrection.brightness or 0
-	grade.Contrast = preset.colorCorrection.contrast
-	grade.Saturation = preset.colorCorrection.saturation
-	grade.TintColor = preset.colorCorrection.tint
-
-	local bloom = Lighting:FindFirstChild("BloomLaboratorio") :: BloomEffect?
-	if preset.bloom then
-		bloom = bloom or Instance.new("BloomEffect")
-		local effect = bloom :: BloomEffect
-		effect.Name = "BloomLaboratorio"
-		effect.Intensity = preset.bloom.intensity
-		effect.Size = preset.bloom.size
-		effect.Threshold = preset.bloom.threshold
-		effect.Enabled = true
-		effect.Parent = Lighting
-	elseif bloom then
-		bloom.Enabled = false
-	end
-
-	local depth = Lighting:FindFirstChild("DesenfoqueLaboratorio") :: DepthOfFieldEffect?
-	if preset.depthOfField then
-		depth = depth or Instance.new("DepthOfFieldEffect")
-		local effect = depth :: DepthOfFieldEffect
-		effect.Name = "DesenfoqueLaboratorio"
-		effect.FarIntensity = preset.depthOfField.farIntensity
-		effect.FocusDistance = preset.depthOfField.focusDistance
-		effect.InFocusRadius = preset.depthOfField.inFocusRadius
-		effect.NearIntensity = preset.depthOfField.nearIntensity
-		effect.Enabled = true
-		effect.Parent = Lighting
-	elseif depth then
-		depth.Enabled = false
-	end
-
-	local rays = Lighting:FindFirstChild("RayosLaboratorio") :: SunRaysEffect?
-	if preset.sunRays then
-		rays = rays or Instance.new("SunRaysEffect")
-		local effect = rays :: SunRaysEffect
-		effect.Name = "RayosLaboratorio"
-		effect.Intensity = preset.sunRays.intensity
-		effect.Spread = preset.sunRays.spread
-		effect.Enabled = true
-		effect.Parent = Lighting
-	elseif rays then
-		rays.Enabled = false
-	end
+	LabLighting.apply(preset)
 end
 
 -- Franjas de peligro (amarillo y negro) a lo largo de X, de "length" studs, en el suelo.

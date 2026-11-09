@@ -36,6 +36,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabLighting = require(ReplicatedStorage.Shared.LabLighting)
 local LabMapModels = require(ReplicatedStorage.Shared.LabMapModels)
 local LabParts = require(script.Parent.Parent.LabParts)
 
@@ -72,22 +73,7 @@ local GEOMETRY: LabParts.Geometry = {
 }
 
 -- Mediodía nublado en la ciudad en ruinas: luz fría, sombras suaves y bruma azulada entre las torres.
-local LIGHTING: LabParts.LightingPreset = {
-	clockTime = 13.5,
-	latitude = 10,
-	brightness = 2,
-	ambient = Color3.fromRGB(84, 90, 100),
-	outdoorAmbient = Color3.fromRGB(128, 136, 148),
-	atmosphere = {
-		density = 0.36,
-		offset = 0.1,
-		color = Color3.fromRGB(176, 190, 204),
-		decay = Color3.fromRGB(96, 110, 124),
-		glare = 0,
-		haze = 2,
-	},
-	colorCorrection = { contrast = 0.08, saturation = -0.06, tint = Color3.fromRGB(236, 242, 250) },
-}
+local LIGHTING: LabParts.LightingPreset = LabLighting.presets.Central
 
 -- Semilla del decorado al azar (tonos, cables, lianas): el mismo mapa en cada construcción.
 local SEED = 1313

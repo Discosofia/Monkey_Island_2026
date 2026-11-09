@@ -102,7 +102,20 @@ local function toggleDummies(player: Player)
 	TrainingDummies.place(spots, spawn)
 end
 
+local cineCounter = 0
+
+-- Lanza una cinemática del Laboratorio (Fase 25, G12): LabCineController (cliente) la lanza en local. El atributo LabCine
+-- lleva «<id de la escena>:<contador>» para que repetir la misma orden también dispare el cambio.
+local function startCine(player: Player, sceneId: string)
+	cineCounter += 1
+	player:SetAttribute("LabCine", `{sceneId}:{cineCounter}`)
+end
+
 local COMMANDS: { [string]: (player: Player) -> () } = {
+	-- Escena de prueba del motor (armas del Laboratorio, luz y primera persona).
+	CineLabEngine = function(player)
+		startCine(player, "LabEngine")
+	end,
 	Solo = function()
 		LabMatchService.debugSolo()
 	end,

@@ -6894,6 +6894,49 @@ Las pistas de primera persona solo se han visto de perfil y en plano apretado, a
 1. [ ] Juega el Laboratorio publicado con la cuenta dueña del juego, en una partida: corre, desliza y recarga con el rifle, y dispara el arpón en primera persona.
    ✅ Suenan y se ven las mismas pistas que en Studio. Si una pista no carga, anota su id. El aviso ya conocido de `rbxassetid://203785492` no cuenta.
 
+## 179. Fase 25 G12: el Laboratorio en el motor de cinemáticas (09-11-2026)
+
+Escena de prueba `LabEngine` (16 s, de Central a Azotea), solo de ingeniería y no la escena final (esa es G13). Orden «🎬 Motor del Laboratorio (escena de prueba, 16 s)» en el panel de pruebas del Laboratorio: cuatro maniquíes con las cuatro armas, `labShot` con el efecto real de cada arma sin daño, `labLight` de Central a Azotea y la primera persona del rifle de un actor (`fpView`, con `Equip`, `Fire` y `Reload`). Lo llevan `CinematicController` y `LabCineController` (atributo `LabCine`, lista `LAB_SCENES`), y los presets de luz están en `Shared/LabLighting`. La vista de brazos pasa de `FirstPersonController` a `combatClient/LabViewBuilder`, que usan el juego y la escena. Mientras dura la escena, `LabCineController` pone `CinematicActive` en el jugador y `FirstPersonController` apaga su vista propia; `LabActor` lo quita al acabar. Probado en Play, con un jugador y sin copia del perfil: presets idénticos a los originales (comparados en edición); sin errores propios en la consola; 4 maniquíes con su arma y pista `Aim*`; proyectiles y destellos de `AbilityFx`; luz de Central a Azotea y de vuelta; 0 rigs del jugador en tercera persona durante la escena, 1 (el del actor) en primera persona y 1 (el del jugador) al acabar, con y sin arma equipada; al acabar, cámara `Custom`, `CameraMode` `LockFirstPerson`, sin `CinematicActive` ni `Cinematic_*`. Lo de abajo no se ha visto: el MCP no captura Play, así que el juicio visual lo hace el usuario.
+
+### 179.1 En el Studio del Laboratorio, en Play, con un jugador (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0)
+
+1. [ ] Pulsa «🎬 Motor del Laboratorio (escena de prueba, 16 s)» en el panel de pruebas, con el botón del panel (no desde la barra de comandos ni el MCP), y mira la escena entera sin tocar la cámara.
+   ✅ Arranca sin pantalla negra larga y sin avisos en rojo en la Salida. Al acabar, el jugador recupera la cámara y puede moverse.
+2. [ ] Mira los encuadres de la escena, sobre todo los que se acercan a la caja de x = 57.
+   ✅ La cámara no atraviesa la caja en ningún plano. Si choca, anota el segundo.
+3. [ ] Mira a los cuatro maniquíes con su arma en la mano (dardos, rifle, arpón y cañón).
+   ✅ Cada uno sostiene su arma en la mano, sin flotar ni atravesar el cuerpo, y hace su pista de apuntar.
+4. [ ] Mira el fogonazo y el proyectil de cada arma al disparar.
+   ✅ Todo sale de la boca de su arma, no del suelo ni del maniquí de al lado. Nadie recibe daño.
+5. [ ] Mira el cambio de luz de Central a Azotea.
+   ✅ La luz pasa al tono de Azotea sin saltos bruscos, y se ve bien sobre el mapa Central, que sigue ahí.
+6. [ ] Mira la primera persona del rifle del actor (la cámara se pone en su cabeza).
+   ✅ El actor se oculta, y se ven los brazos con el rifle en la posición de cadera (`HIP_OFFSET`). El equipo, el disparo y la recarga se ven con sus pistas, y el brazo acaba en la pose de apuntar.
+7. [ ] Durante toda la escena, mira si aparece el arma o los brazos del propio jugador flotando en algún plano, en tercera o en primera persona.
+   ✅ No aparece nada flotando. Si aparece, anota el plano y el segundo.
+8. [ ] Pulsa «Saltar» a los 5 segundos, con la escena a medias y en un plano de tercera persona.
+   ✅ Vuelve la cámara del jugador, la luz del mapa en el que estaba, su vista propia y el ratón, como estaba antes de la escena. No queda pantalla negra ni restos de la escena.
+9. [ ] Lanza la escena de nuevo y pulsa «Saltar» mientras el actor está en primera persona disparando.
+   ✅ Se restaura todo igual que en el paso 8, y no queda ningún brazo flotando ni la cámara en la cabeza del actor.
+10. [ ] Entra en Alcantarillas o en Azotea, lanza la escena desde el panel de pruebas y espera a que acabe.
+    ✅ Al acabar vuelve la luz de ese mapa (Alcantarillas o Azotea), no la de Central.
+
+### 179.2 En el Studio del Laboratorio, en Play, con un jugador: partida normal y mapas
+
+1. [ ] Juega una partida normal en Central, en Alcantarillas y en Azotea, unos minutos en cada uno.
+   ✅ Cada mapa se ve igual que en la versión anterior (commit `9bf8f6b`, antes de G12): mismo tono, mismas sombras y mismo cielo. Si ves diferencias, anota el mapa.
+2. [ ] En el Laboratorio, equipa las cuatro armas y usa cada una: apunta, dispara, recarga y cambia de arma.
+   ✅ Se ve y suena igual que antes: retroceso, fogonazo, sonidos y recarga, y la vista de brazos en primera persona no cambia. Si algo se ve distinto, anota el arma y la acción.
+3. [ ] Cambia de facción y de skin con el arma en la mano y mira el arma en primera persona.
+   ✅ El arma cambia con la facción o la skin elegida, y se ve igual que antes del cambio de código.
+
+### 179.3 Con dos jugadores, en el Laboratorio (*Test → Clientes y servidores*)
+
+1. [ ] Con los dos en la partida, uno lanza «🎬 Motor del Laboratorio (escena de prueba, 16 s)». Mira desde el otro jugador durante toda la escena.
+   ✅ El otro jugador no ve nada de la escena: ni maniquíes, ni luz, ni cámara. La escena es solo local.
+2. [ ] Con el que ve la escena, mientras dura, el otro jugador sigue disparando y recargando con normalidad.
+   ✅ Sus disparos y recargas se ven igual que siempre en los dos clientes. Al acabar la escena, la partida sigue igual para los dos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

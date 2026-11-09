@@ -43,7 +43,6 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabViewModelRig = require(ReplicatedStorage.Shared.LabViewModelRig)
-local LabAimModels = require(ReplicatedStorage.Shared.LabAimModels)
 local ViewModelAnimations = require(ReplicatedStorage.Shared.Data.ViewModelAnimations)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
@@ -58,15 +57,15 @@ local MuzzleSource = require(ReplicatedStorage.CombatClient.MuzzleSource)
 local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
-local ViewModelAnimationIds = require(ReplicatedStorage.CombatClient.ViewModelAnimationIds)
+local LabViewBuilder = require(ReplicatedStorage.CombatClient.LabViewBuilder)
 local ViewMode = require(ReplicatedStorage.CombatClient.ViewMode)
 
 -- Dónde va la mano respecto a la cámara (derecha, arriba, delante): abajo a la derecha, con el arma
 -- girada un poco hacia el centro (HIP_YAW, HIP_PITCH) para que se le vea el costado; al apuntar con la
 -- mira, centrada y recta, con el visor justo bajo la cruz.
-local HIP_OFFSET = Vector3.new(1.25, -1.45, -3.0)
-local HIP_YAW = math.rad(16)
-local HIP_PITCH = 0.08
+local HIP_OFFSET = LabViewBuilder.HIP_OFFSET
+local HIP_YAW = LabViewBuilder.HIP_YAW
+local HIP_PITCH = LabViewBuilder.HIP_PITCH
 local AIM_OFFSET = Vector3.new(0, -0.78, -1.6)
 -- Al apuntar con un arma que tiene modelo de apuntado (Shared/LabAimModels): la mira queda a la altura de la
 -- línea de tiro que ese modelo deja libre (Config.Lab.AimViewOffset).
@@ -171,26 +170,6 @@ local function playSfx(effect: string)
 	end
 end
 
--- Carga las pistas de ViewModelAnimations del arma "weaponId" en el Animator del rig (las que tienen id).
-local function loadTracks(rig: LabViewModelRig.Rig, weaponId: string)
-	for _, key in ViewModelAnimations.KEYS do
-		local id = ViewModelAnimationIds.get(weaponId, key)
-		if id then
-			local animation = Instance.new("Animation")
-			animation.Name = `{weaponId}_{key}`
-			animation.AnimationId = id
-			local ok, track = pcall(function()
-				return rig.animator:LoadAnimation(animation)
-			end)
-			if ok then
-				tracks[key] = track
-			else
-				warn(`[FirstPersonController] No se pudo cargar la animación "{animation.Name}": {track}`)
-			end
-		end
-	end
-end
-
 local function skinColor(character: Model): Color3
 	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
 	return if hand and hand:IsA("BasePart") then hand.Color else Color3.fromRGB(205, 160, 120)
@@ -218,6 +197,8 @@ local function refresh(player: Player)
 	if
 		not (character and camera and typeof(weaponId) == "string" and LabWeaponModels.has(weaponId))
 		or isDead(character)
+		-- Durante una cinemática la vista la dibuja la escena (Cinematics/LabActor, fpView): sin doble modelo.
+		or player:GetAttribute("CinematicActive") == true
 	then
 		clearViewModel()
 		return
@@ -229,39 +210,15 @@ local function refresh(player: Player)
 		return
 	end
 	clearViewModel()
-	-- Las piezas se hacen en una Tool suelta y se pasan a un modelo pegado a la cámara.
-	local holder = Instance.new("Tool")
-	local handle = LabWeaponModels.build(holder, weaponId, faction, skinId)
-	LabAimModels.add(handle, weaponId, faction, skinId)
-	local weaponModel = Instance.new("Model")
-	for _, part in holder:GetChildren() do
-		-- Las piezas de la espalda de la skin taparían la mira: solo las ven los demás.
-		if part:GetAttribute("LabBack") then
-			part:Destroy()
-		else
-			part.Parent = weaponModel
-		end
-	end
-	holder:Destroy()
-	for _, descendant in weaponModel:GetDescendants() do
-		if descendant:IsA("ParticleEmitter") then
-			descendant:Destroy()
-		elseif descendant:IsA("BasePart") then
-			table.insert(if descendant:GetAttribute("LabAim") then aimParts else hipParts, descendant)
-		end
-	end
-	if #aimParts == 0 then
-		hipParts = {}
-	end
-	-- El rig se queda con las piezas del arma (soldadas al Handle) y les pone los brazos.
-	local rig = LabViewModelRig.build(weaponModel, handle, faction, skinColor(character))
-	rig.model.Parent = camera
-	-- Las armas y los brazos de la vista se ven más pequeños (Config.Lab.ViewScale), alrededor de la mano.
-	rig.model:ScaleTo(VIEW_SCALE)
+	-- El arma, los brazos y las pistas los monta CombatClient/LabViewBuilder (el mismo que usa la cinemática).
+	local view = LabViewBuilder.build(weaponId, faction, skinId, skinColor(character), camera)
+	local rig = view.rig
+	hipParts = view.hipParts
+	aimParts = view.aimParts
+	tracks = view.tracks
 	rig.root.CFrame = camera.CFrame * CFrame.new(HIP_OFFSET)
 	viewRig = rig
 	viewModel = rig.model
-	loadTracks(rig, weaponId)
 	shownKey = key
 	drawStart = os.clock()
 	local aim = tracks.Aim
@@ -590,7 +547,7 @@ local function viewMuzzle(): Instance?
 	if not viewModel then
 		return nil
 	end
-	return viewModel:FindFirstChild("Muzzle", true) or viewModel:FindFirstChild("Handle", true)
+	return LabViewBuilder.muzzleOf(viewModel)
 end
 
 function FirstPersonController:Start()
@@ -655,6 +612,10 @@ function FirstPersonController:Start()
 		end
 	end)
 	player:GetAttributeChangedSignal("LabFaction"):Connect(function()
+		refresh(player)
+	end)
+	-- Una cinemática con vista propia (fpView) apaga la nuestra y, al acabar, se vuelve a montar con la herramienta.
+	player:GetAttributeChangedSignal("CinematicActive"):Connect(function()
 		refresh(player)
 	end)
 	for _, weaponId in LabWeapons.ORDER do

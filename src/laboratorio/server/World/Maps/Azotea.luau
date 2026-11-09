@@ -30,6 +30,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local LabLighting = require(ReplicatedStorage.Shared.LabLighting)
 local LabMapModels = require(ReplicatedStorage.Shared.LabMapModels)
 local LabParts = require(script.Parent.Parent.LabParts)
 
@@ -66,23 +67,7 @@ local GEOMETRY: LabParts.Geometry = {
 
 -- Última hora de la tarde sobre la ciudad en ruinas: luz cálida, sombras largas y poca bruma, para ver a 120
 -- studs. Sin verdes en la corrección de color.
-local LIGHTING: LabParts.LightingPreset = {
-	clockTime = 16,
-	latitude = 10,
-	brightness = 2.2,
-	ambient = Color3.fromRGB(92, 98, 112),
-	outdoorAmbient = Color3.fromRGB(136, 142, 158),
-	atmosphere = {
-		density = 0.28,
-		offset = 0.1,
-		color = Color3.fromRGB(190, 198, 216),
-		decay = Color3.fromRGB(120, 124, 142),
-		glare = 0,
-		haze = 1,
-	},
-	colorCorrection = { contrast = 0.08, saturation = -0.04, tint = Color3.fromRGB(250, 244, 236) },
-	sunRays = { intensity = 0.05, spread = 0.6 },
-}
+local LIGHTING: LabParts.LightingPreset = LabLighting.presets.Azotea
 
 -- Semilla del decorado al azar (tonos, lianas, cascotes): el mismo mapa en cada construcción.
 local SEED = 2112

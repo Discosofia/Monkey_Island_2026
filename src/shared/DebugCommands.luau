@@ -180,6 +180,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Fall", label = "🪂 Caerme del mapa (muerte por caída, con baja si me hirieron hace poco)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 		{ id = "SkinKills", label = "➕ +100 bajas con mi arma (da las skins por bajas)" },
+		{ id = "CineLabEngine", label = "🎬 Motor del Laboratorio (escena de prueba, 16 s)" },
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 }

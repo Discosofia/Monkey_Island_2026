@@ -6195,7 +6195,98 @@ local function buildFlagScenes(): { [string]: Scene? }
 end
 local flagScenes = buildFlagScenes()
 
+-- ============================================================================ Motor en el Laboratorio (Fase 25, G12)
+-- «LabEngine» (16 s): escena de PRUEBA del motor en el Laboratorio en ruinas, no la final (la escena «Lab» de tres actos es
+-- G13). La lanza «🎬 Motor del Laboratorio» del panel del Laboratorio con LabCineController, anclada a la explanada este del
+-- mapa Central (x 47: despejada, entre las cajas de x 40 y x 57; el suelo en y = 0). Cuatro maniquíes se enfrentan en dos
+-- líneas, de espaldas a z = ±9: los Guardianes (z -9, de cara a +z) con el rifle y el arpón y los Piratas (z 9, de cara a -z)
+-- con el lanzadardos y el cañón. Lo que enseña:
+--    0 a  9   labLight Central, un labShot de cada arma (proyectil real, fogonazo y sonido), recargas y un Pirata que avanza
+--    9.5      labLight Azotea (el cambio de luz)
+--   10 a 15.2 fpView del rifle Guardián: la cámara en su cabeza, con los brazos; Fire, Aim, Reload y dos disparos
+-- Sin textos (nada que traducir). Va dentro de una función por el límite de 200 locales del módulo.
+local labEngineScene: Scene? = (function(): Scene?
+	local function build(): Scene
+		local events: { { t: number, kind: string, [string]: any } } = {}
+		local function add(event: { t: number, kind: string, [string]: any })
+			table.insert(events, event)
+		end
+		local function fire(t: number, actor: string, target: string)
+			add({ t = t, kind = "labShot", actor = actor, target = target })
+		end
+		local function anim(t: number, actor: string, action: string, seconds: number)
+			add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds })
+		end
+		local function fighter(weapon: string, faction: string, x: number, z: number, yaw: number): { [string]: any }
+			return {
+				kind = "dummy",
+				labWeapon = weapon,
+				faction = faction,
+				pos = Vector3.new(x, 0, z),
+				yaw = yaw,
+			}
+		end
+
+		add({ t = 0, kind = "labLight", map = "Central" })
+		-- Los tres dardos del lanzadardos (automático) sobre el rifle Guardián.
+		fire(1.0, "pA", "gA")
+		fire(1.15, "pA", "gA")
+		fire(1.3, "pA", "gA")
+		fire(2.2, "gA", "pA")
+		fire(3.4, "gB", "pA")
+		fire(4.6, "pB", "gB")
+		anim(5.6, "gA", "ReloadRifle", 2.2)
+		anim(5.8, "pB", "ReloadCannon", 2)
+		-- El lanzadardos avanza hacia los Guardianes corriendo con su pista de arma bajada.
+		add({ t = 6, kind = "move", actor = "pA", pos = Vector3.new(-3, 0, 3), yaw = 0, seconds = 2 })
+		anim(6, "pA", "RunDartGun", 2)
+		-- Primera persona del rifle Guardián (el cambio de luz justo antes).
+		add({ t = 9.5, kind = "labLight", map = "Azotea" })
+		add({ t = 10, kind = "fpView", on = true, actor = "gA", target = "pA", fov = 70 })
+		add({ t = 10.2, kind = "fpAnim", key = "Equip" })
+		fire(11, "gA", "pA")
+		add({ t = 11, kind = "fpAnim", key = "Fire" })
+		add({ t = 12.2, kind = "fpAnim", key = "Aim", weight = 1 })
+		fire(13, "gA", "pA")
+		add({ t = 13, kind = "fpAnim", key = "Fire" })
+		add({ t = 13.6, kind = "fpAnim", key = "Aim", weight = 0 })
+		add({ t = 14, kind = "fpAnim", key = "Reload", seconds = 1.4 })
+		add({ t = 15.2, kind = "fpView", on = false })
+
+		return {
+			duration = 16,
+			audience = "Self",
+			freeze = true,
+			skippable = true,
+			actors = {
+				gA = fighter("LabBananaRifle", "Guardians", -3, -9, 180),
+				gB = fighter("LabNetHarpoon", "Guardians", 3, -9, 180),
+				pA = fighter("LabDartGun", "Pirates", -3, 9, 0),
+				pB = fighter("LabAcidCannon", "Pirates", 3, 9, 0),
+			},
+			camera = {
+				{ t = 0, pos = Vector3.new(-6, 2, -18), look = Vector3.new(0, 1.8, 0), fov = 55 },
+				{ t = 4, pos = Vector3.new(-3, 2, -14), look = Vector3.new(0, 1.8, 3), fov = 55 },
+				{ t = 8, pos = Vector3.new(9, 2.4, -5), look = Vector3.new(0, 1.8, 4), fov = 55 },
+				{ t = 16, pos = Vector3.new(9, 2.4, -5), look = Vector3.new(0, 1.8, 4), fov = 55 },
+			},
+			events = events,
+		}
+	end
+
+	local ok, built = pcall(build)
+	if not ok then
+		warn(`Cinematics: no se pudo construir la escena LabEngine: {built}`)
+		return nil
+	end
+	return built :: Scene
+end)()
+
 local Cinematics: { [string]: Scene } = {
+	-- Motor en el Laboratorio (G12): escena de prueba; la lanza «🎬 Motor del Laboratorio» del panel del Laboratorio
+	-- (LabCineController).
+	LabEngine = labEngineScene,
+
 	-- Captura la bandera (G10): solo para grabar; las lanzan «🎬 Captura la bandera» y «… cómic» del panel de Dunas
 	-- (DunasCineController).
 	Flag = flagScenes.Flag,

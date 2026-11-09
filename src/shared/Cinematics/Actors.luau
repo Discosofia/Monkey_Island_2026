@@ -6,7 +6,9 @@
 --                team = "Jaguar" | "Quetzal": un brazalete y una capa corta en el color del bando (Config.Arena.Teams), que se ve
 --                también de espalda; sirve para distinguir bandos sin cambiar la armadura.
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
---                weapon = false: sin arma (por defecto lleva la de su rol). ballGear = "Jaguar" | "Quetzal": lleva el equipo
+--                weapon = false: sin arma (por defecto lleva la de su rol). labWeapon = id de Data/LabWeapons: lleva esa arma del
+--                Laboratorio con el aspecto de `faction` ("Guardians" | "Pirates") y, en vez de WeaponCarry, su pose de apuntar
+--                (Aim*, Data/WeaponAim). ballGear = "Jaguar" | "Quetzal": lleva el equipo
 --                del Juego de pelota de ese bando (Shared/BallgameGear). Sin snap, la Y de pos es la del suelo (la cancha de
 --                Dunas son piezas, no Terrain: el suelo está en y = 0 de su anchor).
 --   localPlayer  el personaje del jugador local (no se crea ni se borra); con def.pos lo coloca (y se le devuelve su sitio
@@ -34,8 +36,10 @@ local Workspace = game:GetService("Workspace")
 local ArmorModels = require(script.Parent.Parent.ArmorModels)
 local BallgameGear = require(script.Parent.Parent.BallgameGear)
 local Config = require(script.Parent.Parent.Config)
+local LabWeapons = require(script.Parent.Parent.Data.LabWeapons)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
+local WeaponAim = require(script.Parent.Parent.Data.WeaponAim)
 local WeaponTools = require(script.Parent.Parent.WeaponTools)
 
 local Actors = {}
@@ -47,6 +51,8 @@ export type ActorDef = {
 	outfit: string?,
 	grade: number?,
 	weapon: (string | boolean)?, -- false = sin arma
+	labWeapon: string?, -- id de Data/LabWeapons: arma del Laboratorio (con `faction`)
+	faction: ("Guardians" | "Pirates")?, -- aspecto del arma del Laboratorio
 	ballGear: string?, -- "Jaguar" | "Quetzal": equipo del Juego de pelota
 	team: string?, -- "Jaguar" | "Quetzal" (Config.Arena.Teams): brazalete y capa corta del color del equipo
 	copy: boolean?, -- localPlayer: dibuja una copia del personaje y esconde el real (el servidor no puede moverla)
@@ -67,6 +73,8 @@ local CINEMATIC_ACTOR_TAG = Config.Combat.CinematicActorTag
 local DEFAULT_SKIN = Color3.fromRGB(255, 204, 153)
 local DEFAULT_PANTS = Color3.fromRGB(70, 60, 50)
 local DEFAULT_ROLE = "Guerrero"
+-- Cuánto sostiene un actor la pose de apuntar de su arma del Laboratorio (un evento anim la cambia antes).
+local AIM_POSE_SECONDS = 600
 
 local dummyFactory: DummyFactory? = nil
 local animator: Animator? = nil
@@ -254,16 +262,35 @@ local function equip(rig: Model, def: ActorDef): string?
 		ArmorModels.wear(rig, def.armor, role, def.outfit, def.grade or ArmorModels.MAX_GRADE)
 	end
 	local weaponId: string? = nil
-	if def.weapon ~= false then
+	local skin = def.skin
+	if def.labWeapon then
+		-- Arma del Laboratorio: WeaponTools.build toma la facción como aspecto.
+		weaponId = def.labWeapon
+		skin = def.faction
+	elseif def.weapon ~= false then
 		weaponId = if typeof(def.weapon) == "string"
 			then def.weapon
 			else WeaponTools.roleWeapon(role, WeaponTools.MAX_LEVEL)
 	end
 	if weaponId then
-		holdWeapon(rig, weaponId, def.skin)
+		holdWeapon(rig, weaponId, skin)
 	end
 	markTeam(rig, def.team)
 	return weaponId
+end
+
+-- Pose inicial del arma: la de apuntar del arma del Laboratorio (Aim*, en bucle) o, en las demás, WeaponCarry.
+local function startWeaponPose(rig: Model, weaponId: string)
+	if not animator then
+		return
+	end
+	local labDef = LabWeapons.weapons[weaponId]
+	local aimKey = if labDef then WeaponAim.AimOf[labDef.lab.pose] else nil
+	if aimKey then
+		animator(rig, aimKey, { t = 0, kind = "anim", action = aimKey, seconds = AIM_POSE_SECONDS })
+	else
+		animator(rig, "WeaponPose", { t = 0, kind = "anim", weapon = weaponId })
+	end
 end
 
 local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Model?
@@ -300,8 +327,8 @@ local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context)
 	end
 	rig.Parent = Workspace
 	-- Con el arma en la mano, la pose de equipada (la pone el animador del cliente; en edición no hay).
-	if weaponId and animator then
-		animator(rig, "WeaponPose", { t = 0, kind = "anim", weapon = weaponId })
+	if weaponId then
+		startWeaponPose(rig, weaponId)
 	end
 	return rig
 end
@@ -387,7 +414,7 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 			local weaponId: string? = nil
 			if def.ballGear then
 				BallgameGear.build(def.ballGear, rig)
-			elseif def.role or def.armor then
+			elseif def.role or def.armor or def.labWeapon then
 				-- Con rol: la armadura y el arma de su rol, como un maniquí (sin trajes; el bando, con su marca).
 				weaponId = equip(rig, def)
 			else
@@ -406,8 +433,8 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 				root.Anchored = true
 			end
 			rig.Parent = Workspace
-			if weaponId and animator then
-				animator(rig, "WeaponPose", { t = 0, kind = "anim", weapon = weaponId })
+			if weaponId then
+				startWeaponPose(rig, weaponId)
 			end
 			local hidden: { { inst: Instance, old: number } } = {}
 			for _, descendant in character:GetDescendants() do
@@ -454,6 +481,13 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 	end
 	warn(`Actors: tipo de actor desconocido ({def.kind})`)
 	return nil
+end
+
+-- Reproduce una animación en un actor con el animador del place (los módulos de eventos, como LabActor, la usan).
+function Actors.animate(actor: Model, action: string, event: Sequencer.Event)
+	if animator then
+		animator(actor, action, event)
+	end
 end
 
 -- Destruye lo creado por la escena, cancela los movimientos en curso y devuelve a su sitio a los actores

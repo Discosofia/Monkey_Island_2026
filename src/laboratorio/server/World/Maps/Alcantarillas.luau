@@ -34,6 +34,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local LabLighting = require(ReplicatedStorage.Shared.LabLighting)
 local LabMapModels = require(ReplicatedStorage.Shared.LabMapModels)
 local LabParts = require(script.Parent.Parent.LabParts)
 
@@ -67,22 +68,7 @@ local GEOMETRY: LabParts.Geometry = {
 
 -- Sótano cerrado: poca luz de ambiente (los focos enjaulados hacen el resto), sin bruma verde y con la
 -- corrección de color un punto más clara para que se vea en el teléfono. Sin verdes en la corrección.
-local LIGHTING: LabParts.LightingPreset = {
-	clockTime = 14,
-	latitude = 10,
-	brightness = 1,
-	ambient = Color3.fromRGB(70, 76, 86),
-	outdoorAmbient = Color3.fromRGB(40, 44, 50),
-	atmosphere = {
-		density = 0.45,
-		offset = 0,
-		color = Color3.fromRGB(108, 116, 130),
-		decay = Color3.fromRGB(64, 70, 82),
-		glare = 0,
-		haze = 1,
-	},
-	colorCorrection = { brightness = 0.03, contrast = 0.06, saturation = -0.05, tint = Color3.fromRGB(238, 242, 250) },
-}
+local LIGHTING: LabParts.LightingPreset = LabLighting.presets.Alcantarillas
 
 -- Semilla del decorado al azar (tonos, raíces, lianas, cascotes): el mismo mapa en cada construcción.
 local SEED = 3303
