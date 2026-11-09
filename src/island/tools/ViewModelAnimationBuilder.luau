@@ -66,9 +66,9 @@ end
 -- el retroceso (1 = el del rifle).
 local FIRE: { [string]: { seconds: number, scale: number } } = {
 	LabDartGun = { seconds = 0.12, scale = 0.4 },
-	LabBananaRifle = { seconds = 0.2, scale = 1 },
-	LabNetHarpoon = { seconds = 0.2, scale = 0.9 },
-	LabAcidCannon = { seconds = 0.2, scale = 1.2 },
+	LabBananaRifle = { seconds = 0.7, scale = 1 }, -- con el ciclo del cerrojo (fireFramesFor)
+	LabNetHarpoon = { seconds = 0.5, scale = 0.9 }, -- con el bombeo de la corredera (fireFramesFor)
+	LabAcidCannon = { seconds = 0.6, scale = 1.2 }, -- con el asentarse del arma pesada
 }
 -- Lo más fuerte del retroceso con scale = 1: grados de los hombros, grados de la muñeca derecha (levanta la
 -- boca) y studs hacia atrás.
@@ -164,6 +164,146 @@ local function fireFrames(scale: number, seconds: number): { Frame }
 	}
 end
 
+-- Reload propio de cada arma (Fase 25, G11), sobre el hueco del arma abajo (RELOAD_LOW) de la recarga genérica, que
+-- queda para el lanzadardos (cargador debajo, golpe de palma a 0,55 s).
+local LOW_LEFT = { -10, -8, 0, 0, -0.7, 0.1 } -- mano izquierda con el arma abajo
+local function lowFrame(t: number, extra: Frame?): Frame
+	local frame: Frame = { t = t, RightUpperArm = RELOAD_LOW, RightHand = { 32, 0, 0 }, LeftUpperArm = LOW_LEFT }
+	for key, value in extra or {} do
+		frame[key] = value
+	end
+	return frame
+end
+
+local RELOAD_BY_WEAPON: { [string]: { Frame } } = {
+	-- Rifle: cargador de banana como el genérico y, al final, tirón y empujón del cerrojo con la mano derecha.
+	LabBananaRifle = {
+		RELOAD_FRAMES[1],
+		RELOAD_FRAMES[2],
+		RELOAD_FRAMES[3],
+		RELOAD_FRAMES[4],
+		lowFrame(0.65),
+		lowFrame(0.75, { RightUpperArm = { -6, 0, 0, 0.05, -0.7, 0.42 }, RightHand = { 26, 0, 12 } }),
+		lowFrame(0.88, { RightUpperArm = { -6, 0, 0, 0, -0.7, 0.05 } }),
+		{ t = 1, reposo = true },
+	},
+	-- Lanzarredes: la boca arriba (la muñeca sube), la mano izquierda empuja la red hacia la boca y dos bombeos.
+	LabNetHarpoon = {
+		{ t = 0, reposo = true },
+		{
+			t = 0.2,
+			RightUpperArm = { -2, 0, 0, 0, -0.5, 0.1 },
+			RightHand = { 58, 0, 0 },
+			LeftUpperArm = { 8, -6, 0, 0, -0.3, 0 },
+		},
+		{
+			t = 0.4,
+			RightUpperArm = { -2, 0, 0, 0, -0.5, 0.1 },
+			RightHand = { 58, 0, 0 },
+			LeftUpperArm = { 14, -8, 0, 0, -0.3, -0.35 },
+		},
+		{
+			t = 0.55,
+			RightUpperArm = { -2, 0, 0, 0, -0.5, 0.1 },
+			RightHand = { 58, 0, 0 },
+			LeftUpperArm = { 8, -6, 0, 0, -0.3, 0.15 },
+		},
+		{
+			t = 0.7,
+			RightUpperArm = { -4, 0, 0, 0, -0.6, 0.1 },
+			RightHand = { 40, 0, 0 },
+			LeftUpperArm = { 4, -6, 0, 0, -0.3, -0.25 },
+		},
+		{
+			t = 0.85,
+			RightUpperArm = { -4, 0, 0, 0, -0.6, 0.1 },
+			RightHand = { 40, 0, 0 },
+			LeftUpperArm = { 4, -6, 0, 0, -0.3, 0.15 },
+		},
+		{ t = 1, reposo = true },
+	},
+	-- Cañón: pesado, baja más; la mano izquierda sube al depósito, lo desenrosca (giro de la muñeca), lo cambia y
+	-- lo enrosca.
+	LabAcidCannon = {
+		{ t = 0, reposo = true },
+		{
+			t = 0.2,
+			RightUpperArm = { -10, 0, 0, 0, -0.9, 0.15 },
+			RightHand = { 20, 0, 0 },
+			LeftUpperArm = { 16, 6, 0, 0, -0.3, -0.1 },
+		},
+		{
+			t = 0.4,
+			RightUpperArm = { -10, 0, 0, 0, -0.9, 0.15 },
+			RightHand = { 20, 0, 0 },
+			LeftUpperArm = { 20, 8, 0, 0, -0.3, -0.1 },
+			LeftHand = { 0, 0, 40 },
+		},
+		{
+			t = 0.62,
+			RightUpperArm = { -10, 0, 0, 0, -0.9, 0.15 },
+			RightHand = { 20, 0, 0 },
+			LeftUpperArm = { 20, 8, 0, 0, -0.3, -0.1 },
+			LeftHand = { 0, 0, -40 },
+		},
+		{
+			t = 0.82,
+			RightUpperArm = { -6, 0, 0, 0, -0.5, 0.1 },
+			RightHand = { 10, 0, 0 },
+			LeftUpperArm = { 8, 4, 0, 0, -0.15, 0 },
+		},
+		{ t = 1, reposo = true },
+	},
+}
+
+-- Fire con ciclo propio: el cerrojo del rifle, la corredera del arpón y el asentarse del cañón. Las demás (el
+-- lanzadardos) usan la curva común de fireFrames.
+local function fireFramesFor(weaponId: string, scale: number, seconds: number): { Frame }
+	if weaponId == "LabBananaRifle" then
+		return {
+			{ t = 0, reposo = true, direction = "Out" },
+			{
+				t = 0.05,
+				RightUpperArm = { 3, 0, 0, 0, 0, 0.35 },
+				RightHand = { 9, 0, 0 },
+				LeftUpperArm = { 3, 0, 0, 0, 0, 0.35 },
+			},
+			{ t = 0.16, reposo = true },
+			{ t = 0.3, RightUpperArm = { 0, 0, 0, 0.05, 0, 0.32 }, RightHand = { 4, 0, 12 } },
+			{ t = 0.46, RightUpperArm = { 0, 0, 0, 0, 0, 0.02 } },
+			{ t = seconds, reposo = true },
+		}
+	elseif weaponId == "LabNetHarpoon" then
+		return {
+			{ t = 0, reposo = true, direction = "Out" },
+			{
+				t = 0.05,
+				RightUpperArm = { 3, 0, 0, 0, 0, 0.3 },
+				RightHand = { 8, 0, 0 },
+				LeftUpperArm = { 3, 0, 0, 0, 0, 0.3 },
+			},
+			{ t = 0.16, reposo = true },
+			{ t = 0.26, LeftUpperArm = { 0, 0, 0, 0, 0, 0.3 } },
+			{ t = 0.4, LeftUpperArm = { 0, 0, 0, 0, 0, -0.1 } },
+			{ t = seconds, reposo = true },
+		}
+	elseif weaponId == "LabAcidCannon" then
+		return {
+			{ t = 0, reposo = true, direction = "Out" },
+			{
+				t = 0.06,
+				RightUpperArm = { 6, 0, 0, 0, -0.1, 0.5 },
+				RightHand = { 12, 0, 0 },
+				LeftUpperArm = { 5, 0, 0, 0, -0.05, 0.5 },
+			},
+			{ t = 0.2, RightUpperArm = { -1, 0, 0, 0, -0.14, 0.1 }, LeftUpperArm = { -1, 0, 0, 0, -0.1, 0.1 } },
+			{ t = 0.34, RightUpperArm = { 1, 0, 0, 0, -0.03, 0.08 }, LeftUpperArm = { 1, 0, 0, 0, -0.02, 0.06 } },
+			{ t = seconds, reposo = true },
+		}
+	end
+	return fireFrames(scale, seconds)
+end
+
 -- Una secuencia desde un spec; "priority" la pone por encima de lo que suena debajo.
 local function sequence(name: string, loop: boolean, priority: string, frames: { Frame }): KeyframeSequence
 	return MonkeyAnimationBuilder.sequence({
@@ -192,8 +332,8 @@ local function tracksOf(weaponId: string): { [string]: KeyframeSequence }
 			"Action",
 			{ aimFrame(0, 0), aimFrame(AIM_SECONDS / 2, 1.2), aimFrame(AIM_SECONDS, 0) }
 		),
-		Fire = sequence(`{weaponId}_Fire`, false, "Action3", fireFrames(fire.scale, fire.seconds)),
-		Reload = sequence(`{weaponId}_Reload`, false, "Action3", RELOAD_FRAMES),
+		Fire = sequence(`{weaponId}_Fire`, false, "Action3", fireFramesFor(weaponId, fire.scale, fire.seconds)),
+		Reload = sequence(`{weaponId}_Reload`, false, "Action3", RELOAD_BY_WEAPON[weaponId] or RELOAD_FRAMES),
 		Sprint = sequence(
 			`{weaponId}_Sprint`,
 			true,

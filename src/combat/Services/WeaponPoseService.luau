@@ -21,9 +21,10 @@ local function poseOf(player: Player): string
 	if not (character and humanoid and humanoid.Health > 0) then
 		return ""
 	end
-	if player:GetAttribute("Sprinting") == true or not LifeState.isAlive(player) then
+	if not LifeState.isAlive(player) then
 		return ""
 	end
+	local sprinting = player:GetAttribute("Sprinting") == true
 	local tool = character:FindFirstChildOfClass("Tool")
 	local weaponId = if tool then tool:GetAttribute("WeaponId") else nil
 	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
@@ -31,6 +32,10 @@ local function poseOf(player: Player): string
 		return ""
 	end
 	local key = if weapon.lab then weapon.lab.pose else weapon.projectile or "Stone"
+	if sprinting then
+		-- Corriendo, el arma baja: las del Laboratorio a dos manos (Run*), las demás con el brazo colgando.
+		return WeaponAim.RunOf[key] or ""
+	end
 	return WeaponAim.AimOf[key] or ""
 end
 

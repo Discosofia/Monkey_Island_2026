@@ -6854,6 +6854,48 @@ Comprobado por el probador en Play, con las escenas de 30 s y 15 s: compila; los
 1. [ ] Ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` (hoy salen 9 filas, las frases de G10), sube el CSV a Creator Hub y después `python tools/strings.py --marcar-subidas`.
    ✅ El CSV lleva las 9 frases de G10 con su inglés: «5 vs 5 on Dune Island», «Two bases. One flag each.», «Steal the enemy flag.», «And carry it back to your base.», «Halt!», «Flag captured!», «Mine!», «VROOM!» y «GRAB!». Tras `--marcar-subidas`, `tools/strings_subidas.txt` va en el commit.
 
+## 178. Fase 25 G11: animaciones de las 4 armas del Laboratorio (09-11-2026)
+
+Ocho pistas de tercera persona para el rifle, el arpón, el cañón y el lanzadardos: correr (`Run*`, en vez de `Hold`), recargar (`Reload*`) y apuntar al deslizarse (`Aim*`, en vez de la pose de correr). En primera persona, `Fire` del rifle, el arpón y el cañón, y `Reload` de los tres, con ciclo propio (`ViewModelAnimations`). Todas están publicadas y enlazadas en `Data/WeaponAnimations`, `Data/WeaponAim` (`RunOf` y `ReloadOf`) y `Data/ViewModelAnimations`. Probado en Play en el Laboratorio, con un jugador y sin copia del perfil: Aim, Reload (con la velocidad bien) y Run de las cuatro armas suenan con los ids esperados; Fire y Reload en primera persona de rifle, arpón y cañón; consola sin errores propios. Lo de abajo no se ha visto. La tira del lanzadardos (disparo en tercera persona) no se ha montado, así que no hay paso para ella.
+
+### 178.1 En el Studio del Laboratorio, en Play, con un jugador (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0)
+
+1. [ ] Equipa el lanzadardos, dispara sus 24 balas en primera persona hasta vaciar el cargador y después pulsa R.
+   ✅ Suena la recarga del lanzadardos en primera persona y el brazo acaba en la pose de apuntar, sin saltos. Si no suena, anota el id que sale en la Salida.
+2. [ ] Con el cargador a medias en cada arma (rifle, arpón, cañón y lanzadardos), pulsa R. Después prueba el botón «Recargar» en un móvil o con mando.
+   ✅ Suena `Reload` de esa arma y no el de otra. Al acabar, el arma vuelve a su pose de apuntar.
+3. [ ] Corre en primera persona con cada arma usando Sprint, sin tocar el peso de las animaciones.
+   ✅ El brazo hace la pista Sprint de su arma y no se queda quieto ni se corta. Si se ve pesado o se rompe, anota el arma.
+4. [ ] Desliza con cada arma en tercera persona (Alt izquierdo, o C en el Laboratorio) mientras corres.
+   ✅ Se ve la pose de apuntar de esa arma (`Aim*`) y no la de correr. El brazo no se rompe ni se retuerce en la pose de deslizarse (Slide).
+
+### 178.2 Con dos jugadores, en el Laboratorio (*Test → Clientes y servidores*)
+
+1. [ ] Con los dos en la partida, corre con cada arma y mira al otro jugador desde tu cliente.
+   ✅ Lo ves con la pista `Run*` de su arma (a dos manos y bajada), no con la pose de Hold ni con la de otra arma.
+2. [ ] Con el otro jugador, recarga cada arma (R) y mira su recarga desde tu cliente.
+   ✅ Lo ves con `Reload*` de su arma. Si no se ve nada, anótalo: la recarga puede no llegar a los demás.
+3. [ ] Con el otro jugador, desliza con cada arma y mira la pose desde tu cliente.
+   ✅ Lo ves con `Aim*` de su arma, no con la de correr.
+4. [ ] Mira al otro jugador con cada una de las cuatro armas, quieto y en movimiento.
+   ✅ En ninguna aparece la pose de Hold del arma bajada en el Laboratorio.
+
+### 178.3 Revisión visual en Play, con la cámara real de primera persona
+
+Las pistas de primera persona solo se han visto de perfil y en plano apretado, así que hay que mirarlas desde la cámara del jugador.
+
+1. [ ] Dispara el rifle, el arpón y el cañón en primera persona, de pie, y mira el brazo desde la cámara real.
+   ✅ El disparo se lee: el brazo retrocede y vuelve a la pose de apuntar sin saltos ni cortes. Si algo se corta, anota el arma y el momento.
+2. [ ] Recarga el rifle, el arpón y el cañón en primera persona y mira el brazo desde la cámara real.
+   ✅ La recarga se entiende a primera vista y el brazo acaba en la pose de apuntar, sin pasar por la de Hold.
+
+### 178.4 Juego publicado (ids publicados con el dueño del juego)
+
+1. [ ] Juega el Laboratorio publicado con la cuenta dueña del juego, en una partida: corre, desliza y recarga con el rifle, y dispara el arpón en primera persona.
+   ✅ Suenan y se ven las mismas pistas que en Studio. Si una pista no carga, anota su id. El aviso ya conocido de `rbxassetid://203785492` no cuenta.
+
 ## Cuando termines
+
+Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

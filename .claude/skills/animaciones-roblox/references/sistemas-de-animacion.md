@@ -174,8 +174,17 @@ Action2) y la pose de guardia (`Guard`, en bucle, Action3).
   id publicado. `LabDart` (el lanzadardos, W2) tiene el id vacío hasta publicarlo desde el Studio de la Isla
   (clic derecho > *Save to Roblox*, con el dueño del juego); fuera de Studio, mientras esté vacío, usa `Dart`
   (`Data/WeaponAim.Fallback`).
-- La vista propia del Laboratorio no usa `AnimationTrack`: es un modelo en la cámara que `FirstPersonController`
-  mueve por código (retroceso, recarga y sacar el arma), así que no pasa por estas poses.
+- **Laboratorio, correr y recargar (Fase 25, G11):** cada arma tiene `Run<X>` (`RunDartGun`, `RunRifle`,
+  `RunHarpoon`, `RunCannon`: bucle de 0,5 s, arma a dos manos y bajada, Action) y `Reload<X>` (1 s, Action2, estirada a
+  `reloadSeconds`), generadas por `buildRun` y `buildReload` con las tablas `RUNS` y `RELOADS`; `Data/WeaponAim.RunOf`
+  y `ReloadOf` dicen cuál es de cada disparo. `WeaponController` pone `Run*` en vez de `Hold` al correr (y `Aim*` al
+  deslizarse, `Slide.active`) y `Reload*` mientras `LabShooting.reloadingUntil()`; `WeaponPoseService` publica `Run*`
+  en `AimPose` al correr. Para verlas con el arma, suelda la herramienta real a `RightHand` (`WeaponTools.build`).
+- La vista propia del Laboratorio en primera persona usa un rig de brazos (`Shared/LabViewModelRig`) con pistas
+  propias por arma (`Data/ViewModelAnimations`: Aim, Fire, Reload, Sprint, Equip; fuente
+  `island/tools/ViewModelAnimationBuilder`, con `RELOAD_BY_WEAPON` y `fireFramesFor` para el rifle, el arpón y el
+  cañón), no por estas poses. Para verlas: `LabViewModelRig.build` con un `Handle` y `LabAimModels.add`, y
+  `Anim.show` con `make`.
 
 ### Cuerpo del jugador sin armas
 

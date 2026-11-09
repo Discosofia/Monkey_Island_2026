@@ -34,6 +34,16 @@ local WeaponAnimations: { [string]: WeaponAnimation } = {
 	LabHarpoon = { id = "rbxassetid://98366148983214", fxDelay = 0.1 },
 	LabCannon = { id = "rbxassetid://139724527354077", fxDelay = 0.12 },
 	LabDart = { id = "rbxassetid://117003849056705", fxDelay = 0.05 },
+	-- Fase 25, G11: correr con el arma del Laboratorio (bucle, sustituye a Hold) y recargarla (se estira a
+	-- "reloadSeconds"). Publicadas.
+	RunDartGun = { id = "rbxassetid://129051896979274" },
+	RunRifle = { id = "rbxassetid://98923360627113" },
+	RunHarpoon = { id = "rbxassetid://136321629661263" },
+	RunCannon = { id = "rbxassetid://106351577102702" },
+	ReloadDartGun = { id = "rbxassetid://109778784688736" },
+	ReloadRifle = { id = "rbxassetid://70575104186709" },
+	ReloadHarpoon = { id = "rbxassetid://116505445995303" },
+	ReloadCannon = { id = "rbxassetid://121773612061195" },
 	AimStone = { id = "rbxassetid://102256722052425" },
 	AimBow = { id = "rbxassetid://117595023396521" },
 	AimSpell = { id = "rbxassetid://126643975262221" },

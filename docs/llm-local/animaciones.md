@@ -1,6 +1,6 @@
 # Animaciones (resumen de la skill animaciones-roblox)
 
-<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 29-10-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
+<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 09-11-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
 
 ## Antes de empezar
 
@@ -60,7 +60,8 @@ return Anim.measure(rig, ks)      -- altura de cada extremidad por instante
 
 - Las poses `LabRifle`, `LabHarpoon` y `LabCannon` son de `WeaponAnimationBuilder`, como las demás armas, y ya tienen id. `LabDart` (lanzadardos) tiene el id vacío hasta que el usuario lo publique desde el Studio de la Isla; fuera de Studio usa `Dart`.
 - Armas a distancia (Fase 19 W2): cada una tiene una pista en bucle `Aim<X>` (`Data/WeaponAim.AimOf`) que se mantiene equipada; los disparos empiezan y acaban en ella, no en `Hold` (que es el arma bajada al correr). Los demás la ven por el atributo `AimPose`.
-- La vista propia del Laboratorio no es un `AnimationTrack`: es un modelo en la cámara que `FirstPersonController` mueve por código.
+- Desde G11 (09-11-2026), en tercera persona cada arma tiene `Run<X>` (correr, en vez de `Hold`) y `Reload<X>` (recargar), enlazadas en `Data/WeaponAim` (`RunOf` y `ReloadOf`); al deslizarse suena `Aim<X>`.
+- La vista propia del Laboratorio en primera persona sí usa `AnimationTrack`, sobre un rig de brazos (`Shared/LabViewModelRig`) con pistas propias por arma (`Data/ViewModelAnimations`: Aim, Fire, Reload, Sprint y Equip), no las poses de `Data/WeaponAim`.
 
 ## Monturas
 

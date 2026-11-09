@@ -59,6 +59,7 @@ local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
 local LabShooting = require(script.Parent.Parent.LabShooting)
 local MuzzleSource = require(script.Parent.Parent.MuzzleSource)
+local Slide = require(script.Parent.Parent.Slide)
 local Stamina = require(script.Parent.Parent.Stamina)
 local WeaponAnimationIds = require(script.Parent.Parent.WeaponAnimationIds)
 
@@ -143,12 +144,17 @@ local function weaponTrack(character: Model, key: string): AnimationTrack?
 	-- El disparo y los tajos van por encima del brazo colgando, y todos por encima de la pose de empuñar.
 	-- La guardia (GuardController), por encima de todo.
 	-- Las poses de apuntar (Aim*, en bucle) van al nivel de Hold: el disparo las tapa.
+	-- Correr con un arma del Laboratorio (Run*, en bucle) sustituye a Hold al nivel de las poses de apuntar; la
+	-- recarga (Reload*) va al nivel del disparo.
 	local aiming = string.sub(key, 1, 3) == "Aim"
-	track.Priority = if key == "Hold" or aiming
+	local running = string.sub(key, 1, 3) == "Run"
+	track.Priority = if key == "Hold"
+			or aiming
+			or running
 		then Enum.AnimationPriority.Action
 		elseif key == "Guard" then Enum.AnimationPriority.Action3
 		else Enum.AnimationPriority.Action2
-	track.Looped = key == "Hold" or key == "Guard" or aiming
+	track.Looped = key == "Hold" or key == "Guard" or aiming or running
 	weaponTracks[key] = track
 	return track
 end
@@ -194,6 +200,35 @@ end
 local aimKey: string? = nil
 local aimLoop: RBXScriptConnection? = nil
 local aimLowered = false
+local aimWeapon: Weapons.WeaponDefinition? = nil
+local reloadTrack: AnimationTrack? = nil
+
+-- El arma va bajada si se corre; al deslizarse (Slide.active) se apunta, con el arma delante.
+local function runningLowered(): boolean
+	return Config.WeaponPose.LowerWhileSprinting and Stamina.isSprinting() and not Slide.active()
+end
+
+-- Recarga del Laboratorio (Fase 25, G11): al empezar suena Reload* de su arma, estirada a "reloadSeconds"; si la
+-- recarga se corta (cambiar de arma, caer) se para. Suena en el propio personaje, así que los demás la ven.
+local function updateReload(character: Model)
+	local weapon = aimWeapon
+	local key = aimKey
+	local reloadName = if key then WeaponAim.ReloadOf[key] else nil
+	local reloading = weapon ~= nil and weapon.lab ~= nil and LabShooting.reloadingUntil() ~= nil
+	if reloading and reloadName and not (reloadTrack and reloadTrack.IsPlaying) then
+		local track = weaponTrack(character, reloadName)
+		if track and weapon and weapon.lab and reloadTrack == nil then
+			reloadTrack = track
+			local length = if track.Length > 0 then track.Length else 1
+			track:Play(0.1, 1, length / math.max(weapon.lab.reloadSeconds, 0.05))
+		end
+	elseif not reloading and reloadTrack then
+		if reloadTrack.IsPlaying then
+			reloadTrack:Stop(0.1)
+		end
+		reloadTrack = nil
+	end
+end
 
 -- Pone la pose que toca: apuntando (su Aim*, o Hold si aún no está publicada) o, corriendo, el arma
 -- bajada (Hold). Las dos van al mismo nivel y la que entra funde con la que sale.
@@ -205,14 +240,19 @@ local function applyAim(character: Model)
 	local hold = weaponTrack(character, "Hold")
 	local aimName = WeaponAim.AimOf[key]
 	local aim = if aimName then weaponTrack(character, aimName) else nil
-	local want = if aim and not aimLowered then aim else hold
-	local other = if want == aim then hold else aim
+	-- Corriendo, el arma del Laboratorio va a dos manos y bajada (Run*); las demás, con el brazo colgando (Hold).
+	local runName = WeaponAim.RunOf[key]
+	local run = if runName then weaponTrack(character, runName) else nil
+	local lowered = run or hold
+	local want = if aim and not aimLowered then aim else lowered
 	local fade = if aimLowered then Config.WeaponPose.LowerFadeSeconds else Config.WeaponPose.AimFadeSeconds
 	if want and not want.IsPlaying then
 		want:Play(fade)
 	end
-	if other and other.IsPlaying then
-		other:Stop(fade)
+	for _, other in { hold or false, aim or false, run or false } do
+		if other and other ~= want and other.IsPlaying then
+			other:Stop(fade)
+		end
 	end
 end
 
@@ -222,24 +262,36 @@ local function stopAimLoop()
 		aimLoop = nil
 	end
 	aimKey = nil
+	aimWeapon = nil
 	aimLowered = false
+	if reloadTrack then
+		if reloadTrack.IsPlaying then
+			reloadTrack:Stop(0.1)
+		end
+		reloadTrack = nil
+	end
 end
 
--- Saca el arma a distancia "weapon": la pose de apuntar y, mientras dura, vigila si corre.
+-- Saca el arma a distancia "weapon": la pose de apuntar y, mientras dura, vigila si corre y si recarga.
 local function aimArm(character: Model, weapon: Weapons.WeaponDefinition)
 	aimKey = if weapon.lab then weapon.lab.pose else weapon.projectile or "Stone"
-	aimLowered = Config.WeaponPose.LowerWhileSprinting and Stamina.isSprinting()
+	aimWeapon = weapon
+	aimLowered = runningLowered()
 	applyAim(character)
 	if aimLoop then
 		return
 	end
 	aimLoop = RunService.Heartbeat:Connect(function()
 		local current = Players.LocalPlayer.Character
-		local sprinting = Config.WeaponPose.LowerWhileSprinting and Stamina.isSprinting()
-		if current and sprinting ~= aimLowered then
-			aimLowered = sprinting
+		if not current then
+			return
+		end
+		local lowered = runningLowered()
+		if lowered ~= aimLowered then
+			aimLowered = lowered
 			applyAim(current)
 		end
+		updateReload(current)
 	end)
 end
 
@@ -252,6 +304,11 @@ local function releaseArm()
 	for _, aimName in WeaponAim.AimOf do
 		if weaponTracks[aimName] then
 			weaponTracks[aimName]:Stop(fade)
+		end
+	end
+	for _, runName in WeaponAim.RunOf do
+		if weaponTracks[runName] then
+			weaponTracks[runName]:Stop(fade)
 		end
 	end
 end

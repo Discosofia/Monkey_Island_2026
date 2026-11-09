@@ -644,6 +644,268 @@ local function buildShot(name: string, shot: Shot, pulseAt: number): KeyframeSeq
 	return sequence
 end
 
+-- Correr con el arma del Laboratorio (Fase 25, G11): el arma a dos manos delante del pecho, bajada "lower" grados
+-- (el hombro baja y la muñeca compensa la mitad: la boca queda un poco hacia el suelo), con el rebote del paso en
+-- el torso y la cabeza. Bucle de RUN_SECONDS; solo brazos, torso y cabeza: las piernas siguen con RunArmed.
+-- Prioridad Action, como Hold y Aim*, que sustituye al correr.
+local RUN_SECONDS = 0.5
+local RUNS: { [string]: { lower: number, bob: number } } = {
+	LabDart = { lower = 38, bob = 1.6 }, -- compacto y ligero: casi a la altura del pecho
+	LabRifle = { lower = 46, bob = 1.2 }, -- largo: en diagonal, bajo
+	LabHarpoon = { lower = 40, bob = 1.6 },
+	LabCannon = { lower = 28, bob = 2.4 }, -- pesado: a la cadera, con más bote
+}
+
+local function buildRun(name: string, shot: Shot, run: { lower: number, bob: number }): KeyframeSequence
+	local sequence = newSequence(name, Enum.AnimationPriority.Action, true)
+	local animated, ready = shotPoses(shot)
+	local lowered: { [string]: CFrame } = table.clone(ready)
+	for _, side in { "Right", "Left" } do
+		local upper = side .. "UpperArm"
+		local base = BASE[upper] or CFrame.new()
+		-- ready = pose * base, así que la pose es ready * base:Inverse(); se le resta el giro por delante.
+		lowered[upper] = ready[upper] * base:Inverse() * joint(-run.lower) * base
+	end
+	lowered.RightHand = ready.RightHand * joint(run.lower * 0.5)
+	animated.LeftUpperArm = true
+	animated.UpperTorso = true
+	animated.Head = true
+	local function step(t: number, sign: number)
+		local frame = table.clone(lowered)
+		frame.UpperTorso = joint(-2 + run.bob * sign * 0.5)
+		frame.Head = (lowered.Head or CFrame.new()) * joint(-run.bob * sign)
+		addKeyframe(sequence, t, frame, animated)
+	end
+	step(0, 1)
+	step(RUN_SECONDS / 2, -1)
+	step(RUN_SECONDS, 1)
+	return sequence
+end
+
+-- Recargar (Fase 25, G11): 1 s que WeaponController estira a "reloadSeconds". Cada fotograma da giros que se suman
+-- a la pose de apuntar del arma ("ready"), en grados con joint(raise, swing). Marcador "Cargador" cuando el cargador
+-- entra o la acción cierra (para un sonido futuro). Cada arma recarga como es su modelo (Shared/LabWeaponModels).
+local RELOAD_SECONDS = 1
+type Delta = { [string]: CFrame }
+local RELOADS: { [string]: { { t: number, d: Delta, marker: string? } } } = {
+	-- Cargador de cristal debajo: la mano izquierda lo saca por abajo, mete el nuevo y lo golpea con la palma.
+	LabDart = {
+		{ t = 0, d = {} },
+		{
+			t = 0.18,
+			d = {
+				RightUpperArm = joint(-24),
+				LeftUpperArm = joint(-34, 12),
+				LeftLowerArm = joint(30),
+				Head = joint(10),
+			},
+		},
+		{
+			t = 0.4,
+			d = {
+				RightUpperArm = joint(-24),
+				LeftUpperArm = joint(-52, 16),
+				LeftLowerArm = joint(40),
+				Head = joint(12),
+			},
+		},
+		{
+			t = 0.62,
+			d = {
+				RightUpperArm = joint(-24),
+				LeftUpperArm = joint(-36, 10),
+				LeftLowerArm = joint(34),
+				Head = joint(10),
+			},
+			marker = "Cargador",
+		},
+		{
+			t = 0.74,
+			d = {
+				RightUpperArm = joint(-24),
+				LeftUpperArm = joint(-30, 8),
+				LeftLowerArm = joint(24),
+				Head = joint(8),
+			},
+		},
+		{ t = 1, d = {} },
+	},
+	-- Cargador de banana debajo y cerrojo: igual que el lanzadardos y, al final, tirón y empujón del cerrojo.
+	LabRifle = {
+		{ t = 0, d = {} },
+		{
+			t = 0.16,
+			d = { RightUpperArm = joint(-22), LeftUpperArm = joint(-34, 12), LeftLowerArm = joint(30), Head = joint(8) },
+		},
+		{
+			t = 0.36,
+			d = {
+				RightUpperArm = joint(-22),
+				LeftUpperArm = joint(-52, 16),
+				LeftLowerArm = joint(40),
+				Head = joint(10),
+			},
+		},
+		{
+			t = 0.54,
+			d = { RightUpperArm = joint(-22), LeftUpperArm = joint(-34, 10), LeftLowerArm = joint(32), Head = joint(8) },
+			marker = "Cargador",
+		},
+		{ t = 0.68, d = { RightUpperArm = joint(-8), LeftUpperArm = joint(-4, 4), Head = joint(2) } },
+		-- El codo se dobla para tirar del cerrojo y la muñeca lo compensa: la boca no se levanta.
+		{
+			t = 0.8,
+			d = {
+				RightUpperArm = joint(-8),
+				RightLowerArm = joint(30),
+				RightHand = joint(-30),
+				LeftUpperArm = joint(-4, 4),
+			},
+		},
+		{
+			t = 0.9,
+			d = {
+				RightUpperArm = joint(-8),
+				RightLowerArm = joint(-4),
+				RightHand = joint(4),
+				LeftUpperArm = joint(-4, 4),
+			},
+		},
+		{ t = 1, d = {} },
+	},
+	-- Lanzarredes: la boca arriba, la mano izquierda empuja la red por la boca y dos bombeos.
+	LabHarpoon = {
+		{ t = 0, d = {} },
+		{
+			t = 0.22,
+			d = {
+				RightUpperArm = joint(26),
+				RightHand = joint(16),
+				LeftUpperArm = joint(24, 10),
+				LeftLowerArm = joint(-10),
+			},
+		},
+		{
+			t = 0.4,
+			d = {
+				RightUpperArm = joint(26),
+				RightHand = joint(16),
+				LeftUpperArm = joint(30, 14),
+				LeftLowerArm = joint(-24),
+			},
+		},
+		{
+			t = 0.52,
+			d = {
+				RightUpperArm = joint(26),
+				RightHand = joint(16),
+				LeftUpperArm = joint(14, 8),
+				LeftLowerArm = joint(12),
+			},
+			marker = "Cargador",
+		},
+		{
+			t = 0.66,
+			d = {
+				RightUpperArm = joint(10),
+				RightHand = joint(6),
+				LeftUpperArm = joint(-12, 6),
+				LeftLowerArm = joint(20),
+			},
+		},
+		{
+			t = 0.78,
+			d = {
+				RightUpperArm = joint(10),
+				RightHand = joint(6),
+				LeftUpperArm = joint(10, 6),
+				LeftLowerArm = joint(-4),
+			},
+		},
+		{
+			t = 0.9,
+			d = {
+				RightUpperArm = joint(4),
+				RightHand = joint(2),
+				LeftUpperArm = joint(-8, 6),
+				LeftLowerArm = joint(16),
+			},
+		},
+		{ t = 1, d = {} },
+	},
+	-- Cañón: pesa, así que baja el tronco; la mano izquierda sube al depósito, lo desenrosca (giro de muñeca),
+	-- lo cambia y lo enrosca, con un golpe de la mano al manómetro.
+	LabCannon = {
+		{ t = 0, d = {} },
+		{
+			t = 0.2,
+			d = {
+				UpperTorso = joint(8),
+				RightUpperArm = joint(-16),
+				LeftUpperArm = joint(-10, 10),
+				LeftLowerArm = joint(18),
+				Head = joint(10),
+			},
+		},
+		{
+			t = 0.4,
+			d = {
+				UpperTorso = joint(8),
+				RightUpperArm = joint(-16),
+				LeftUpperArm = joint(-4, 12),
+				LeftLowerArm = joint(28),
+				LeftHand = CFrame.Angles(0, 0, math.rad(50)),
+				Head = joint(10),
+			},
+		},
+		{
+			t = 0.6,
+			d = {
+				UpperTorso = joint(8),
+				RightUpperArm = joint(-16),
+				LeftUpperArm = joint(-4, 12),
+				LeftLowerArm = joint(28),
+				LeftHand = CFrame.Angles(0, 0, math.rad(-50)),
+				Head = joint(10),
+			},
+			marker = "Cargador",
+		},
+		{
+			t = 0.78,
+			d = {
+				UpperTorso = joint(6),
+				RightUpperArm = joint(-12),
+				LeftUpperArm = joint(-8, 6),
+				LeftLowerArm = joint(14),
+				Head = joint(6),
+			},
+		},
+		{ t = 1, d = {} },
+	},
+}
+
+local function buildReload(
+	name: string,
+	shot: Shot,
+	frames: { { t: number, d: Delta, marker: string? } }
+): KeyframeSequence
+	local sequence = newSequence(name, Enum.AnimationPriority.Action2, false)
+	local animated, ready = shotPoses(shot)
+	for _, frame in frames do
+		for part in frame.d do
+			animated[part] = true
+		end
+	end
+	for _, frame in frames do
+		local pose: { [string]: CFrame } = {}
+		for part in animated do
+			pose[part] = (ready[part] or CFrame.new()) * (frame.d[part] or CFrame.new())
+		end
+		addKeyframe(sequence, frame.t * RELOAD_SECONDS, pose, animated, frame.marker)
+	end
+	return sequence
+end
+
 function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 	-- Genera siempre con el código actual (ver freshRequire).
 	if not (options and options.fresh) then
@@ -664,6 +926,16 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 		local aimName = WeaponAim.AimOf[name]
 		assert(aimName and WeaponAnimations[aimName], `[WeaponAnimationBuilder] Falta la pista de apuntar de "{name}"`)
 		buildAim(aimName, shot).Parent = folder
+		local run, reload = RUNS[name], RELOADS[name]
+		if run and reload then
+			local runName, reloadName = WeaponAim.RunOf[name], WeaponAim.ReloadOf[name]
+			assert(
+				runName and reloadName and WeaponAnimations[runName] and WeaponAnimations[reloadName],
+				`[WeaponAnimationBuilder] Faltan las pistas de correr y recargar de "{name}"`
+			)
+			buildRun(runName, shot, run).Parent = folder
+			buildReload(reloadName, shot, reload).Parent = folder
+		end
 	end
 	for name, spec in SLASHES do
 		assert(WeaponAnimations[name], `[WeaponAnimationBuilder] Falta "{name}" en Data/WeaponAnimations`)

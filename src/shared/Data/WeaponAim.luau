@@ -17,6 +17,22 @@ WeaponAim.AimOf = {
 	LabCannon = "AimCannon",
 } :: { [string]: string }
 
+-- Armas del Laboratorio (Fase 25, G11): disparo → pista que suena en vez de Hold al correr (arma a dos manos
+-- bajada) y pista de recargar (se estira a "reloadSeconds"). Las demás armas siguen con Hold y sin recarga.
+WeaponAim.RunOf = {
+	LabDart = "RunDartGun",
+	LabRifle = "RunRifle",
+	LabHarpoon = "RunHarpoon",
+	LabCannon = "RunCannon",
+} :: { [string]: string }
+
+WeaponAim.ReloadOf = {
+	LabDart = "ReloadDartGun",
+	LabRifle = "ReloadRifle",
+	LabHarpoon = "ReloadHarpoon",
+	LabCannon = "ReloadCannon",
+} :: { [string]: string }
+
 -- Disparo sin id (fuera de Studio) → el disparo que se usa en su lugar.
 WeaponAim.Fallback = {
 	LabDart = "Dart",
