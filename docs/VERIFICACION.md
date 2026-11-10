@@ -7176,6 +7176,70 @@ Probado en Play con un jugador y sin copia del perfil: 13,8 s el Orangután y 13
 1. [ ] Lanza las dos batallas en un teléfono, o en el Studio con la calidad Low, y mira los efectos del jefe.
    ✅ Los efectos no pasan del tope de `Config.Budgets.Vfx` (en Low, 40 piezas; en Medium, 90; en High, 160). En Studio el Caudillo llega a 158 piezas, así que en Low se recorta a propósito: si faltan efectos, anótalo, pero no es un fallo. Sin tirones visibles.
 
+## 184. Fase 25 G14a2: batallas del Gorila Albino y del Gorila de Ceniza con coreografía propia (10-11-2026)
+
+Las batallas normales del Gorila Albino (en su cueva cerrada, en penumbra) y del Gorila de Ceniza (en la ladera del cráter, a las 17,5) tienen ahora su coreografía propia (`BattleActor` y `BossChoreo.albino` / `BossChoreo.ceniza`): antorchas en la mano del guerrero, el mago y el médico, que se apagan con el rugido del Albino y se reencienden en cadena; púas de cristal; bombas de lava que salen del cráter; charcos que arden 4 s, y el estallido final de Ceniza. Con esto cierra G14a, y las batallas normales de los cuatro jefes tienen guion propio. Estos dos no tienen cómic ni reel. Probado en Play con un jugador y sin copia del perfil: 13,7 s Ceniza y 13,8 s el Albino de escena, sin errores de script; 4 batallas seguidas sin avisos «Parent locked» tras el arreglo de `BossFx.release`; antorchas soldadas a `LeftHand` (el cazador no lleva); cámara en `Custom` al acabar y sin restos; pico de `CinematicBossFx` de 160 piezas (Albino) y 144 (Ceniza), con unos 15 FPS de media en Studio y el servidor a 57. En modo edición se comprobaron las distancias de cámara (mínimas de 12,21 a 12,53 studs), los tiempos de apagado de las antorchas y la barra; la escena `Battle_Boss_*` no se pudo construir por require en modo edición, así que solo se ha probado en Play. Lo visual (encuadres, penumbra, esquivas, bombas y estallido) no se ha visto en vídeo, porque el MCP no captura Play: lo juzga el usuario en la grabación.
+
+### 184.1 En el Studio de la Isla, en Play, con un jugador (sin copia del perfil: el DataStore da 502 en Studio)
+
+1. [ ] Pulsa «🥊 Batalla jefe» hasta que salga Ceniza y mira la escena entera sin tocar la cámara.
+   ✅ Arranca sin pantalla negra larga ni avisos en rojo en la Salida, y dura unos 13,7 s.
+2. [ ] Pulsa «🥊 Batalla jefe» hasta que salga el Albino y mira la escena entera sin tocar la cámara.
+   ✅ Arranca sin avisos en rojo en la Salida, y dura unos 13,8 s.
+3. [ ] Al acabar cada batalla, mira la cámara y el personaje sin que el MCP toque la cámara.
+   ✅ La cámara vuelve a `Custom`, el personaje no queda anclado y no quedan `BatallaJefe`, `Cinematic_*`, `CinematicBossFx`, `CinematicLight`, `AntorchaEnMano` ni `CinematicLift`.
+4. [ ] Con el Albino en marcha, mira en el Explorer las antorchas del guerrero, el mago y el médico, y la mano del cazador.
+   ✅ Las tres antorchas van soldadas a `LeftHand`, y el cazador no lleva ninguna.
+5. [ ] Durante el pico (el rugido del Albino y la erupción de Ceniza), cuenta las piezas de `Workspace.CinematicBossFx` con el Explorer o con un comando de la barra de comandos.
+   ✅ No pasa de 160 piezas (en Studio: 160 el Albino y 144 Ceniza).
+6. [ ] Lanza cuatro batallas seguidas (Ceniza, Albino, Orangután y Caudillo) sin reiniciar el servidor, y mira el rugido y las rocas del Orangután y del Caudillo en la última.
+   ✅ No sale ningún aviso «Parent locked» en la Salida, y el rugido y las rocas de los dos salen bien, como antes del arreglo de `BossFx`.
+
+### 184.2 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [ ] Graba Ceniza y el Albino a 1080p60 y mira cada batalla entera en el vídeo.
+   ✅ Los 60 cuadros se mantienen sin caídas visibles, la escena se ve entera y no hay cortes entre planos que no sean los del guion.
+2. [ ] Mira los encuadres: las 9 cámaras del Albino y las 8 de Ceniza, sobre todo los planos más justos, a 12,2-12,5 studs de un actor (Rugido y Penumbra del Albino, y Oleada 2 de Ceniza).
+   ✅ Ningún plano deja tapado al jefe, a la lava o a un mono más de un instante, y ningún actor queda pegado a la cámara. Si pasa, anota el plano y el segundo.
+3. [ ] Albino, de 6 a 8,6 s: mira la penumbra de la cueva cerrada.
+   ✅ Se leen las siluetas de los actores y del jefe. La única luz es la del guion: no entra cielo ni luz del mapa.
+4. [ ] Albino: mira las esquivas y los tropiezos. El cazador tropieza a 6,4 s, la púa de cristal se esquiva a 7,3 s y el guerrero salta a 7,7 s.
+   ✅ Cada uno ocurre a tiempo: el cazador parece chocar con algo, el médico esquiva la púa rodando y el guerrero salta atrás. Si algo llega tarde, anota el segundo.
+5. [ ] Albino, de 8,6 a 8,9 s: mira el reencendido de las antorchas del mago, el médico y el guerrero.
+   ✅ Se lee como una llama que pasa del mago al médico y al guerrero.
+6. [ ] Albino, hacia 5,7 a 5,9 s: mira el apagado de cada antorcha cuando el anillo del rugido llega a su portador.
+   ✅ Cada antorcha se apaga cuando el anillo llega al actor. El probador midió la luz apagándose unos 0,4-0,5 s antes de lo previsto (la simulación daba 5,70-5,87 s), con una referencia de ±0,15 s: si se nota descolgada, anota el segundo.
+7. [ ] Albino, primeros cuadros: mira el brillo de las antorchas al empezar.
+   ✅ La luz no sale tenue: el `dimLights` de t = 0 baja las luces al 30 % y el `torch lit` de 0,05 s las repone, así que las antorchas se ven a pleno brillo desde el principio.
+8. [ ] Albino: mira las antorchas en la mano durante toda la escena.
+   ✅ Van bien agarradas y no se despegan ni flotan.
+9. [ ] Albino: mira el rugido y las púas de cristal.
+   ✅ El anillo del rugido se lee sobre la sala y las púas salen con su aviso.
+10. [ ] Albino: mira el pico de piezas, con el rugido y la púa a la vez, en la calidad Alta.
+    ✅ Ningún efecto desaparece a mitad del rugido (tope duro de 160 piezas de la calidad Alta).
+11. [ ] Ceniza: mira las bombas de lava y los charcos.
+    ✅ Las bombas salen del cráter, detrás del jefe, y no de la ladera ni del aire. Los charcos arden unos 4 s, y nadie los pisa salvo en el golpe pensado.
+12. [ ] Ceniza, de 6,8 a 7,8 s: mira la caída del cazador y la curación del médico.
+    ✅ El cazador cae por la onda y se levanta, y el médico corre hasta él y lo cura.
+13. [ ] Ceniza, a 13,0 s: mira el estallido final de radio 12.
+    ✅ La onda no atraviesa al médico a la vista. Es un solapamiento solo visual: si se nota en el vídeo, anótalo.
+
+### 184.3 En un juego publicado y en un teléfono
+
+1. [ ] Mide la duración de cada batalla con un reloj del cliente, sin tocar la cámara, en el juego publicado y en un teléfono.
+   ✅ Cada escena dura entre 13,7 y 13,8 s. Desde el lanzamiento, contando la espera de `ArrivalService`, el total ronda los 19 s; anota los dos tiempos.
+2. [ ] Mide los FPS por tramos (de 0 a 5 s, de 5 a 10 s y de 10 a 14 s) en el juego publicado.
+   ✅ Cada tramo se mantiene cerca de 60 cuadros. Las medidas de Studio (unos 15 FPS de media con el servidor a 57) no sirven de referencia; si cae un tramo, anótalo.
+3. [ ] Prueba Ceniza y el Albino en un teléfono con la calidad Baja (40 piezas) y con la Media (90).
+   ✅ Se sigue entendiendo la escena: las antorchas, el rugido y las púas se leen aunque se recorten efectos.
+
+### 184.4 En la consola y en el perfil, tras las pruebas
+
+1. [ ] Mira los avisos de la consola tras las batallas contra Ceniza y el Albino.
+   ✅ Los únicos avisos son los de ContentId sin contenido, que ya salían antes de G14a. Si aparece un error de script nuevo, anótalo con su línea.
+2. [ ] Tras las pruebas, comprueba el perfil de prueba: `cinematicsSeen` y la retención (Play escribió en el perfil real).
+   ✅ `cinematicsSeen` queda igual que antes de las pruebas (en Play no cambió) y la retención no tiene valores raros. Como no hubo copia, anota cualquier cambio que no esperes.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

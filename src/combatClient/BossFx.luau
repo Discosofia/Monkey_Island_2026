@@ -170,8 +170,9 @@ function BossFx.release(part: Part)
 		tween:Cancel()
 	end
 	live = math.max(0, live - 1)
-	-- Si la carpeta se destruyó (la calculadora), la pieza ya no se puede reutilizar.
-	local ok = pcall(function()
+	-- Si la carpeta se destruyó (la calculadora, o una cinemática al acabar), la pieza ya no tiene padre y está destruida:
+	-- asignarle Parent = nil no falla, pero meterla en el pool rompería la siguiente `acquire` (Parent bloqueado).
+	local ok = part.Parent ~= nil and pcall(function()
 		part.Parent = nil
 	end)
 	if ok and #free < config.Budgets.Vfx.High then

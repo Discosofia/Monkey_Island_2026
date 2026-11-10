@@ -14,6 +14,12 @@
 --       (CombatClient/BossFx.play): fx = "stomp" | "rock" | "lavaBomb" | "charge" | "grab" | "roar". El suelo es el que hay
 --       bajo `actor` en ese instante o el de `pos` (Vector3 relativo al anchor, cuentan X y Z). `direction` y `origin` (la
 --       bomba de lava) también van relativos al anchor. Lo que falta sale de los valores de BossService.demo.
+--   torch { actor, lit, brightness? }   enciende o apaga la antorcha del actor (el modelo con el atributo CinematicTorch que le
+--       pone Actors con `torch = true`). Apagar: el Fire deja de emitir (las llamas que ya salieron se desvanecen solas) y la
+--       PointLight baja a 0 en 0,15 s y se apaga. Encender: el Fire emite y la luz sube en 0,25 s hasta `brightness` (2, el de
+--       WeaponTools.buildTorch). Al saltar a un instante (seek) queda el estado final, sin animación. El evento dimLights de
+--       battleLight() baja las luces de los maniquíes al 30 %, también la de la antorcha: un `torch lit = true` justo después
+--       le devuelve el brillo.
 -- Al acabar la escena se borran la barra y la carpeta con las piezas de los efectos. Solo cliente. Necesita CombatClient;
 -- si no está, los eventos avisan o se omiten.
 
@@ -55,6 +61,10 @@ local FX_DEFAULTS: { [string]: { warn: number?, flight: number?, radius: number?
 	grab = {},
 }
 local LAVA_BOMB_HEIGHT = 40 -- si falta `origin`, la bomba sale 40 studs sobre el jefe
+local TORCH_ATTRIBUTE = "CinematicTorch" -- lo pone Actors.holdTorch
+local TORCH_OUT_SECONDS = 0.15
+local TORCH_IN_SECONDS = 0.25
+local TORCH_BRIGHTNESS = 2 -- el de WeaponTools.buildTorch
 
 type Bar = {
 	holder: CanvasGroup,
@@ -66,12 +76,13 @@ type Bar = {
 type State = {
 	bar: Bar?,
 	folder: Folder?,
+	tweens: { Tween }, -- los de las antorchas, para cancelarlos al acabar
 }
 
 local function stateOf(ctx: Sequencer.Context): State
 	local state = ctx._battle
 	if not state then
-		state = { bar = nil, folder = nil }
+		state = { bar = nil, folder = nil, tweens = {} }
 		ctx._battle = state
 	end
 	return state
@@ -323,18 +334,86 @@ local function onBossFx(event: Sequencer.Event, ctx: Sequencer.Context)
 	end
 end
 
+-- ===================================== torch =====================================
+
+-- El modelo de la antorcha de un actor (el que lleva el atributo CinematicTorch).
+local function torchOf(actor: Model): Model?
+	for _, descendant in actor:GetDescendants() do
+		if descendant:IsA("Model") and descendant:GetAttribute(TORCH_ATTRIBUTE) then
+			return descendant
+		end
+	end
+	return nil
+end
+
+local function onTorch(event: Sequencer.Event, ctx: Sequencer.Context)
+	local actor = actorOf(event, ctx)
+	if not actor or not actor.Parent then
+		return
+	end
+	local torch = torchOf(actor)
+	if not torch then
+		warn(`BattleActor: el evento torch pide un actor sin antorcha ({event.actor})`)
+		return
+	end
+	local fire = torch:FindFirstChildWhichIsA("Fire", true)
+	local light = torch:FindFirstChildWhichIsA("PointLight", true)
+	local lit = event.lit == true
+	local brightness: number = event.brightness or TORCH_BRIGHTNESS
+	local instant = ctx.seeking == true
+	local state = stateOf(ctx)
+
+	if fire then
+		fire.Enabled = lit
+	end
+	if not light then
+		return
+	end
+	-- Un contador en la luz: si llega otro evento antes de acabar el fundido, el viejo no apaga la luz.
+	local token = (light:GetAttribute("TorchToken") or 0) + 1
+	light:SetAttribute("TorchToken", token)
+	if instant then
+		light.Brightness = if lit then brightness else 0
+		light.Enabled = lit
+		return
+	end
+	if lit then
+		light.Enabled = true
+		local tween = TweenService:Create(light, TweenInfo.new(TORCH_IN_SECONDS), { Brightness = brightness })
+		table.insert(state.tweens, tween)
+		tween:Play()
+	else
+		local tween = TweenService:Create(light, TweenInfo.new(TORCH_OUT_SECONDS), { Brightness = 0 })
+		table.insert(state.tweens, tween)
+		tween.Completed:Connect(function(playback)
+			if
+				playback == Enum.PlaybackState.Completed
+				and light.Parent
+				and light:GetAttribute("TorchToken") == token
+			then
+				light.Enabled = false
+			end
+		end)
+		tween:Play()
+	end
+end
+
 -- ===================================== instalación =====================================
 
 function BattleActor.install(sequencer: typeof(Sequencer))
 	sequencer.registerHandler("hit", onHit)
 	sequencer.registerHandler("bossBar", onBossBar)
 	sequencer.registerHandler("bossFx", onBossFx)
+	sequencer.registerHandler("torch", onTorch)
 
 	sequencer.addHooks({
 		finish = function(_, ctx)
 			local state = ctx._battle
 			if not state then
 				return
+			end
+			for _, tween in state.tweens do
+				tween:Cancel()
 			end
 			-- La barra cuelga del ScreenGui de Presentation (que se borra solo), pero se quita ya para no depender del orden.
 			if state.bar then

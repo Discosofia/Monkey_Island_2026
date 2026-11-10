@@ -9,9 +9,10 @@
 -- los saltos y las caídas suman altura con `rise` en el evento move (Actors).
 -- Los campos de los eventos propios (BattleActor) no pueden llamarse «kind»: `hit` lleva `hitKind` y `bossFx` lleva `fx`.
 --
--- Constructores: BossChoreo.orangutan(ctx) y BossChoreo.caudillo(ctx) devuelven { events, plan }. `plan` son PlanShot (el
--- formato de Data/Cinematics: cámara y mirada relativas a C, el centro de la tripulación). BossChoreo.build(nombre, ctx)
--- elige el constructor por el campo `choreo` de la batalla.
+-- Constructores: BossChoreo.orangutan, caudillo, albino y ceniza (ctx) devuelven { events, plan, ownLight? }. `plan` son
+-- PlanShot (el formato de Data/Cinematics: cámara y mirada relativas a C, el centro de la tripulación). Si `ownLight` es
+-- true, el guion trae su propia luz (eventos light y exposure) y Data/Cinematics quita la luz común de battleLight().
+-- BossChoreo.build(nombre, ctx) elige el constructor por el campo `choreo` de la batalla.
 
 local BossChoreo = {}
 
@@ -31,8 +32,9 @@ export type Context = {
 	bossName: string, -- Bosses[id].name, sin traducir (el cliente lo traduce en la barra)
 	crewSpot: (name: string) -> (number, number), -- (x, z) de un maniquí en el marco del jefe
 	total: number, -- duración de la batalla
+	torches: { string }?, -- maniquíes que llevan antorcha (BossBattle.torches)
 }
-export type Choreo = { events: EventList, plan: { PlanShot } }
+export type Choreo = { events: EventList, plan: { PlanShot }, ownLight: boolean? }
 
 local CREW = { "guerrero", "cazador", "mago", "medico" }
 local RUN_ANIM_STUDS = 16 -- studs/s a los que la pista Run va a su velocidad
@@ -267,6 +269,40 @@ end
 
 function BossChoreo.shake(t: number, amp: number, seconds: number): Event
 	return { t = t, kind = "shake", amp = amp, seconds = seconds }
+end
+
+-- Enciende o apaga la antorcha de un actor (BattleActor: evento torch). `brightness` solo al encender (2 por defecto).
+function BossChoreo.torch(t: number, actor: string, lit: boolean, brightness: number?): Event
+	return { t = t, kind = "torch", actor = actor, lit = lit, brightness = brightness }
+end
+
+-- Segundos que tarda el anillo del rugido (bossFx roar, que BossFx abre de 3 a 45 studs en 1,1 s con Quad Out) en llegar a
+-- `dist` studs del pie del jefe: de d = 3 + 42·(1 - (1 - t/1,1)²) sale t = 1,1·(1 - √(1 - (d - 3)/42)).
+function BossChoreo.roarReach(dist: number): number
+	if dist <= 3 then
+		return 0
+	elseif dist >= 45 then
+		return 1.1
+	end
+	return 1.1 * (1 - math.sqrt(1 - (dist - 3) / 42))
+end
+
+-- Luz que sigue a la cámara (SceneLight: evento light con follow): `seconds` la apaga sola con un fundido de 0,4 s.
+local function followLight(t: number, color: Color3, brightness: number, range: number, seconds: number?): Event
+	return {
+		t = t,
+		kind = "light",
+		follow = true,
+		offset = Vector3.new(0, 3, 0),
+		color = color,
+		brightness = brightness,
+		range = range,
+		seconds = seconds,
+	}
+end
+
+local function exposure(t: number, value: number): Event
+	return { t = t, kind = "exposure", value = value }
 end
 
 local function shot(
@@ -607,12 +643,309 @@ function BossChoreo.caudillo(ctx: Context): Choreo
 	return { events = s.events, plan = plan }
 end
 
--- Elige el constructor por el campo `choreo` de la batalla ("orangutan" | "caudillo"). nil si no existe.
+-- Gorila Albino: la cueva está a oscuras y la única luz es la del guion. Entran con antorchas (guerrero, mago y médico); el
+-- guerrero esquiva un zarpazo y pega; el resoplido del jefe apaga las antorchas cuando el anillo llega a cada uno (roarReach)
+-- y los tira hacia atrás; en la penumbra una púa de cristal, un tropiezo y otro zarpazo; el mago reenciende las antorchas
+-- y la tripulación contraataca.
+-- Efectos grandes de AbilityShow: Rompehuesos 5,05 a 6,45 · Nova 9,0 a 10,8 · Lluvia 9,7 a 11,9 · Rompehuesos 11,45 a 12,85
+-- · Meteoro 12,2 a 14,2.
+function BossChoreo.albino(ctx: Context): Choreo
+	local s = newWriter(ctx)
+	local gSpot, cSpot, mSpot, dSpot = s.spots.guerrero, s.spots.cazador, s.spots.mago, s.spots.medico
+	local yawG, yawC, yawM, yawD = yawToBoss(gSpot), yawToBoss(cSpot), yawToBoss(mSpot), yawToBoss(dSpot)
+	local style = "GorilaAlbino"
+	local back = Vector3.new(0, 0, -1) -- «hacia atrás» respecto al jefe
+	local carries: { [string]: boolean } = {}
+	for _, name in ctx.torches or {} do
+		carries[name] = true
+	end
+	local function torch(t: number, name: string, lit: boolean)
+		if carries[name] then
+			s.add(BossChoreo.torch(t, name, lit))
+		end
+	end
+	local function reach(pos: Vector3): number
+		return BossChoreo.roarReach(math.sqrt(pos.X * pos.X + pos.Z * pos.Z))
+	end
+
+	s.enter()
+	-- Las antorchas entran encendidas; el evento dimLights de t = 0 les baja la luz y este se la devuelve.
+	for _, name in CREW do
+		torch(0.05, name, true)
+	end
+
+	-- A la luz de las antorchas: disparan el cazador y el mago.
+	s.bow(2.6, 1.8)
+	s.shoot(2.95, "boss")
+	s.add(BossChoreo.hit(3.1, "boss", 180, "Dealt"))
+	s.bar(3.1, 1, 0.90)
+	s.fireball(3.3, 3.6)
+	s.add(BossChoreo.hit(3.95, "boss", 400, "Dealt", { crit = true }))
+	s.bar(3.95, 0.90, 0.70)
+
+	-- El guerrero corre hasta el jefe, esquiva su zarpazo hacia un lado y le pega con Rompehuesos.
+	local gNear = flat(3, -8)
+	s.addAll(BossChoreo.run("guerrero", 3.4, 4.2, gSpot, gNear, yawToBoss(gNear)))
+	s.add(BossChoreo.bossAct(4.3, "Attack"))
+	local gDodged = gNear + Vector3.new(4, 0, 0)
+	local yawG2 = yawToBoss(gDodged)
+	s.addAll(BossChoreo.dodge("guerrero", 4.4, gNear, Vector3.xAxis, 4, yawG2, 0.45))
+	s.add(BossChoreo.anim(4.9, "guerrero", "Smash", 0.8))
+	s.add(BossChoreo.skill(5.05, "Smash", "guerrero", "boss"))
+	s.add(BossChoreo.hit(5.05, "boss", 300, "Dealt"))
+	s.bar(5.05, 0.70, 0.55)
+
+	-- El resoplido: el anillo llega a cada uno según su distancia, le apaga la antorcha y lo echa hacia atrás.
+	local roarT = 5.6
+	s.add(BossChoreo.bossAct(5.4, "Roar"))
+	s.add(BossChoreo.bossFx(roarT, "roar", style, { pos = flat(0, 0), radius = 45 }))
+	s.add(BossChoreo.shake(roarT, 0.4, 0.8))
+	-- El guerrero, pegado al jefe, cae de espaldas y se levanta a 6,9.
+	local tG = roarT + reach(gDodged)
+	torch(tG, "guerrero", false)
+	s.add(BossChoreo.hit(tG, "guerrero", 90, "Taken"))
+	s.addAll(BossChoreo.knockDown("guerrero", tG, gDodged, back, yawG2, 0.9))
+	s.addAll(BossChoreo.getUp("guerrero", 6.9, gDodged, yawG2, 0.6))
+	-- El mago retrocede solo 1,5 studs.
+	local tM = roarT + reach(mSpot)
+	torch(tM, "mago", false)
+	s.addAll(BossChoreo.stagger("mago", tM, mSpot, mSpot, yawM, 1.5))
+	-- El médico retrocede.
+	local tD = roarT + reach(dSpot)
+	torch(tD, "medico", false)
+	s.addAll(BossChoreo.stagger("medico", tD, dSpot, dSpot, yawD))
+	local dPushed = dSpot + dSpot.Unit * 2.5
+	-- El cazador retrocede (sin antorcha) y, ya en la penumbra, tropieza hacia +X.
+	local tC = roarT + reach(cSpot)
+	s.addAll(BossChoreo.stagger("cazador", tC, cSpot, cSpot, yawC))
+	local cPushed = cSpot + cSpot.Unit * 2.5
+	s.addAll(BossChoreo.stagger("cazador", 6.4, cPushed, Vector3.xAxis, yawC, 1.5))
+
+	-- En la penumbra: una púa de cristal sobre el médico, que rueda hacia -X y vuelve corriendo a su sitio.
+	s.add(BossChoreo.bossFx(6.8, "stomp", style, { pos = dPushed, warn = 0.9, radius = 5 }))
+	s.addAll(BossChoreo.dodge("medico", 7.3, dPushed, -Vector3.xAxis, 6.5, yawD, 0.45))
+	s.addAll(BossChoreo.run("medico", 7.8, 8.4, dPushed - Vector3.new(6.5, 0, 0), dSpot, yawD))
+	-- Otro zarpazo al guerrero levantado, que salta hacia atrás 4 studs.
+	s.add(BossChoreo.bossAct(7.6, "Attack"))
+	s.addAll(BossChoreo.hop("guerrero", 7.7, gDodged, gDodged + back * 4, yawG2))
+
+	-- El mago reenciende las antorchas, una detrás de otra.
+	s.add(BossChoreo.anim(8.45, "mago", "CastArea", 1.0))
+	torch(8.7, "mago", true)
+	torch(8.8, "medico", true)
+	torch(8.9, "guerrero", true)
+
+	-- Contraataque: Nova de hielo del mago y Lluvia de flechas del cazador.
+	s.add(BossChoreo.anim(8.85, "mago", "CastArea", 1.0))
+	s.add(BossChoreo.skill(9.0, "FrostNova", "mago", "boss", { radius = 12 }))
+	s.add(BossChoreo.skill(9.15, "Frozen", "mago", "boss", { seconds = 1.5 }))
+	s.add(BossChoreo.hit(9.2, "boss", 260, "Dealt"))
+	s.bar(9.2, 0.55, 0.40)
+	s.bow(9.5, 1.3)
+	s.add(BossChoreo.anim(9.54, "cazador", "Arrow", 0.7))
+	s.add(BossChoreo.skill(9.7, "ArrowRain", "cazador", Vector3.new(0, 0, -2), { radius = 10, seconds = 1.2 }))
+	s.add(BossChoreo.hit(10.0, "boss", 150, "Dealt"))
+	s.bar(10.0, 0.40, 0.33)
+	s.add(BossChoreo.hit(10.15, "boss", 150, "Dealt"))
+	s.bar(10.15, 0.33, 0.26)
+	s.add(BossChoreo.hit(10.3, "boss", 210, "Dealt"))
+	s.bar(10.3, 0.26, 0.16)
+
+	-- Remate: Embestida del guerrero hasta el jefe y Rompehuesos crítico.
+	local hitSpot = flat(0, -6)
+	s.add(BossChoreo.anim(10.5, "guerrero", "Charge", 0.7))
+	s.add(BossChoreo.skill(10.5, "Charge", "guerrero", nil, { seconds = 0.7 }))
+	s.add(moveEvent(10.5, "guerrero", hitSpot, yawToBoss(hitSpot), 0.55, QUAD))
+	s.add(BossChoreo.anim(11.25, "guerrero", "Smash", 0.8))
+	s.add(BossChoreo.skill(11.45, "Smash", "guerrero", "boss"))
+	s.add(BossChoreo.hit(11.45, "boss", 620, "Dealt", { crit = true }))
+	s.bar(11.45, 0.16, 0.04)
+	s.add(BossChoreo.shake(11.45, 0.35, 0.5))
+
+	-- El guerrero se aparta del meteoro; el mago lo invoca; el jefe cae.
+	s.addAll(BossChoreo.run("guerrero", 12.0, 12.7, hitSpot, gSpot, yawG))
+	s.add(BossChoreo.anim(12.0, "mago", "CastArea", 1.0))
+	s.add(BossChoreo.skill(12.2, "Meteor", "mago", "boss", { radius = 8 }))
+	s.cheer(12.6)
+	s.add(BossChoreo.hit(13.0, "boss", 700, "Dealt", { ko = true }))
+	s.bar(13.0, 0.04, 0, 0.25)
+	s.add(BossChoreo.bossAct(13.05, "Die"))
+
+	-- Luz propia: cálida hasta el resoplido (se funde de 5,6 a 6,0 a la vez que las antorchas), fría y baja en la penumbra,
+	-- cálida otra vez cuando el mago reenciende. La exposición de t = 0 (0,3) la pone la entrada de la batalla.
+	local warm, cold = Color3.fromRGB(255, 236, 210), Color3.fromRGB(150, 170, 215)
+	s.add(followLight(0, warm, 1.2, 60, 6.0))
+	s.add(exposure(5.9, 0.08))
+	s.add(followLight(5.9, cold, 0.35, 40, 2.9))
+	s.add(exposure(8.75, 0.3))
+	s.add(followLight(8.75, warm, 1.2, 60, nil))
+
+	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí).
+	local plan = openingShots(3.6)
+	table.insert(plan, shot(3.6, 5.4, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
+	table.insert(plan, shot(5.4, 6.4, { 0, 8, -16 }, { "abs", 0, 6, 0 }, 56))
+	table.insert(plan, shot(6.4, 8.6, { 20, 5, -6 }, { "mid", "C", 3 }, 54))
+	table.insert(plan, shot(8.6, 9.4, { 4, 3, -14 }, { "crew", "mago", 3 }, 50))
+	table.insert(plan, shot(9.4, 10.4, { 22, 8, -12 }, { "abs", 0, 6, 0 }, 46, { 20, 9, -12 }))
+	table.insert(plan, shot(10.4, 12.0, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
+	table.insert(plan, closingShot(ctx.total))
+	return { events = s.events, plan = plan, ownLight = true }
+end
+
+-- Gorila de Ceniza: canaliza el aullido con grietas de lava y lanza tres oleadas de bombas desde el cráter (detrás del jefe),
+-- con aviso. Cada una la esquiva alguien; al cazador, que reacciona tarde, le llega la onda y el médico lo cura; el guerrero
+-- sube en zigzag entre las últimas y remata al jefe. Los charcos arden 4 s (Config.BossFx.LavaPoolSeconds): nadie pisa uno.
+-- Efectos grandes de AbilityShow: Nova 7,0 a 8,8 · Curación 7,6 a 9,0 · Rompehuesos 10,4 a 11,8 · Meteoro 12,2 a 14,2.
+function BossChoreo.ceniza(ctx: Context): Choreo
+	local s = newWriter(ctx)
+	local gSpot, cSpot, mSpot, dSpot = s.spots.guerrero, s.spots.cazador, s.spots.mago, s.spots.medico
+	local yawG, yawC, yawM = yawToBoss(gSpot), yawToBoss(cSpot), yawToBoss(mSpot)
+	local style = "GorilaDeCeniza"
+	local crater = Vector3.new(0, 35, 14) -- de donde salen las bombas, en el marco del jefe
+	local function bomb(t: number, pos: Vector3, warn: number)
+		s.add(
+			BossChoreo.bossFx(
+				t,
+				"lavaBomb",
+				style,
+				{ pos = pos, warn = warn, flight = 1.1, radius = 5, origin = crater }
+			)
+		)
+	end
+
+	s.enter()
+
+	-- Canaliza el aullido: grietas de lava alrededor del jefe. Mientras, disparan el cazador y el mago.
+	s.add(BossChoreo.bossAct(2.6, "Howl"))
+	s.add(BossChoreo.bossFx(3.0, "stomp", style, { pos = flat(0, 0), warn = 0.6, radius = 10 }))
+	s.add(BossChoreo.shake(3.6, 0.3, 0.8))
+	s.bow(2.6, 1.8)
+	s.shoot(2.95, "boss")
+	s.add(BossChoreo.hit(3.1, "boss", 180, "Dealt"))
+	s.bar(3.1, 1, 0.90)
+	s.fireball(3.3, 3.6)
+	s.add(BossChoreo.hit(3.95, "boss", 400, "Dealt", { crit = true }))
+	s.bar(3.95, 0.90, 0.72)
+
+	-- OLA 1 (aviso a 4,0, impacto a 5,4): bombas sobre el guerrero y el médico, donde están. El guerrero salta de lado y el
+	-- médico corre en diagonal.
+	s.add(BossChoreo.bossAct(3.8, "Stomp"))
+	bomb(4.0, gSpot, 1.4)
+	bomb(4.0, dSpot, 1.4)
+	local gWave = flat(12, -15)
+	local dWave = flat(11, -17)
+	s.addAll(BossChoreo.leap("guerrero", 4.8, gSpot, gWave, 2.2, 0.5, yawG))
+	s.addAll(BossChoreo.run("medico", 4.7, 5.2, dSpot, dWave, yawToBoss(dWave)))
+
+	-- OLA 2 (aviso a 5,4, impacto a 6,8): bombas sobre el mago (retrocede de un salto) y a 4 studs del cazador, que reacciona
+	-- tarde: la onda lo tira hacia +X, fuera del charco.
+	s.add(BossChoreo.bossAct(5.2, "Stomp"))
+	bomb(5.4, mSpot, 1.4)
+	bomb(5.4, flat(-12, -19), 1.4)
+	s.addAll(BossChoreo.hop("mago", 6.1, mSpot, flat(0, -26), yawM))
+	s.add(BossChoreo.hit(6.8, "cazador", 70, "Taken"))
+	s.addAll(BossChoreo.knockDown("cazador", 6.8, flat(-6.5, -19), Vector3.xAxis, yawC, 0.9))
+	local cDown = flat(-5, -19)
+	s.addAll(BossChoreo.getUp("cazador", 7.8, cDown, yawC, 0.2))
+
+	-- El médico va a curarlo por el norte (rodea los charcos vivos: el camino recto cruza el del mago) y lo cura en área.
+	local dNorth, dHeal = flat(8.5, -9), flat(-4, -10.5)
+	s.addAll(BossChoreo.run("medico", 6.05, 6.6, dWave, dNorth))
+	s.addAll(BossChoreo.run("medico", 6.6, 7.35, dNorth, dHeal, yawOf(cDown - dHeal)))
+	s.add(BossChoreo.anim(7.4, "medico", "CastArea", 1.1))
+	s.add(BossChoreo.skill(7.6, "AreaHeal", "cazador", nil))
+	s.add(BossChoreo.hit(7.75, "cazador", 120, "Heal"))
+
+	-- En el hueco: Nova de hielo sobre el jefe.
+	s.add(BossChoreo.anim(6.8, "mago", "CastArea", 1.0))
+	s.add(BossChoreo.skill(7.0, "FrostNova", "mago", "boss", { radius = 12 }))
+	s.add(BossChoreo.skill(7.15, "Frozen", "mago", "boss", { seconds = 1.5 }))
+	s.add(BossChoreo.hit(7.2, "boss", 240, "Dealt"))
+	s.bar(7.2, 0.72, 0.56)
+
+	-- OLA 3 (aviso a 7,2, impactos a 8,6 y 8,8): el guerrero sube en zigzag (tres tramos, el primero desde donde aterrizó) y
+	-- dos bombas caen detrás de él; otra cae sobre el cazador ya levantado, que rueda.
+	local points = { gWave, flat(13, -9), flat(4, -9), flat(2.5, -6.5) }
+	local times = { 7.3, 7.9, 8.6, 9.0 }
+	s.add(BossChoreo.bossAct(7.0, "Stomp"))
+	for index = 1, 3 do
+		s.addAll(BossChoreo.run("guerrero", times[index], times[index + 1], points[index], points[index + 1]))
+	end
+	local hitSpot = points[4]
+	s.add(moveEvent(9.0, "guerrero", hitSpot, yawToBoss(hitSpot), 0.15, SINE))
+	-- Cada bomba cae donde estaba el guerrero un rato antes: a más de radio + 2,5 de donde está en el impacto.
+	local minLags = { 0.5, 1.4 }
+	for index, warn in { 1.4, 1.6 } do
+		local impact = 7.2 + warn
+		local now = pathAt(points, times, impact)
+		local center, far = points[1], -1
+		for lag = minLags[index], 1.8, 0.1 do
+			local candidate = pathAt(points, times, impact - lag)
+			local away = (candidate - now).Magnitude
+			if away > far then
+				center, far = candidate, away
+			end
+			if away >= 7.5 then
+				center = candidate
+				break
+			end
+		end
+		bomb(7.2, center, warn)
+	end
+	bomb(7.2, cDown, 1.4)
+	s.addAll(BossChoreo.dodge("cazador", 8.0, cDown, -Vector3.zAxis, 7, yawC, 0.45))
+
+	-- El guerrero llega junto al jefe: Embestida, Rompehuesos crítico y temblor.
+	s.add(BossChoreo.skill(9.6, "Charge", "guerrero", nil, { seconds = 0.6 }))
+	s.add(BossChoreo.anim(10.2, "guerrero", "Smash", 0.8))
+	s.add(BossChoreo.skill(10.4, "Smash", "guerrero", "boss"))
+	s.add(BossChoreo.hit(10.4, "boss", 560, "Dealt", { crit = true }))
+	s.bar(10.4, 0.56, 0.30)
+	s.add(BossChoreo.bossAct(10.45, "Hurt"))
+	s.add(BossChoreo.shake(10.4, 0.35, 0.5))
+
+	-- Cazador y mago rematan desde lejos.
+	s.bow(10.3, 1.3)
+	s.shoot(10.7, "boss")
+	s.add(BossChoreo.hit(10.85, "boss", 160, "Dealt"))
+	s.bar(10.85, 0.30, 0.24)
+	s.add(BossChoreo.hit(11.0, "boss", 160, "Dealt"))
+	s.bar(11.0, 0.24, 0.18)
+	s.fireball(10.9, 11.2)
+	s.add(BossChoreo.hit(11.55, "boss", 300, "Dealt"))
+	s.bar(11.55, 0.18, 0.04)
+
+	-- El guerrero se aparta del meteoro; el mago lo invoca; el jefe cae con un estallido de lava.
+	s.addAll(BossChoreo.run("guerrero", 11.5, 12.2, hitSpot, gSpot, yawG))
+	s.add(BossChoreo.anim(12.0, "mago", "CastArea", 1.0))
+	s.add(BossChoreo.skill(12.2, "Meteor", "mago", "boss", { radius = 8 }))
+	s.cheer(12.6)
+	s.add(BossChoreo.hit(13.0, "boss", 700, "Dealt", { ko = true }))
+	s.add(BossChoreo.bossFx(13.0, "stomp", style, { pos = flat(0, 0), warn = 0.1, radius = 12 }))
+	s.bar(13.0, 0.04, 0, 0.25)
+	s.add(BossChoreo.bossAct(13.05, "Die"))
+
+	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí).
+	local plan = openingShots(3.8)
+	table.insert(plan, shot(3.8, 5.6, { 0, 5, -14 }, { "abs", 0, 8, 4 }, 58))
+	table.insert(plan, shot(5.6, 7.4, { -14, 5, -12 }, { "crew", "cazador", 3 }, 52))
+	table.insert(plan, shot(7.4, 9.6, { 22, 8, -12 }, { "abs", 3, 3, -10 }, 48, { 20, 9, -12 }))
+	table.insert(plan, shot(9.6, 10.6, { -20, 3.4, -6 }, { "mid", "guerrero", 3.5 }, 52))
+	table.insert(plan, shot(10.6, 12.0, { 22, 9, 0 }, { "mid", "C", 3 }, 58))
+	table.insert(plan, closingShot(ctx.total))
+	return { events = s.events, plan = plan }
+end
+
+-- Elige el constructor por el campo `choreo` de la batalla ("orangutan" | "caudillo" | "albino" | "ceniza"). nil si no existe.
 function BossChoreo.build(choreo: string, ctx: Context): Choreo?
 	if choreo == "orangutan" then
 		return BossChoreo.orangutan(ctx)
 	elseif choreo == "caudillo" then
 		return BossChoreo.caudillo(ctx)
+	elseif choreo == "albino" then
+		return BossChoreo.albino(ctx)
+	elseif choreo == "ceniza" then
+		return BossChoreo.ceniza(ctx)
 	end
 	return nil
 end

@@ -1392,7 +1392,8 @@ type BossBattle = {
 	skill: string, -- habilidad que enseña el jefe (bossSkill)
 	wait: { Vector3 }, -- puntos del suelo que deben estar cargados antes de empezar (waitTerrain)
 	plan: { PlanShot },
-	choreo: string?, -- "orangutan" | "caudillo": la coreografía propia de la versión normal (BossChoreo); sin ella, la común
+	choreo: string?, -- "orangutan" | "caudillo" | "albino" | "ceniza": la coreografía propia de la versión normal (BossChoreo); sin ella, la común
+	torches: { string }?, -- maniquíes que llevan antorcha encendida (Actors: torch = true); el guion los apaga y enciende
 	reel: { ReelPlan }?, -- cortes del reel; sin ellos el jefe solo tiene la versión normal
 	hour: number?, -- hora del día de la escena (por defecto, DUSK_HOUR)
 	exposure: number?, -- exposición de la cámara (por defecto, 0,42)
@@ -1622,6 +1623,7 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		brightness = 1.8,
 		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -11.5, -18) },
 		plan = bossPlan(),
+		choreo = "ceniza",
 	},
 	GorilaAlbino = {
 		centre = { 0, -18 },
@@ -1633,6 +1635,8 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		brightness = 1.2,
 		wait = { Vector3.new(0, 0, 0), Vector3.new(0, 0.5, -18) },
 		plan = bossPlan(),
+		choreo = "albino",
+		torches = { "guerrero", "mago", "medico" }, -- el cazador no: el arco necesita las dos manos
 	},
 }
 
@@ -1728,6 +1732,7 @@ local function bossBattleActors(bossId: string, battle: BossBattle): { [string]:
 			pos = Vector3.new(x, terrainY(bossId, x, z), z),
 			yaw = yawToBoss(x, z),
 			snap = true,
+			torch = if battle.torches and table.find(battle.torches, member.name) then true else nil,
 		}
 	end
 	return actors
@@ -1879,7 +1884,19 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 				return crewSpot(battle, name)
 			end,
 			total = BATTLE_SECONDS,
+			torches = battle.torches,
 		})
+	end
+	-- Un guion con luz propia (la cueva del Albino) pone la suya: se quita la que sigue a la cámara de battleLight() y se deja
+	-- la exposición de la entrada y dimLights.
+	if choreo and choreo.ownLight then
+		local kept: EventList = {}
+		for _, event in events do
+			if event.kind ~= "light" then
+				table.insert(kept, event)
+			end
+		end
+		events = kept
 	end
 	local actionEvents = if choreo then choreo.events else bossBattleAction(battle)
 	for _, event in actionEvents do

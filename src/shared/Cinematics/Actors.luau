@@ -6,6 +6,8 @@
 --                team = "Jaguar" | "Quetzal": un brazalete y una capa corta en el color del bando (Config.Arena.Teams), que se ve
 --                también de espalda; sirve para distinguir bandos sin cambiar la armadura.
 --                snap = true: la Y sale de un rayo al Terrain (al colocarlo y en cada move), no de pos.
+--                torch = true: lleva una antorcha encendida en la mano izquierda (WeaponTools.buildTorch, soldada como lo hace
+--                TorchService), con el atributo CinematicTorch en su modelo; el evento torch de BattleActor la apaga y la enciende.
 --                weapon = false: sin arma (por defecto lleva la de su rol). labWeapon = id de Data/LabWeapons: lleva esa arma del
 --                Laboratorio con el aspecto de `faction` ("Guardians" | "Pirates") y, en vez de WeaponCarry, su pose de apuntar
 --                (Aim*, Data/WeaponAim). ballGear = "Jaguar" | "Quetzal": lleva el equipo
@@ -56,6 +58,7 @@ export type ActorDef = {
 	faction: ("Guardians" | "Pirates")?, -- aspecto del arma del Laboratorio
 	ballGear: string?, -- "Jaguar" | "Quetzal": equipo del Juego de pelota
 	team: string?, -- "Jaguar" | "Quetzal" (Config.Arena.Teams): brazalete y capa corta del color del equipo
+	torch: boolean?, -- antorcha encendida en la mano izquierda
 	copy: boolean?, -- localPlayer: dibuja una copia del personaje y esconde el real (el servidor no puede moverla)
 	skin: string?,
 	id: string?,
@@ -76,6 +79,10 @@ local DEFAULT_PANTS = Color3.fromRGB(70, 60, 50)
 local DEFAULT_ROLE = "Guerrero"
 -- Cuánto sostiene un actor la pose de apuntar de su arma del Laboratorio (un evento anim la cambia antes).
 local AIM_POSE_SECONDS = 600
+-- Cómo agarra la mano la antorcha (copia de HAND_OFFSET en island/server/Services/TorchService.luau:28: ese módulo es del
+-- servidor y no se puede requerir desde Shared): hacia delante y arriba, con la punta a -Z.
+local TORCH_HAND_OFFSET = CFrame.new(0, -0.25, -0.05) * CFrame.Angles(math.rad(-55), 0, 0)
+local TORCH_NAME = "AntorchaEnMano"
 
 local dummyFactory: DummyFactory? = nil
 local animator: Animator? = nil
@@ -261,6 +268,37 @@ local function markTeam(rig: Model, team: string?)
 	end
 end
 
+-- Antorcha encendida en la mano izquierda, soldada por su agarre (como TorchService.attach). Se borra con el rig. La luz no
+-- proyecta sombras (un maniquí de escena no las necesita y cuesta).
+local function holdTorch(rig: Model)
+	local hand = rig:FindFirstChild("LeftHand") or rig:FindFirstChild("Left Arm")
+	if not (hand and hand:IsA("BasePart")) then
+		warn("Actors: el maniquí no tiene mano izquierda para la antorcha")
+		return
+	end
+	local torch = WeaponTools.buildTorch()
+	torch.Name = TORCH_NAME
+	torch:SetAttribute("CinematicTorch", true)
+	local handle = torch.PrimaryPart :: BasePart
+	-- Se mueve el modelo entero: las piezas van soldadas al Handle y se quedarían atrás si solo se moviera él.
+	local offset = TORCH_HAND_OFFSET * WeaponTools.TORCH_GRIP:Inverse()
+	torch:PivotTo(hand.CFrame * offset)
+	local weld = Instance.new("Weld")
+	weld.Part0 = hand
+	weld.Part1 = handle
+	weld.C0 = offset
+	weld.Parent = handle
+	for _, descendant in torch:GetDescendants() do
+		if descendant:IsA("Fire") then
+			descendant.Enabled = true
+		elseif descendant:IsA("PointLight") then
+			descendant.Enabled = true
+			descendant.Shadows = false
+		end
+	end
+	torch.Parent = rig
+end
+
 -- Pone a "rig" la armadura y el arma de su rol (y la marca del bando) según "def". Devuelve el id del arma, si lleva.
 local function equip(rig: Model, def: ActorDef): string?
 	local role = def.role or DEFAULT_ROLE
@@ -283,6 +321,9 @@ local function equip(rig: Model, def: ActorDef): string?
 		holdWeapon(rig, weaponId, skin)
 	end
 	markTeam(rig, def.team)
+	if def.torch then
+		holdTorch(rig)
+	end
 	return weaponId
 end
 
