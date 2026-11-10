@@ -128,7 +128,8 @@ function IslandBossHooks:Init()
 		local model = run.context.bossModel
 		BossService.roar(if typeof(model) == "Instance" and model:IsA("Model") then model else nil)
 	end)
-	-- Gestos del jefe en las batallas montadas (G5b): bossAct { action = "Hurt" | "Roar" | "Stomp" | "Die" }.
+	-- Gestos del jefe en las batallas montadas (G5b, G14a): bossAct { action } admite cualquier Action de MonkeyAnimations
+	-- (Attack, Pounce, Roar, Throw, Stomp, Howl, Invoke, Hurt) y «Die».
 	-- «Die» es el «¡puf!» de caricatura (como los monos de CinematicMonkeyService). Sin animación para esa acción no
 	-- hace nada (MonkeyAnimator.play ya la ignora); si falla otra cosa, avisa una vez por acción.
 	local warnedActions: { [string]: boolean } = {}

@@ -35,6 +35,7 @@
 local BallHit = require(script.Parent.Parent.BallHit)
 local BallSim = require(script.Parent.Parent.BallSim)
 local BallgameData = require(script.Parent.Ballgame)
+local BossChoreo = require(script.Parent.BossChoreo)
 local Bosses = require(script.Parent.Bosses)
 local CameraPath = require(script.Parent.Parent.Cinematics.CameraPath)
 local ComicPages = require(script.Parent.ComicPages)
@@ -1296,6 +1297,34 @@ local TERRAIN_GRIDS: { [string]: { { number } } } = {
 		{ 1.1, 1.4, 1.5, 1.2, 1, 0.6, 0.1, -0.3, -0.6, -1.1, -4, -10.5, -10.8 },
 		{ 1.4, 1.8, 1.8, 1.6, 1.1, 0.7, 0.2, -0.2, -0.6, -0.8, -2.6, -8.6, -10.8 },
 	},
+	-- Ladera del cráter que baja hacia delante del jefe.
+	GorilaDeCeniza = {
+		{ -33.2, -31.7, -30.6, -30, -28.9, -28.6, -28.8, -28.6, -29.5, -30, -30.9, -31.9, -33.8 },
+		{ -30.4, -28.9, -27.7, -26.3, -26, -25.3, -25.4, -25.1, -25.6, -26.8, -27.5, -28.9, -31 },
+		{ -26.9, -24.9, -23.7, -22.8, -22, -22, -21.8, -21.5, -22, -23.4, -24.2, -25.6, -27.6 },
+		{ -23.6, -21.8, -20.8, -19.8, -17.7, -17.2, -17.9, -17.8, -18, -19.3, -20.3, -22.1, -23.6 },
+		{ -20.2, -18.4, -16.6, -16.7, -15.5, -14.8, -14.6, -14.6, -15.4, -16.1, -17.4, -18.5, -21.2 },
+		{ -18.1, -16.4, -13.6, -12.4, -11.2, -10.7, -11.5, -10.2, -11.5, -12.7, -14, -15.7, -17.6 },
+		{ -14.1, -13.2, -11, -8.4, -8.4, -7.6, -7.4, -6.6, -8, -9.3, -10.7, -12.7, -14.8 },
+		{ -12.4, -8.9, -7.7, -4.7, -4.6, -3.7, -2.9, -3.6, -4.2, -5.7, -7.7, -10.5, -12.2 },
+		{ -9.1, -7.1, -3.6, -2.8, -1.5, 0.4, 0, -0.6, -0.6, -2.3, -4.3, -7.9, -10.2 },
+		{ -7.1, -4, -0.9, 1.1, 0.6, 0.8, -0.8, 0.6, 0.5, 0.4, -0.8, -3.8, -7.6 },
+		{ -4.7, -2.2, 1.4, -2.5, -6.6, -12.1, -13.5, -11.2, -5, 0.3, 0.5, -2.5, -5.8 },
+	},
+	-- Sala llana. Donde la medición no dio suelo (pared o boca del túnel, nadie pisa ahí) se rellenó con 0,5.
+	GorilaAlbino = {
+		{ 0.5, 0.5, 0.5, 0.5, 0.5, 0.8, -0.2, 1.1, 0.5, 0.5, 0.5, 0.5, 0.5 },
+		{ 0.5, 0.5, 0.5, 0.5, 0.5, 0.7, -0.2, 1.1, 0.5, 0.5, 0.5, 0.5, 0.5 },
+		{ 0.5, 0.5, 0.5, 6.2, 1.8, 0.8, 0.3, 0.2, 0.7, 4.5, 0.5, 0.5, 0.5 },
+		{ 0.5, 7.1, 0.5, -0.2, -0.2, 0.7, 0.2, 0.7, 0.8, 0.6, 1.8, 10, 0.5 },
+		{ 0.5, 0.9, 0.6, 0.9, 0.7, 0.7, 0.2, 0.5, -0.1, 0.6, 0.8, 2.8, 0.5 },
+		{ 4, 0.9, 0.8, 0.9, 0.9, 0.9, 0.5, 0.9, 0.3, 0.9, 0.4, 0.9, 3.3 },
+		{ 0.7, -0.1, 0.9, 0.9, 0.3, 0.4, 0.6, 0.8, 0.8, 0.5, 0.1, 0.2, 1.2 },
+		{ 0.3, -0.1, 0.9, 0.9, 0.5, 0.4, 0.6, 0.8, 0.1, 0.8, 0.8, 0, 0.6 },
+		{ 0.6, 0.4, 0.6, 0.7, 0.4, 0.6, 0, 0.6, 0.9, 0.9, 0.7, 0.2, 0.7 },
+		{ 0.6, 0.7, 0.9, 0.8, 0.8, 0.8, 0.5, 0.7, 0.7, 0.3, 0.9, 0.9, 0.3 },
+		{ 1.1, 0.4, 0.6, 0.3, 0.7, 0.7, 0.9, 0.2, 0.7, 0.6, 0.3, 0.6, 2.2 },
+	},
 	-- Cima con ladera irregular que baja hacia delante del jefe (rocas pegadas al anchor en (-3,0,0) y (0,1,0)).
 	ChimpanceCaudillo = {
 		{ -5.9, -7.8, -9.3, -13.2, -15.3, -17.7, -18.1, -17.6, -15.3, -12.6, -11.4, -9.7, -10.1 },
@@ -1363,7 +1392,11 @@ type BossBattle = {
 	skill: string, -- habilidad que enseña el jefe (bossSkill)
 	wait: { Vector3 }, -- puntos del suelo que deben estar cargados antes de empezar (waitTerrain)
 	plan: { PlanShot },
-	reel: { ReelPlan },
+	choreo: string?, -- "orangutan" | "caudillo": la coreografía propia de la versión normal (BossChoreo); sin ella, la común
+	reel: { ReelPlan }?, -- cortes del reel; sin ellos el jefe solo tiene la versión normal
+	hour: number?, -- hora del día de la escena (por defecto, DUSK_HOUR)
+	exposure: number?, -- exposición de la cámara (por defecto, 0,42)
+	brightness: number?, -- brillo de la luz de la escena (por defecto, 1,8)
 }
 
 -- Los planos de cámara (tiempo, cámara de a b, mirada y FOV). Ninguna cámara a menos de 12 studs de un maniquí.
@@ -1564,6 +1597,7 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		skill = "stomp",
 		wait = { Vector3.new(0, 0, 0), Vector3.new(-12, -0.3, -24) },
 		plan = orangutanPlan(),
+		choreo = "orangutan",
 		reel = orangutanReel(),
 	},
 	ChimpanceCaudillo = {
@@ -1574,7 +1608,31 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		skill = "rockRain",
 		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -7.1, -18) },
 		plan = bossPlan(),
+		choreo = "caudillo",
 		reel = bossReelPlan(),
+	},
+	GorilaDeCeniza = {
+		centre = { 0, -18 },
+		colors = { Color3.fromRGB(196, 66, 18), Color3.fromRGB(255, 228, 176) },
+		narration = Strings.later("Del fondo del volcán…"),
+		quote = Strings.later("¡Todo arderá!"),
+		skill = "eruption",
+		hour = 17.5,
+		exposure = 0.42,
+		brightness = 1.8,
+		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -11.5, -18) },
+		plan = bossPlan(),
+	},
+	GorilaAlbino = {
+		centre = { 0, -18 },
+		colors = { Color3.fromRGB(62, 106, 160), Color3.fromRGB(232, 240, 248) },
+		narration = Strings.later("En la oscuridad de la cueva…"),
+		quote = Strings.later("Nadie sale de mi cueva…"),
+		skill = "extinguish",
+		exposure = 0.3,
+		brightness = 1.2,
+		wait = { Vector3.new(0, 0, 0), Vector3.new(0, 0.5, -18) },
+		plan = bossPlan(),
 	},
 }
 
@@ -1618,9 +1676,9 @@ local function pushed(pos: Vector3, look: Vector3): Vector3
 	return pos:Lerp(look, 0.04)
 end
 
-local function bossShots(bossId: string, battle: BossBattle): { CameraShot }
+local function bossShots(bossId: string, battle: BossBattle, planShots: { PlanShot }): { CameraShot }
 	local shots: { CameraShot } = {}
-	for _, plan in battle.plan do
+	for _, plan in planShots do
 		local posA = bossCamPoint(bossId, battle, plan.cam)
 		local lookA = bossLookPoint(bossId, battle, plan.look)
 		local posB = if plan.camB then bossCamPoint(bossId, battle, plan.camB) else pushed(posA, lookA)
@@ -1637,6 +1695,7 @@ end
 
 local function bossReelCuts(bossId: string, battle: BossBattle): { ReelCut }
 	local cuts: { ReelCut } = {}
+	assert(battle.reel, `El jefe {bossId} no tiene reel`)
 	for _, plan in battle.reel do
 		table.insert(cuts, {
 			t0 = plan.t0,
@@ -1805,12 +1864,25 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 	-- El jefe está más lejos de la cámara que los monos de la playa y su pelaje es oscuro: más exposición y más luz.
 	for _, event in events do
 		if event.kind == "exposure" then
-			event.value = 0.42
+			event.value = battle.exposure or 0.42
 		elseif event.kind == "light" then
-			event.brightness = 1.8
+			event.brightness = battle.brightness or 1.8
 		end
 	end
-	for _, event in bossBattleAction(battle) do
+	-- La versión normal con coreografía propia (G14a) saca de BossChoreo los eventos y los planos; las demás, la común.
+	local choreo: BossChoreo.Choreo? = nil
+	if variant == "normal" and battle.choreo then
+		choreo = BossChoreo.build(battle.choreo, {
+			bossId = bossId,
+			bossName = Bosses[bossId].name,
+			crewSpot = function(name: string): (number, number)
+				return crewSpot(battle, name)
+			end,
+			total = BATTLE_SECONDS,
+		})
+	end
+	local actionEvents = if choreo then choreo.events else bossBattleAction(battle)
+	for _, event in actionEvents do
 		table.insert(events, event)
 	end
 	local camera: { { t: number, pos: Vector3, look: Vector3, fov: number? } }
@@ -1819,7 +1891,7 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 		camera = cutShots(battleReelShots(cuts))
 		addBossReelComic(events, cuts, battle)
 	else
-		camera = cutShots(bossShots(bossId, battle))
+		camera = cutShots(bossShots(bossId, battle, if choreo then choreo.plan else battle.plan))
 		if variant == "comic" then
 			addBossComic(events, battle)
 		else
@@ -1833,7 +1905,7 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 		audience = "Self",
 		freeze = false,
 		skippable = true,
-		hour = DUSK_HOUR,
+		hour = battle.hour or DUSK_HOUR,
 		waitTerrain = battle.wait,
 		actors = bossBattleActors(bossId, battle),
 		camera = camera,
@@ -7406,6 +7478,8 @@ local Cinematics: { [string]: Scene } = {
 	Battle_Boss_ChimpanceCaudillo = bossBattleScene("ChimpanceCaudillo", "normal"),
 	Battle_Boss_ChimpanceCaudillo_Comic = bossBattleScene("ChimpanceCaudillo", "comic"),
 	Battle_Boss_ChimpanceCaudillo_Reel = bossBattleScene("ChimpanceCaudillo", "reel"),
+	Battle_Boss_GorilaDeCeniza = bossBattleScene("GorilaDeCeniza", "normal"),
+	Battle_Boss_GorilaAlbino = bossBattleScene("GorilaAlbino", "normal"),
 
 	-- Batallas montadas (G5a): solo para grabar, las lanza el panel de pruebas con ArrivalService.play.
 	Battle_Pack = battleScene("normal"),

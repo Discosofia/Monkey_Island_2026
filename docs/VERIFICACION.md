@@ -7081,6 +7081,101 @@ Cambios sin probar tras la última grabación (graba `Lab` otra vez, con copia d
 7. [ ] Play con un jugador y con dos jugadores, y el juego publicado.
    ✅ Mismos resultados que en Edit y sin errores propios en la Salida.
 
+## 182. Fase 25 G14a: batallas contra Ceniza y el Albino (10-11-2026)
+
+Escenas `Battle_Boss_GorilaDeCeniza` y `Battle_Boss_GorilaAlbino` (14 s, solo la versión normal, sin cómic ni reel) en `Data/Cinematics`: rejillas nuevas en `TERRAIN_GRIDS` (la sala llana del Albino y la ladera del cráter de Ceniza), entradas en `BOSS_BATTLES` con centro `{0,-18}` y los campos opcionales `hour`, `exposure` y `brightness` de `BossBattle`. Ceniza usa la habilidad de la erupción y el Albino la del apagado (`bossSkill`), con la luz fijada a las 17,5 en Ceniza, y exposición 0,3 y brillo 1,2 en el Albino. En `DebugService` del Studio de la Isla, «🥊 Batalla jefe» rota entre los cuatro jefes; el cómic y el reel siguen solo con el Orangután y el Caudillo. Probado en Play con un jugador y sin copia del perfil: la rotación sale bien, la escena de Ceniza dura 13,9 s y la del Albino 13,7 s con la cámara Scriptable, con 57-60 FPS, y al acabar la cámara vuelve a `Custom` con el personaje sin anclar y sin restos de `BatallaJefe` ni `Cinematic_*`. El juicio visual (la erupción, la luz y los pies sobre la ladera) no se ha visto en vídeo, porque el MCP no captura Play.
+
+### 182.1 En el Studio de la Isla, en Play, con un jugador: batallas contra Ceniza y el Albino (sin copia del perfil: el DataStore da 502 en Studio)
+
+1. [ ] Pulsa «🥊 Batalla jefe» hasta que salga Ceniza y mira la escena entera sin tocar la cámara, con sus 9 planos.
+   ✅ Arranca sin pantalla negra larga ni avisos en rojo en la Salida, y dura unos 14 s.
+2. [ ] Ceniza, con el Guarida_Volcan real en el mapa: mira la erupción y las bombas de lava.
+   ✅ Salen desde el cráter, no desde el suelo de la ladera ni desde el aire, y se ven con la luz fijada a las 17,5.
+3. [ ] Ceniza: mira si el jefe, la lava o los monos tapan la cámara en algún plano.
+   ✅ Ningún plano queda tapado más de un instante. Si pasa, anota el segundo.
+4. [ ] Ceniza: mira los pies de la tripulación en la ladera.
+   ✅ Pisan la ladera sin hundirse ni flotar. Por ser ladera, el suelo queda unos 11,5 bajo el pie del jefe; si se nota un desfase, anótalo.
+5. [ ] Albino: mira el rugido y las antorchas.
+   ✅ El rugido apaga las antorchas en el momento de la habilidad y la escena sigue sin cortes.
+6. [ ] Albino: mira la luz con exposición 0,3 y brillo 1,2 durante toda la escena.
+   ✅ Ni quemada ni a oscuras: se ven los personajes y el jefe con detalle.
+7. [ ] Albino: mira la tripulación en la sala llana.
+   ✅ Pisan el suelo sin hundirse ni flotar.
+8. [ ] Mira las órdenes de cómic y reel del panel de pruebas de la Isla, y lanza «🥊 Batalla jefe» con el Orangután y el Caudillo.
+   ✅ Las órdenes de cómic y reel solo aparecen para el Orangután y el Caudillo, no para Ceniza ni el Albino.
+
+### 182.2 Grabación con OBS (en el Studio de la Isla, en Play)
+
+1. [ ] Graba con OBS a 1080p60 las dos batallas, Ceniza y el Albino, y revísalas en el vídeo.
+   ✅ Las dos salen a 60 cuadros sin caídas visibles, la escena se ve entera y no hay cortes entre planos.
+
+### 182.3 En un juego publicado y en un teléfono
+
+1. [ ] Mide la duración de cada batalla con un reloj del cliente (sin tocar la cámara) en el juego publicado, y repite la medida en un teléfono.
+   ✅ Cada escena dura unos 14 s en ambos casos (en Studio, 13,9 s en Ceniza y 13,7 s en el Albino). Desde el lanzamiento, contando la espera de `ArrivalService`, el total ronda los 20,8 s en Studio; anota el tiempo en el juego publicado para compararlo.
+
+### 182.4 En la consola y en el perfil, tras las pruebas
+
+1. [ ] Mira los avisos de la consola tras una batalla contra Ceniza y el Albino, y compáralos con los de una batalla contra el Orangután hecha antes de G14a.
+   ✅ Los únicos avisos son los de ContentId sin contenido, que ya salían antes de G14a. Si aparece un error de script nuevo, anótalo con la línea.
+2. [ ] Tras las pruebas, comprueba el perfil de prueba: `cinematicsSeen` y la retención (Play escribió en el perfil real).
+   ✅ `cinematicsSeen` recoge las batallas vistas y la retención no tiene valores raros. Como no hubo copia, anota cualquier cambio que no esperes.
+3. [ ] Si quieres copias en el futuro, activa «Enable Studio Access to API Services» en Game Settings > Security del Studio de la Isla, y haz la copia de §10.0 antes de probar.
+   ✅ El DataStore responde en Studio y la copia del perfil se puede hacer y restaurar.
+
+## 183. Fase 25 G14a1: batallas normales del Orangután y el Caudillo con coreografía propia (10-11-2026)
+
+La batalla normal del Orangután del Manglar y la del Chimpancé Caudillo (14 s) tienen ahora su propia coreografía (`Shared/Cinematics/BattleActor` y `Shared/Data/BossChoreo`): lianas y agarre, oleadas de rocas con aviso, esquivas, saltos y caídas, números de daño, POW y BAM, barra de vida del jefe y efectos del jefe (`bossFx`). El cómic y el reel de los dos siguen con la coreografía de antes. Ceniza y el Albino siguen con la coreografía de §182 hasta G14a2.
+
+Probado en Play con un jugador y sin copia del perfil: 13,8 s el Orangután y 13,7 s el Caudillo con reloj del cliente, sin errores de script, con números de daño y barra funcionando. Pico de efectos del jefe: 26 piezas en el Orangután y 158 en el Caudillo (155 y 3 discos de aviso). Tras la traza se retocaron sin volver a medir dos cámaras del Orangután: `{22.5, 4, 2}` y `{-23, 3.4, -7}`. El MCP no captura Play, así que lo visual lo juzga el usuario en la grabación.
+
+### 183.1 En el Studio de la Isla, en Play, con un jugador (sin copia del perfil: el DataStore da 502 en Studio)
+
+1. [ ] Pulsa «🥊 Batalla jefe» hasta que salga el Orangután y mira la escena entera sin tocar la cámara. Después, el Caudillo.
+   ✅ Cada escena dura unos 14 s, sin pantalla negra larga ni avisos en rojo en la Salida. Al acabar, la cámara vuelve a `Custom` con el personaje sin anclar.
+2. [ ] Con el ajuste `showNumbers` apagado, mira la batalla del Caudillo.
+   ✅ No sale ningún número de daño, pero la barra de vida del jefe sí.
+3. [ ] Pulsa Saltar a mitad de la batalla del Orangután y luego a mitad de la del Caudillo.
+   ✅ Desaparecen los efectos del jefe (`CinematicBossFx`), la barra de vida y los actores. La cámara y el personaje vuelven a su sitio, y no quedan restos de `Cinematic_*`.
+4. [ ] Panel de pruebas de la Isla: lanza las órdenes de cómic y reel del Orangután y del Caudillo.
+   ✅ Salen con la coreografía de antes (sin lianas, sin oleadas de rocas y sin barra de vida) y sin errores de script nuevos.
+5. [ ] Lanza «🥊 Batalla jefe» hasta que salgan Ceniza y el Albino.
+   ✅ Las dos escenas siguen corriendo como en §182.1, sin errores de script nuevos.
+
+### 183.2 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [ ] Graba el Orangután y el Caudillo (versión normal) a 1080p60 y mira los 60 cuadros por tramos: de 0 a 5 s, de 5 a 10 s y de 10 a 14 s.
+   ✅ Cada tramo se mantiene cerca de 60 cuadros. Si cae en un tramo concreto (sobre todo en las lianas o en la lluvia de rocas), anota el segundo.
+2. [ ] Orangután: mira que los actores corren, saltan, esquivan y caen, sin quedarse parados.
+   ✅ Nadie flota ni atraviesa el suelo. En el salto y en la caída, los pies siguen el relieve de la ladera.
+3. [ ] Orangután, de 4,4 a 5 s: la esquiva del Guerrero ante el golpe del jefe.
+   ✅ El Guerrero se aparta antes de que caiga el golpe, y el golpe (`Attack`) conecta con el suelo donde estaba él. Si no coincide, anota el segundo.
+4. [ ] Orangután, a 5,5 s: las lianas sobre el Cazador.
+   ✅ Las lianas salen del suelo y lo atrapan, forcejea y sale un número rojo (daño recibido). El Smash del Guerrero lo suelta y las lianas desaparecen.
+5. [ ] Caudillo: las tres oleadas de rocas, con su disco de aviso.
+   ✅ Cada disco aparece en el suelo y las rocas caen sobre él. Ninguna roca cae sobre un actor que se queda quieto a la vista.
+6. [ ] Caudillo: la duración de los discos de aviso (se espera 1,2 s).
+   ✅ Cada disco dura unos 1,2 s antes del impacto. Si es más corto o más largo, anótalo.
+7. [ ] Caudillo: en cada oleada, el actor que debe esquivar salta o rueda fuera del disco. La segunda roca alcanza al Médico.
+   ✅ Las esquivas llegan a tiempo. Si una roca cae cerca de un actor que debía esquivar, anota el segundo y la oleada. El Médico cae de espaldas, recibe daño y se levanta.
+8. [ ] Caudillo: el mago se aparta hacia el fondo, hacia el punto (0,-26) del plan.
+   ✅ Retrocede en vez de quedarse delante del jefe. Si se queda en medio, anota el segundo.
+9. [ ] Caudillo, hacia 8,5 s: el Guerrero sube por la ladera y le pega con el Smash.
+   ✅ El golpe sale como crítico, con el número más destacado y su POW o BAM sobre el jefe.
+10. [ ] Números de daño de las dos batallas: colores y críticos.
+    ✅ Amarillo para el daño hecho, rojo para el recibido y verde para la curación. Los críticos se distinguen del resto.
+11. [ ] POW y BAM de las dos batallas.
+    ✅ Salen sobre el actor o el jefe que recibe el golpe y no tapan la cara de los actores.
+12. [ ] Barra de vida del jefe: cuándo aparece, cómo baja y cómo se apaga.
+    ✅ Aparece hacia 0,8 s, ya con las barras de letterbox puestas. Baja con cada golpe, llega a cero con la muerte y se apaga con el fundido.
+13. [ ] Cámaras de las dos batallas. Mira sobre todo los dos planos del Orangután que se retocaron sin volver a medir, `{22.5, 4, 2}` y `{-23, 3.4, -7}`.
+    ✅ Ningún actor queda tapado por el jefe, las lianas o las rocas, y ninguna cámara queda demasiado cerca de un actor. Si pasa, anota el segundo.
+
+### 183.3 En un teléfono y con la calidad Low
+
+1. [ ] Lanza las dos batallas en un teléfono, o en el Studio con la calidad Low, y mira los efectos del jefe.
+   ✅ Los efectos no pasan del tope de `Config.Budgets.Vfx` (en Low, 40 piezas; en Medium, 90; en High, 160). En Studio el Caudillo llega a 158 piezas, así que en Low se recorta a propósito: si faltan efectos, anótalo, pero no es un fallo. Sin tirones visibles.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

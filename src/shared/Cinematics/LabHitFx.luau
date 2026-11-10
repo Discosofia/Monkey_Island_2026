@@ -41,7 +41,8 @@ local FLASH_COLOR = Color3.fromRGB(255, 60, 60)
 local FLASH_SECONDS = 0.15
 local POISON_TICKS = 3
 
-local function flash(model: Model)
+-- El destello rojo del blanco (también lo usa BattleActor para los golpes de las batallas contra jefes).
+function LabHitFx.flash(model: Model)
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = FLASH_COLOR
 	highlight.FillTransparency = 0.4
@@ -71,7 +72,7 @@ function LabHitFx.play(info: Info)
 	local amount: number = hit.damage or math.round(weapon.damage * zone)
 	local userId = Players.LocalPlayer and Players.LocalPlayer.UserId or 0
 
-	flash(target)
+	LabHitFx.flash(target)
 
 	local text = controller(info, "CombatTextController")
 	if text and text.showLocal then

@@ -158,6 +158,11 @@ local function snapToTerrain(anchor: CFrame, pos: Vector3): Vector3
 	return anchor:PointToObjectSpace(Vector3.new(world.X, hit.Position.Y, world.Z))
 end
 
+-- Lo mismo para otros módulos de cinemática (BattleActor): con CFrame.identity, `pos` es un punto del mundo.
+function Actors.snapToTerrain(anchor: CFrame, pos: Vector3): Vector3
+	return snapToTerrain(anchor, pos)
+end
+
 -- Altura de la raíz sobre el suelo de un rig R15 (cadera más media raíz).
 local function liftOf(model: Model): number
 	local root = model:FindFirstChild("HumanoidRootPart")
@@ -552,7 +557,9 @@ local function moveActor(actor: Model, event: Sequencer.Event, ctx: Sequencer.Co
 	if actor:GetAttribute("CinematicSnap") then
 		pos = snapToTerrain(anchor, pos)
 	end
-	local target = anchor:PointToWorldSpace(pos + Vector3.new(0, lift, 0))
+	-- rise (studs, opcional): altura extra sobre el suelo ya calculado; con snap, la Y de `pos` se pierde y así se hacen
+	-- los saltos y los caídos (rise negativo) de las batallas.
+	local target = anchor:PointToWorldSpace(pos + Vector3.new(0, lift + (event.rise or 0), 0))
 	-- pitch y roll (grados, opcionales) inclinan al actor después del giro: el balanceo de un bote.
 	local rotation = if event.yaw
 		then (anchor * CFrame.Angles(0, math.rad(event.yaw), 0) * CFrame.Angles(
@@ -623,7 +630,8 @@ end
 -- Registra en el Sequencer: scene.actors (se crean al empezar y se limpian al terminar) y los eventos
 --   anim { actor, action, speed?, seconds?, server? }  llama al animador inyectado; con server = true lo
 --                                                       lanza el servidor y el cliente lo ignora.
---   move { actor, pos, yaw?, pitch?, roll?, seconds?, easing? }  mueve el actor hasta pos (relativa al anchor).
+--   move { actor, pos, yaw?, pitch?, roll?, rise?, seconds?, easing? }  mueve el actor hasta pos (relativa al anchor);
+--                                                       `rise` suma altura sobre el suelo (saltos y caídos).
 function Actors.install(sequencer: typeof(Sequencer))
 	sequencer.addHooks({
 		start = function(scene, ctx)

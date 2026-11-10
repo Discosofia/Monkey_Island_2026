@@ -99,6 +99,11 @@ local function combatModule(name: string): any?
 	return result
 end
 
+-- Para otros actores de cinemática que usan CombatClient (BattleActor).
+function LabActor.combatModule(name: string): any?
+	return combatModule(name)
+end
+
 local function stateOf(ctx: Sequencer.Context): State
 	local state = ctx._lab
 	if not state then

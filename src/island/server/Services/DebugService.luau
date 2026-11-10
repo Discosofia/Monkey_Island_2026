@@ -160,13 +160,28 @@ end
 -- y reel) rota por su cuenta entre los jefes de BATTLE_BOSSES. ArrivalService aparta al personaje real, monta al jefe
 -- (StageBoss, carpeta «BatallaJefe») antes de la espera y lo borra al acabar. Con un jefe real vivo del mismo id no
 -- monta nada.
-local BATTLE_BOSSES = { "OrangutanDelManglar", "ChimpanceCaudillo" }
+local BATTLE_BOSSES = { "OrangutanDelManglar", "ChimpanceCaudillo", "GorilaDeCeniza", "GorilaAlbino" }
 local BATTLE_WAIT_OFFSET = Vector3.new(-6, 0, 8) -- dónde espera el personaje real, en el marco del jefe
 local nextBattleBoss: { [string]: number } = { Normal = 1, Comic = 1, Reel = 1 }
 
+-- Siguiente jefe de la rotación de esa versión que tenga escena (no todos tienen cómic ni reel).
+local function pickBattleBoss(variant: string): string?
+	local suffix = if variant == "Normal" then "" else `_{variant}`
+	for _ = 1, #BATTLE_BOSSES do
+		local bossId = BATTLE_BOSSES[(nextBattleBoss[variant] - 1) % #BATTLE_BOSSES + 1]
+		nextBattleBoss[variant] += 1
+		if Cinematics[`Battle_Boss_{bossId}{suffix}`] then
+			return bossId
+		end
+	end
+	return nil
+end
+
 local function runBossBattle(player: Player, variant: string)
-	local bossId = BATTLE_BOSSES[(nextBattleBoss[variant] - 1) % #BATTLE_BOSSES + 1]
-	nextBattleBoss[variant] += 1
+	local bossId = pickBattleBoss(variant)
+	if not bossId then
+		return
+	end
 	local definition = Bosses[bossId]
 	local live = BossService.currentModel()
 	if live and live:GetAttribute("Boss") == bossId then
