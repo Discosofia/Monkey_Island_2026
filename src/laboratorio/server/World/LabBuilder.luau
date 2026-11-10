@@ -42,11 +42,7 @@ local MODULES: { [string]: MapModule } = {
 	Azotea = require(script.Parent.Maps.Azotea),
 	Alcantarillas = require(script.Parent.Maps.Alcantarillas),
 }
-local OFFSETS: { [string]: Vector3 } = {
-	Central = Vector3.zero,
-	Azotea = Vector3.new(2000, 160, 0),
-	Alcantarillas = Vector3.new(-2000, 0, 0),
-}
+local OFFSETS: { [string]: Vector3 } = Config.Lab.MapOffsets
 
 local LabBuilder = {}
 

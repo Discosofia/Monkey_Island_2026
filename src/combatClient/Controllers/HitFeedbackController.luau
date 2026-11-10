@@ -38,6 +38,9 @@ type Marker = {
 
 local HitFeedbackController = {}
 
+-- El dibujo del marcador, que Start deja listo (lo usan el aviso del servidor y showLocal).
+local showMarker: ((kind: any) -> ())? = nil
+
 -- Dónde está la mira del tirador en pantalla (la pantalla "Mira" del Laboratorio o de Dunas), o nil.
 local function crosshairCenter(playerGui: PlayerGui): Vector2?
 	local gui = playerGui:FindFirstChild("Mira")
@@ -141,7 +144,7 @@ function HitFeedbackController:Start()
 		return oldest
 	end
 
-	Remotes.HitFeedback.OnClientEvent:Connect(function(kind: any, _position: any, _weaponId: any)
+	local function onFeedback(kind: any)
 		if typeof(kind) ~= "string" then
 			return
 		end
@@ -182,7 +185,19 @@ function HitFeedbackController:Start()
 		else
 			Sfx.playLocal("HitBody", if isBlocked then settings.Volume.Body * 0.5 else settings.Volume.Body)
 		end
+	end
+	showMarker = onFeedback
+	Remotes.HitFeedback.OnClientEvent:Connect(function(kind: any, _position: any, _weaponId: any)
+		onFeedback(kind)
 	end)
+end
+
+-- Lo mismo que cuando el servidor confirma un impacto, pero lanzado en local (las cinemáticas del Laboratorio, LabActor):
+-- "Body", "Head", "Weak", "Blocked" o "Kill". No hace nada hasta que Start ha montado los marcadores.
+function HitFeedbackController.showLocal(kind: string)
+	if showMarker then
+		showMarker(kind)
+	end
 end
 
 return HitFeedbackController

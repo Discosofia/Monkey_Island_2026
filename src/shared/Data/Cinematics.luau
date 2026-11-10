@@ -6197,7 +6197,7 @@ local flagScenes = buildFlagScenes()
 
 -- ============================================================================ Motor en el Laboratorio (Fase 25, G12)
 -- «LabEngine» (16 s): escena de PRUEBA del motor en el Laboratorio en ruinas, no la final (la escena «Lab» de tres actos es
--- G13). La lanza «🎬 Motor del Laboratorio» del panel del Laboratorio con LabCineController, anclada a la explanada este del
+-- G13, más abajo en este bloque). La lanza «🎬 Motor del Laboratorio» del panel del Laboratorio con LabCineController, anclada a la explanada este del
 -- mapa Central (x 47: despejada, entre las cajas de x 40 y x 57; el suelo en y = 0). Cuatro maniquíes se enfrentan en dos
 -- líneas, de espaldas a z = ±9: los Guardianes (z -9, de cara a +z) con el rifle y el arpón y los Piratas (z 9, de cara a -z)
 -- con el lanzadardos y el cañón. Lo que enseña:
@@ -6205,7 +6205,8 @@ local flagScenes = buildFlagScenes()
 --    9.5      labLight Azotea (el cambio de luz)
 --   10 a 15.2 fpView del rifle Guardián: la cámara en su cabeza, con los brazos; Fire, Aim, Reload y dos disparos
 -- Sin textos (nada que traducir). Va dentro de una función por el límite de 200 locales del módulo.
-local labEngineScene: Scene? = (function(): Scene?
+local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
+	local out: { [string]: Scene? } = {}
 	local function build(): Scene
 		local events: { { t: number, kind: string, [string]: any } } = {}
 		local function add(event: { t: number, kind: string, [string]: any })
@@ -6275,17 +6276,1107 @@ local labEngineScene: Scene? = (function(): Scene?
 	end
 
 	local ok, built = pcall(build)
-	if not ok then
+	if ok then
+		out.LabEngine = built :: Scene
+	else
 		warn(`Cinematics: no se pudo construir la escena LabEngine: {built}`)
-		return nil
 	end
-	return built :: Scene
+
+	-- ======================================================================== «Lab» y «Lab_Comic» (Fase 25, G13)
+	-- Las dos escenas del tráiler del Laboratorio en ruinas, en tres actos que se ruedan en los tres mapas a la vez
+	-- (Workspace.LabMap los tiene todos, cada uno en su Config.Lab.MapOffsets). El ancla es el origen del Central, así que
+	-- cada punto es una coordenada del mundo: `at(mapa, x, y, z)` suma el offset del mapa. Las lanza «🎬 Laboratorio en
+	-- ruinas» (y «… cómic») del panel del Laboratorio con LabCineController, que lleva el personaje cerca de cada acto
+	-- (evento labPark: por si el place carga el mapa por streaming) y pone la luz (labLight).
+	--    Acto 1 (0 a 15,5)     Central: duelo 1v1. Travelling, primera persona (falla), intercambio, remate a cámara lenta
+	--    Acto 2 (15,5 a 30)    Alcantarillas: 3v3 en los túneles con la red, el ácido y los deslizamientos
+	--    Acto 3 (30 a 45)      Azotea: largo alcance; el disparo final con el visor del rifle (fpView con scope)
+	-- Los Guardianes llevan el rifle (el avatar, toda la escena), el arpón (gNet) y el lanzadardos (gDart); los Piratas, el
+	-- lanzadardos (pDart, el rival del acto 1), el arpón (pNet) y el cañón (pCannon). Los golpes llevan `hit` (labShot): la
+	-- respuesta del combate (número, crítico, cómic, hitmarker, red y charco) la pone Cinematics/LabHitFx.
+	-- La variante cómic corre las mismas acciones a LAB_COMIC_SCALE y sin primera persona; las páginas son una por acto.
+	-- Los tiempos, las posiciones y los encuadres son de diseño, a ajustar en Studio (raycasts de cada tiro y cada cámara).
+	local function buildLabScenes(scenes: { [string]: Scene? })
+		local LAB_SECONDS = 45
+		local LAB_COMIC_SECONDS = 25
+		local LAB_COMIC_SCALE = 0.55 -- el cómic corre la acción a este ritmo
+		local LAB_TITLE = Strings.later("Laboratorio en ruinas")
+		local RIFLE_DELAY = 0.1 -- fxDelay de la pose LabRifle (Data/WeaponAnimations): del disparo a la salida del proyectil
+		local RIFLE_SPEED = 450 -- velocidad del proyectil del rifle (Data/LabWeapons)
+		local RUN_ACTIONS: { [string]: string } = {
+			avatar = "RunRifle",
+			gNet = "RunHarpoon",
+			gDart = "RunDartGun",
+			pDart = "RunDartGun",
+			pNet = "RunHarpoon",
+			pCannon = "RunCannon",
+		}
+		local OFFSETS: { [string]: Vector3 } = Config.Lab.MapOffsets
+		local LIFT = Vector3.new(0, 2.6, 0) -- del suelo al pecho de un personaje
+
+		-- Una coordenada de un mapa, en el mundo.
+		local function at(map: string, x: number, y: number, z: number): Vector3
+			return OFFSETS[map] + Vector3.new(x, y, z)
+		end
+		local function central(x: number, y: number, z: number): Vector3
+			return at("Central", x, y, z)
+		end
+		local function sewer(x: number, y: number, z: number): Vector3
+			return at("Alcantarillas", x, y, z)
+		end
+		local function roof(x: number, y: number, z: number): Vector3
+			return at("Azotea", x, y, z)
+		end
+
+		-- Acto 1 (Central): el avatar al este, de cara al rival, que avanza andando, rueda y salta atrás.
+		local A1_AVATAR = central(52, 0, 5)
+		local A1_AVATAR_0 = central(52, 0, 2.2) -- de dónde llega: la escena empieza con él ya en movimiento
+		local A1_RIVAL_FROM = central(14, 0, 5)
+		local A1_RIVAL_SPEED = 3 -- studs/s: avanza al trote lento (las pistas de correr van a speed / 16)
+		local A1_RIVAL = central(26, 0, 5)
+		local A1_RIVAL_2 = central(29, 0, 5.2) -- adónde llega mientras el avatar le apunta (4 a 5,6 s)
+		local A1_AVATAR_2 = central(49.6, 0, 6.4) -- el avatar se desplaza de lado mientras apunta
+		local A1_PUSH = central(37, 0, 5.4) -- el rival, tras rodar, avanza a tiros
+		local A1_STRAFE = central(44.5, 0, 4.8) -- el avatar, tras deslizarse, sigue moviéndose
+		-- La caja de x 40 (z ±2) queda al sur: el intercambio ocurre en la banda z 3…7, al norte de ella, para que ningún tiro la cruce.
+		local A1_ROLL = central(34, 0, 7)
+		local A1_SLIDE = central(46, 0, 3)
+		local A1_HOP = central(31, 0, 6)
+		-- Acto 2 (sala de bombas, claro oeste): duelo 1v1 del avatar con el Pirata del arpón. El claro (x -15,5…-5, z -5,8…5,8)
+		-- queda entre la boca del túnel (x -16), las bombas pequeñas (4x6x4, en (-8, ±8)) y la cara de la bomba grande (x -4,3).
+		-- Los otros cuatro actores esperan lejos, bajo el mapa, hasta el acto 3 (pDart, pCannon) o no vuelven a salir.
+		local A2_PIRATE = sewer(-6.2, 0, 0.2)
+		local A2_AWAY = sewer(0, -500, 0)
+		-- Acto 3 (Azotea): el avatar en el helipuerto y los Piratas por el flanco oeste.
+		-- En x 6 del helipuerto: desde ahí la línea al Pirata pasa a 17° del Depósito (x -19…-13, z 11…17), fuera del visor de 30°.
+		local A3_AVATAR = roof(6, 4, 40)
+		-- Los Piratas cruzan al norte del Aparato de x -34 (z -13) y acaban en x -8…-12 (z -8…-4). A 5,5 studs/s, en el disparo
+		-- del visor (39,7 s) pDart está en x -12, z -8,6: la línea desde (6, 40) pasa a 19° del Depósito (x -19…-13, z 11…17),
+		-- fuera del visor de 30°, y entre él y la Caseta (x ±6, z ±6, 8 de alto).
+		local A3_PDART_PATH = { roof(-40, 0, -6), roof(-27, 0, -4), roof(-14, 0, -8) }
+		local A3_PCANNON_PATH = { roof(-38, 0, -2), roof(-27, 0, -1), roof(-18, 0, -4), roof(-12, 0, -2) }
+		-- Los Piratas ya vienen corriendo cuando empieza el acto: de estos puntos a la ruta de arriba.
+		local A3_PDART_LEAD = roof(-56, 0, 8)
+		local A3_PCANNON_LEAD = roof(-54, 0, 10)
+		local A3_RUN_SPEED = 6.5 -- studs/s: unos 8 s de carrera desde que empieza el acto, y se paran hacia 37,4
+		-- El avatar llega corriendo al helipuerto y su compañero Guardián (gDart) lo acompaña, moviéndose de lado.
+		local A3_AVATAR_FROM = roof(-3, 4, 40)
+		local A3_ALLY_FROM = roof(-8, 4, 40)
+		local A3_ALLY = { roof(0.5, 4, 40.5), roof(-2, 4, 39), roof(2, 4, 40.5), roof(-1, 4, 39.5), roof(1, 4, 40.5) }
+
+		local function labDummy(weapon: string, faction: string, pos: Vector3, yaw: number): { [string]: any }
+			return { kind = "dummy", labWeapon = weapon, faction = faction, pos = pos, yaw = yaw }
+		end
+
+		-- `variant`: "full" (45 s, con bandas) o "comic" (25 s, páginas con viñetas).
+		local function labScene(variant: string): Scene
+			assert(variant == "full" or variant == "comic", `Lab: la variante {variant} no existe`)
+			local comic = variant == "comic"
+			local scale = if comic then LAB_COMIC_SCALE else 1
+			local act = { two = if comic then 15.3 else 14.5, three = if comic then 29.8 else 29.5 }
+			local events: EventList = {}
+			-- Dónde está cada actor en cada segundo (de la acción, sin escalar): llaves { t, pos } que se interpolan en línea
+			-- recta. Sirven para encuadrar (cámara de seguimiento y viñetas) y para saber cuándo llega un proyectil.
+			local tracks: { [string]: { { t: number, pos: Vector3 } } } = {}
+			local function key(actor: string, t: number, pos: Vector3)
+				local list = tracks[actor]
+				if not list then
+					list = {}
+					tracks[actor] = list
+				end
+				table.insert(list, { t = t, pos = pos })
+			end
+			local function posAt(actor: string, t: number): Vector3
+				local list = tracks[actor]
+				local prev = list[1]
+				if t <= prev.t then
+					return prev.pos
+				end
+				for index = 2, #list do
+					local nextKey = list[index]
+					if t < nextKey.t then
+						local span = nextKey.t - prev.t
+						return prev.pos:Lerp(nextKey.pos, if span > 0 then (t - prev.t) / span else 1)
+					end
+					prev = nextKey
+				end
+				return prev.pos
+			end
+			-- Hacia dónde mira quien se mueve (en horizontal), mirando medio segundo alrededor de t.
+			local function heading(actor: string, t: number): Vector3
+				local d = posAt(actor, t + 0.25) - posAt(actor, t - 0.25)
+				d = Vector3.new(d.X, 0, d.Z)
+				return if d.Magnitude > 0.01 then d.Unit else Vector3.new(1, 0, 0)
+			end
+
+			-- Un evento de la acción, con el tiempo y las duraciones a la escala de la variante.
+			local function add(event: { t: number, kind: string, [string]: any })
+				if scale ~= 1 then
+					event = table.clone(event)
+					event.t *= scale
+					if event.seconds then
+						event.seconds *= scale
+					end
+				end
+				table.insert(events, event)
+			end
+			local function anim(t: number, actor: string, action: string, seconds: number?, speed: number?)
+				add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds, speed = speed })
+			end
+			-- Las líneas de velocidad del juego (SpeedLinesController): una de más o menos fuerza (`value`, de 0 a 1) mientras alguien
+			-- corre, salta, se desliza o esquiva. Se juntan al final (emitLines) en una sola curva con el máximo de las que se
+			-- solapan. El cómic no las lleva.
+			local lineSpans: { { t0: number, t1: number, value: number } } = {}
+			local function lines(t: number, value: number, seconds: number)
+				table.insert(lineSpans, { t0 = t, t1 = t + seconds, value = value })
+			end
+			local function emitLines()
+				if comic then
+					return
+				end
+				local bounds: { number } = {}
+				for _, span in lineSpans do
+					table.insert(bounds, span.t0)
+					table.insert(bounds, span.t1)
+				end
+				table.sort(bounds)
+				local last = 0
+				for _, t in bounds do
+					local value = 0
+					for _, span in lineSpans do
+						if t >= span.t0 and t < span.t1 then
+							value = math.max(value, span.value)
+						end
+					end
+					if value ~= last then
+						last = value
+						table.insert(events, { t = t, kind = "speedLines", value = value })
+					end
+				end
+			end
+			-- Pone a un actor en un sitio de golpe.
+			local function place(t: number, actor: string, pos: Vector3, yaw: number)
+				local list = tracks[actor]
+				local last = list[#list]
+				if last.pos ~= pos then
+					key(actor, t - 0.001, last.pos)
+				end
+				key(actor, t, pos)
+				add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
+			end
+			-- Lo mueve hasta `pos` en `seconds`; `tilt` ({ pitch?, roll? }) lo inclina (la caída).
+			local function glide(
+				t: number,
+				actor: string,
+				pos: Vector3,
+				yaw: number,
+				seconds: number,
+				easing: Enum.EasingStyle?,
+				tilt: { pitch: number?, roll: number? }?
+			)
+				local list = tracks[actor]
+				local last = list[#list]
+				if last.t < t then
+					key(actor, t, last.pos)
+				end
+				key(actor, t + seconds, pos)
+				add({
+					t = t,
+					kind = "move",
+					actor = actor,
+					pos = pos,
+					yaw = yaw,
+					seconds = seconds,
+					easing = easing or Enum.EasingStyle.Sine,
+					pitch = if tilt then tilt.pitch else nil,
+					roll = if tilt then tilt.roll else nil,
+				})
+			end
+			-- Un recorrido a velocidad constante con la pista de correr de su arma. Devuelve el segundo en que llega.
+			local function route(
+				actor: string,
+				t0: number,
+				points: { Vector3 },
+				speed: number,
+				animSpeed: number?
+			): number
+				local total = 0
+				for index = 2, #points do
+					total += (points[index] - points[index - 1]).Magnitude
+				end
+				anim(t0, actor, RUN_ACTIONS[actor], total / speed, animSpeed or speed / 16)
+				if speed >= 6 then
+					lines(t0, math.min(1, speed / 11), total / speed)
+				end
+				local t = t0
+				for index = 2, #points do
+					local seconds = (points[index] - points[index - 1]).Magnitude / speed
+					if seconds > 0.01 then
+						local yaw = yawBetween(points[index - 1], points[index])
+						place(t, actor, points[index - 1], yaw)
+						glide(t, actor, points[index], yaw, seconds, Enum.EasingStyle.Linear)
+						t += seconds
+					end
+				end
+				return t
+			end
+			-- Una víctima salta hacia atrás (el suelo es el y de `from`).
+			local function hop(t: number, actor: string, from: Vector3, to: Vector3, yaw: number)
+				anim(t, actor, "DodgeBack", 0.8)
+				lines(t, 0.5, 0.6)
+				glide(t, actor, from:Lerp(to, 0.5) + Vector3.new(0, 1.8, 0), yaw, 0.25, Enum.EasingStyle.Quad)
+				glide(t + 0.25, actor, to, yaw, 0.3, Enum.EasingStyle.Quad)
+			end
+			-- Cae de espaldas, 1,5 studs más allá (`away` es la dirección del tiro): el cuerpo queda a ras de suelo.
+			local function knockDown(t: number, actor: string, from: Vector3, away: Vector3, yaw: number)
+				glide(
+					t,
+					actor,
+					from + away * 1.5 + Vector3.new(0, -1.7, 0),
+					yaw,
+					1.6,
+					Enum.EasingStyle.Quad,
+					{ pitch = 80 }
+				)
+			end
+			-- Un disparo del arma del actor. `speed` (studs/s) se acelera en el cómic para que el vuelo dure lo mismo que la
+			-- acción; `range` recorta el alcance; `hit` pone la respuesta del combate en el blanco (LabHitFx).
+			local function lshot(
+				t: number,
+				actor: string,
+				target: any,
+				opts: { speed: number?, range: number?, hit: any? }?
+			)
+				local o = opts or {}
+				add({
+					t = t,
+					kind = "labShot",
+					actor = actor,
+					target = target,
+					speed = if o.speed then o.speed / scale else nil,
+					range = o.range,
+					hit = o.hit,
+				})
+			end
+			-- El segundo en que el proyectil de un disparo de `shooter` llega a `victim`.
+			local function impactAt(t: number, shooter: string, victim: string, speed: number): number
+				return t + RIFLE_DELAY + (posAt(shooter, t) - posAt(victim, t)).Magnitude / speed
+			end
+			-- Un salto con arco (la pista DodgeRoll lo convierte en voltereta): sube `height` studs hasta la mitad y baja.
+			local function leap(t: number, actor: string, to: Vector3, yaw: number, seconds: number, height: number)
+				local from = posAt(actor, t)
+				anim(t, actor, "DodgeRoll", seconds)
+				lines(t, 0.85, seconds)
+				glide(t, actor, from:Lerp(to, 0.5) + Vector3.new(0, height, 0), yaw, seconds / 2, Enum.EasingStyle.Quad)
+				glide(t + seconds / 2, actor, to, yaw, seconds / 2, Enum.EasingStyle.Quad)
+			end
+
+			-- Dardos que pasan por encima del avatar: apuntan 5,6 studs sobre el suelo de su sitio.
+			local function over(pos: Vector3): Vector3
+				return pos + Vector3.new(0, 5.6, 0)
+			end
+
+			-- Los actores, con su sitio de partida (para las llaves de posición, antes del primer evento).
+			local actors: { [string]: { [string]: any } } = {
+				avatar = {
+					kind = "localPlayer",
+					copy = true,
+					labWeapon = "LabBananaRifle",
+					faction = "Guardians",
+					pos = A1_AVATAR_0,
+					yaw = yawBetween(A1_AVATAR, A1_RIVAL),
+				},
+				pDart = labDummy("LabDartGun", "Pirates", A1_RIVAL_FROM, yawBetween(A1_RIVAL_FROM, A1_AVATAR)),
+				gNet = labDummy("LabNetHarpoon", "Guardians", A2_AWAY, 0),
+				gDart = labDummy("LabDartGun", "Guardians", A2_AWAY, 0),
+				pNet = labDummy("LabNetHarpoon", "Pirates", A2_PIRATE, 180),
+				pCannon = labDummy("LabAcidCannon", "Pirates", A2_AWAY, 180),
+			}
+			for name, def in actors do
+				key(name, -1, def.pos)
+			end
+
+			-- ------------------------------------------------------------------------------------------ Acto 1: Central
+			if not comic then
+				add({ t = 0, kind = "letterbox" })
+			end
+			add({ t = 0, kind = "labLight", map = "Central" })
+			-- El halo del Bloom del place sobre las franjas Neon y los focos quemaba los planos cercanos de las Alcantarillas
+			-- (se vio en la grabación): se rebaja mientras dura la escena (SceneLight lo devuelve al acabar).
+			add({ t = 0, kind = "bloom", intensity = 0.25, threshold = 3 })
+			add({ t = 0, kind = "labPark", map = "Central", pos = Vector3.new(-30, 3, 4) })
+			-- 1.1 El avatar apunta con el rifle (1.1a) y el rival avanza al trote hacia él, visto de lado (1.1b) y por sus ojos
+			-- (1.1c). Todo el que se mueve lleva la pista de correr de su arma a la velocidad real (speed / 16).
+			anim(0, "avatar", "RunRifle", 1.6, 0.17)
+			glide(0, "avatar", A1_AVATAR, yawBetween(A1_AVATAR, A1_RIVAL), 1.6, Enum.EasingStyle.Linear)
+			anim(1.7, "avatar", "AimRifle", 2.3)
+			anim(0, "pDart", "RunDartGun", 4, A1_RIVAL_SPEED / 16)
+			glide(0, "pDart", A1_RIVAL, yawBetween(A1_RIVAL_FROM, A1_AVATAR), 4, Enum.EasingStyle.Linear)
+			-- 1.1c Primera persona del Pirata: ve avanzar el pasillo con su lanzadardos y al avatar al fondo.
+			if not comic then
+				add({
+					t = 2.8,
+					kind = "fpView",
+					on = true,
+					actor = "pDart",
+					faction = "Pirates",
+					target = "avatar",
+					fov = 70,
+				})
+				add({ t = 2.9, kind = "fpAnim", key = "Equip" })
+				add({ t = 3.98, kind = "fpView", on = false })
+			end
+			-- Sigue avanzando mientras el avatar le apunta (1.2).
+			anim(4, "pDart", "RunDartGun", 1.6, A1_RIVAL_SPEED / 16)
+			glide(4, "pDart", A1_RIVAL_2, yawBetween(A1_RIVAL, A1_AVATAR), 1.6, Enum.EasingStyle.Linear)
+			-- 1.2 Primera persona del avatar: el disparo falla (apunta donde estaba el rival), el rival rueda, y el avatar se
+			-- desplaza de lado mientras apunta.
+			if not comic then
+				-- Con la mira del visor, como la ve el jugador al apuntar con el rifle.
+				add({ t = 4, kind = "fpView", on = true, actor = "avatar", target = "pDart", fov = 70, scope = true })
+				add({ t = 4.1, kind = "fpAnim", key = "Equip" })
+				add({ t = 4.7, kind = "fpAnim", key = "Aim", weight = 1, fov = 30, seconds = 0.4 })
+				add({ t = 5.6, kind = "fpAnim", key = "Fire" })
+				add({ t = 7, kind = "fpView", on = false })
+			end
+			lines(4.5, 0.3, 2)
+			glide(4.4, "avatar", A1_AVATAR_2, yawBetween(A1_AVATAR_2, A1_RIVAL_2), 2.4, Enum.EasingStyle.Sine)
+			-- Pasa rozando su hombro: la mira apunta 2,4 studs al lado del rival.
+			lshot(5.6, "avatar", posAt("pDart", 5.6) + Vector3.new(0, 1.6, 2.4))
+			anim(5.65, "pDart", "DodgeRoll", 0.7)
+			lines(5.65, 0.6, 0.6)
+			glide(5.65, "pDart", A1_ROLL, yawBetween(A1_ROLL, A1_SLIDE), 0.5)
+			-- 1.3 Intercambio: el rival avanza a tiros (ráfaga de dardos por encima) y el avatar se desliza y le contesta; su
+			-- rifle da en el blanco, y los dos siguen moviéndose.
+			anim(7, "pDart", "RunDartGun", 1.8, 0.3)
+			glide(7, "pDart", A1_PUSH, yawBetween(A1_ROLL, A1_SLIDE), 1.8, Enum.EasingStyle.Sine)
+			for _, t in { 7.3, 7.45, 7.6 } do
+				lshot(t, "pDart", over(A1_AVATAR_2))
+			end
+			anim(7.6, "avatar", "Slide", 0.7)
+			lines(7.6, 0.9, 0.9)
+			glide(7.6, "avatar", A1_SLIDE, yawBetween(A1_SLIDE, A1_PUSH), 0.6)
+			anim(8.3, "avatar", "RunRifle", 2.1, 0.2)
+			glide(8.3, "avatar", A1_STRAFE, yawBetween(A1_STRAFE, A1_HOP), 2.1, Enum.EasingStyle.Sine)
+			lshot(8.8, "avatar", "pDart", { hit = { damage = 48 } })
+			do
+				local struck = impactAt(8.8, "avatar", "pDart", RIFLE_SPEED)
+				hop(struck, "pDart", posAt("pDart", struck), A1_HOP, yawBetween(A1_HOP, A1_SLIDE))
+			end
+			lshot(9.4, "pDart", "avatar", { hit = { damage = 10 } })
+			lshot(9.55, "pDart", "avatar", { hit = { damage = 10 } })
+			-- 1.4 Remate a cámara lenta: la banana se ve volar y el rival cae de espaldas.
+			add({ t = 10.3, kind = "animSpeed", speed = 0.25 })
+			lshot(10.6, "avatar", "pDart", { speed = 25, hit = { damage = 96, head = true, ko = true } })
+			local finishAt = impactAt(10.6, "avatar", "pDart", 25)
+			add({ t = finishAt, kind = "shake", amp = 0.2, seconds = 0.4 })
+			local awayDir = (A1_HOP - A1_SLIDE) * Vector3.new(1, 0, 1)
+			knockDown(finishAt + 0.02, "pDart", A1_HOP, awayDir.Unit, yawBetween(A1_HOP, A1_SLIDE))
+			add({ t = 13.2, kind = "animSpeed", speed = 1 })
+			-- 1.5 Cierre en picado y fundido.
+			anim(14, "avatar", "ReloadRifle", 1.4)
+
+			-- ------------------------------------------------------------------------------------ Acto 2: Sala de bombas
+			-- Combate cercano 1v1 en el claro oeste, sin remate y sin red que atrape a nadie (en el juego la red no funciona así):
+			-- los dos se mueven siempre mirándose, esquivan, se deslizan, saltan y se disparan a 4-6 studs; el Pirata falla sus
+			-- redes y el avatar le acierta de vez en cuando (a veces apuntando). Entra y sale con corte seco, en pleno movimiento.
+			-- Los tiempos están en segundos de diseño (14,5 a 29,5); `A` los ajusta al cómic, que entra más tarde.
+			add({ t = act.two - 0.1, kind = "labPark", map = "Alcantarillas", pos = Vector3.new(50, 3, 25) })
+			add({ t = act.two, kind = "labLight", map = "Alcantarillas" })
+			do
+				local function A(t: number): number
+					return act.two + (t - 14.5) * (act.three - act.two) / 15
+				end
+				-- Posiciones del avatar (P) y del Pirata (Q); el claro mide x -15…-5,5 y |z| < 4,5 entre las bombas pequeñas.
+				local P = {
+					sewer(-14.5, 0, -3.8),
+					sewer(-13.3, 0, -1.6),
+					sewer(-14.2, 0, -3.9),
+					sewer(-12.6, 0, -2.4),
+					sewer(-12.2, 0, -0.4),
+					sewer(-13.2, 0, 1.6),
+					sewer(-12.5, 0, 2.8),
+					sewer(-13.8, 0, 0.8),
+					sewer(-12.3, 0, -1),
+					sewer(-13.8, 0, -3.2),
+					sewer(-12.8, 0, -1.4),
+					sewer(-13.8, 0, 1.2),
+					sewer(-12.4, 0, 2.4),
+					sewer(-12.5, 0, 0.6),
+				}
+				local Q = {
+					sewer(-7, 0, 3.4),
+					sewer(-6.2, 0, 1),
+					sewer(-5.8, 0, 2.6),
+					sewer(-6.2, 0, -1.8),
+					sewer(-5.8, 0, 0.2),
+					sewer(-6.2, 0, 2.4),
+					sewer(-5.8, 0, 1),
+					sewer(-6.6, 0, -1.2),
+					sewer(-6, 0, 2.4),
+					sewer(-5.8, 0, 0.6),
+					sewer(-6.4, 0, -1.4),
+					sewer(-5.8, 0, -0.2),
+					sewer(-6.6, 0, 2.2),
+					sewer(-6, 0, 0.2),
+					sewer(-6.4, 0, -1.6),
+				}
+				-- Hacia dónde mira quien llega a `to` en `t`: hacia el otro duelista en ese momento.
+				local function facing(to: Vector3, other: string, t: number): number
+					return yawBetween(to, posAt(other, t))
+				end
+				-- Corre (de lado, mirando al otro) hasta `to`: la pista de correr de su arma a un ritmo que se vea.
+				local function dash(t: number, actor: string, to: Vector3, seconds: number, other: string)
+					local speed = (to - posAt(actor, t)).Magnitude / seconds
+					anim(t, actor, RUN_ACTIONS[actor], seconds, math.max(speed / 16, 0.5))
+					if speed >= 6 then
+						lines(t, math.min(1, speed / 11), seconds)
+					end
+					glide(t, actor, to, facing(to, other, t + seconds), seconds, Enum.EasingStyle.Linear)
+				end
+				local function dodge(t: number, actor: string, to: Vector3, seconds: number, other: string)
+					leap(t, actor, to, facing(to, other, t + seconds), seconds, 2.2)
+				end
+				local function slide(t: number, actor: string, to: Vector3, other: string)
+					anim(t, actor, "Slide", 0.7)
+					lines(t, 0.9, 0.9)
+					glide(t, actor, to, facing(to, other, t + 0.7), 0.7)
+				end
+				local function stagger(t: number, actor: string, to: Vector3, other: string)
+					hop(t, actor, posAt(actor, t), to, facing(to, other, t + 0.55))
+				end
+
+				place(A(14.5), "avatar", P[1], yawBetween(P[1], Q[1]))
+				place(A(14.5), "pNet", Q[1], yawBetween(Q[1], P[1]))
+				place(A(14.5), "pDart", A2_AWAY, 180) -- el caído del acto 1 se aparta
+				dash(A(14.5), "avatar", P[2], 1.9, "pNet")
+				dash(A(14.5), "pNet", Q[2], 1.2, "avatar")
+				lshot(A(15.6), "avatar", "pNet", { hit = { damage = 36 } })
+				stagger(A(15.75), "pNet", Q[3], "avatar")
+				dodge(A(16.4), "avatar", P[3], 0.8, "pNet")
+				dash(A(16.4), "pNet", Q[4], 1.55, "avatar")
+				lshot(A(16.6), "pNet", "avatar")
+				lshot(A(17.1), "pNet", "avatar")
+				dash(A(17.2), "avatar", P[4], 1.2, "pNet")
+				lshot(A(17.9), "avatar", "pNet", { hit = { damage = 24 } })
+				stagger(A(18.05), "pNet", Q[5], "avatar")
+				dash(A(18.5), "avatar", P[5], 1.1, "pNet")
+				dash(A(18.9), "pNet", Q[6], 0.7, "avatar")
+				lshot(A(19.2), "pNet", "avatar")
+				lshot(A(19.6), "avatar", "pNet", { hit = { damage = 48 } }) -- apuntando
+				stagger(A(19.75), "pNet", Q[7], "avatar")
+				slide(A(19.8), "avatar", P[6], "pNet")
+				dash(A(20.6), "avatar", P[7], 1, "pNet")
+				dodge(A(20.9), "pNet", Q[8], 0.9, "avatar")
+				lshot(A(21.2), "avatar", "pNet")
+				dodge(A(21.8), "avatar", P[8], 0.8, "pNet")
+				dash(A(21.9), "pNet", Q[9], 1.5, "avatar")
+				lshot(A(22.1), "pNet", "avatar")
+				lshot(A(22.6), "pNet", "avatar")
+				dash(A(22.7), "avatar", P[9], 1.1, "pNet")
+				lshot(A(23.3), "avatar", "pNet", { hit = { damage = 36 } })
+				stagger(A(23.45), "pNet", Q[10], "avatar")
+				slide(A(24), "avatar", P[10], "pNet")
+				dash(A(24.3), "pNet", Q[11], 1, "avatar")
+				lshot(A(24.5), "pNet", "avatar")
+				dash(A(24.8), "avatar", P[11], 1.1, "pNet")
+				lshot(A(25.4), "avatar", "pNet", { hit = { damage = 48 } }) -- apuntando
+				stagger(A(25.55), "pNet", Q[12], "avatar")
+				dodge(A(26.2), "avatar", P[12], 0.8, "pNet")
+				dodge(A(26.4), "pNet", Q[13], 0.9, "avatar")
+				dash(A(27.1), "avatar", P[13], 1.2, "pNet")
+				lshot(A(27.6), "avatar", "pNet")
+				dash(A(27.4), "pNet", Q[14], 1, "avatar")
+				lshot(A(27.9), "pNet", "avatar")
+				dash(A(28.4), "avatar", P[14], 1.1, "pNet")
+				dash(A(28.5), "pNet", Q[15], 1, "avatar")
+				lshot(A(28.9), "pNet", "avatar")
+				lshot(A(29.1), "avatar", "pNet")
+
+				-- Primera persona, alternando las cabezas de los dos y cortando en los tiros y las esquivas (sin cómic).
+				if not comic then
+					local function fp(
+						from: number,
+						to: number,
+						who: string,
+						fireAt: { number },
+						fov: number,
+						aimAt: number?
+					)
+						local pirate = who == "pNet"
+						add({
+							t = from,
+							kind = "fpView",
+							on = true,
+							actor = who,
+							faction = if pirate then "Pirates" else nil,
+							target = if pirate then "avatar" else "pNet",
+							fov = fov,
+						})
+						if aimAt then
+							add({ t = aimAt, kind = "fpAnim", key = "Aim", weight = 1, fov = fov - 22, seconds = 0.35 })
+						end
+						for _, ft in fireAt do
+							add({ t = ft, kind = "fpAnim", key = "Fire" })
+						end
+						add({ t = to, kind = "fpView", on = false })
+					end
+					fp(14.5, 16.3, "avatar", { 15.6 }, 74)
+					fp(16.35, 17.8, "pNet", { 16.6, 17.1 }, 70)
+					fp(17.85, 19.95, "avatar", { 17.9, 19.6 }, 72, 19.1)
+					fp(20, 21.55, "pNet", {}, 70)
+					fp(21.6, 23.95, "avatar", { 21.2, 23.3 }, 74)
+					fp(24, 24.95, "pNet", { 24.5 }, 70)
+					fp(25, 26.9, "avatar", { 25.4 }, 72, 24.95)
+					fp(26.95, 28.4, "pNet", { 27.9 }, 70)
+					fp(28.45, 29.45, "avatar", { 29.1 }, 74)
+				end
+			end
+
+			-- --------------------------------------------------------------------------------------------- Acto 3: Azotea
+			-- 2 contra 2: el avatar y un Guardián del lanzadardos (gDart) en el helipuerto, y dos Piratas que cruzan corriendo desde
+			-- el principio. Todos entran en movimiento; al final los Piratas se paran y se vuelven hacia quien los apunta.
+			local a3Face = yawBetween(A3_AVATAR, A3_PDART_PATH[1])
+			add({ t = act.three - 0.1, kind = "labPark", map = "Azotea", pos = Vector3.new(-50, 3, -20) })
+			add({ t = act.three, kind = "labLight", map = "Azotea" })
+			place(act.three, "avatar", A3_AVATAR_FROM, a3Face)
+			anim(act.three, "avatar", "RunRifle", 1.4, 0.3)
+			glide(act.three, "avatar", A3_AVATAR, a3Face, 1.4, Enum.EasingStyle.Linear)
+			-- 3.1 Se descubre el avatar en el helipuerto, apuntando, con su compañero a un lado.
+			anim(act.three + 1.5, "avatar", "AimRifle", 5)
+			place(act.three, "gDart", A3_ALLY_FROM, a3Face)
+			anim(act.three, "gDart", "RunDartGun", 1.4, 0.5)
+			glide(act.three, "gDart", A3_ALLY[1], a3Face, 1.4, Enum.EasingStyle.Linear)
+			for index = 2, 5 do
+				local t = act.three + 1.4 + (index - 2) * 1.6
+				anim(t, "gDart", "RunDartGun", 1.6, 0.5)
+				glide(t, "gDart", A3_ALLY[index], a3Face, 1.6, Enum.EasingStyle.Sine)
+			end
+			for _, t in { 34.1, 34.8, 35.5 } do
+				lshot(t, "gDart", posAt("pDart", t) + Vector3.new(0, 9, 0), { range = 45 })
+			end
+			-- 3.2 Los Piratas cruzan la azotea por el flanco oeste, corriendo desde el principio (llegan a 37,4 y se paran); sus
+			-- dardos se quedan cortos (alcance de 80, a 45).
+			route(
+				"pDart",
+				act.three,
+				{ A3_PDART_LEAD, roof(-44, 0, 5), table.unpack(A3_PDART_PATH) },
+				A3_RUN_SPEED,
+				0.6
+			)
+			route(
+				"pCannon",
+				act.three,
+				{ A3_PCANNON_LEAD, roof(-44, 0, 7.5), table.unpack(A3_PCANNON_PATH) },
+				A3_RUN_SPEED,
+				0.6
+			)
+			for _, t in { 36, 36.15, 36.3 } do
+				lshot(t, "pDart", A3_AVATAR + Vector3.new(0, 1.6, 0), { range = 45 })
+			end
+			-- 3.3 Primera persona con el visor: entra a 37,3 (fov 30 en 0,4 s) y el disparo sale a 39,6. El Pirata apuntado se
+			-- vuelve hacia quien lo apunta a 37,6 y su acompañante, un segundo después.
+			glide(37.6, "pDart", posAt("pDart", 37.6), yawBetween(posAt("pDart", 37.6), A3_AVATAR), 0.35)
+			glide(38.6, "pCannon", posAt("pCannon", 38.6), yawBetween(posAt("pCannon", 38.6), A3_AVATAR), 0.35)
+			if not comic then
+				add({ t = 37, kind = "fpView", on = true, actor = "avatar", target = "pDart", fov = 70, scope = true })
+				add({ t = 37.3, kind = "fpAnim", key = "Aim", weight = 1, fov = 30, seconds = 0.4 })
+				add({ t = 39.6, kind = "fpAnim", key = "Fire" })
+				add({ t = 40, kind = "fpView", on = false })
+			end
+			lshot(39.6, "avatar", "pDart", { speed = 90, hit = { damage = 96, head = true, ko = true } })
+			add({ t = 39.9, kind = "shake", amp = 0.15, seconds = 0.3 })
+			-- 3.4 El impacto a cámara lenta, en primera persona del Pirata del cañón: su compañero cae a su lado y él se agacha.
+			add({ t = 40, kind = "animSpeed", speed = 0.3 })
+			local sniperAt = impactAt(39.6, "avatar", "pDart", 90)
+			local pDartAtHit = posAt("pDart", sniperAt)
+			local sniperAway = (pDartAtHit - A3_AVATAR) * Vector3.new(1, 0, 1)
+			knockDown(sniperAt + 0.02, "pDart", pDartAtHit, sniperAway.Unit, yawBetween(pDartAtHit, A3_AVATAR))
+			local cannonAtHit = posAt("pCannon", sniperAt)
+			hop(
+				sniperAt + 0.05,
+				"pCannon",
+				cannonAtHit,
+				cannonAtHit + sniperAway.Unit * 2.5,
+				yawBetween(cannonAtHit, A3_AVATAR)
+			)
+			if not comic then
+				add({
+					t = 40.05,
+					kind = "fpView",
+					on = true,
+					actor = "pCannon",
+					faction = "Pirates",
+					target = "pDart",
+					fov = 70,
+				})
+				add({ t = 41.5, kind = "fpView", on = false })
+			end
+			add({ t = 41.8, kind = "animSpeed", speed = 1 })
+			-- 3.5 Cierre: recarga, título, logo y fundido.
+			anim(42, "avatar", "ReloadRifle", 1.8)
+
+			emitLines()
+
+			-- ------------------------------------------------------------------------------------------ Cámara y textos
+			local camera: { CameraPoint } = {}
+			local function lookAtPawn(actor: string, t: number): Vector3
+				return posAt(actor, t) + LIFT
+			end
+			if comic then
+				-- Las viñetas del cómic (Lab_Comic): tres páginas, una por acto, con los tiempos de la acción a LAB_COMIC_SCALE.
+				local cuts: { ComicCut } = {}
+				local function addPage(
+					layout: string,
+					colors: { Color3 },
+					wipe: string?,
+					cells: { ComicCell },
+					order: { number }
+				)
+					for index, c in cells do
+						table.insert(cuts, {
+							t0 = c.t0,
+							t1 = c.t1,
+							layout = layout,
+							page = if index == 1 then { layout = layout, colors = colors, wipe = wipe } else nil,
+							cell = order[index],
+							pos = c.pos,
+							posB = c.posB,
+							subject = c.subject,
+							subjectB = c.subjectB,
+							width = c.width,
+							widthB = c.widthB,
+							bg = c.bg,
+						})
+					end
+				end
+				-- Centro y radio (en el suelo) de los personajes `names` en el segundo `c` de cómic.
+				-- Hasta qué segundo de la acción se miden los personajes: cada página se encuadra solo con lo que pasa en su mapa (más
+				-- allá, los actores ya se han ido al siguiente y la cámara miraría a 2000 studs).
+				local sampleCap = math.huge
+				local function groupAt(names: { string }, c: number): (Vector3, number)
+					local sum = Vector3.zero
+					local points = {}
+					for _, name in names do
+						local p = posAt(name, math.min(c / scale, sampleCap))
+						table.insert(points, p)
+						sum += p
+					end
+					local center = sum / #points
+					local radius = 0
+					for _, p in points do
+						radius = math.max(radius, (p - center).Magnitude)
+					end
+					return center, radius
+				end
+				local function framed(
+					names: { string },
+					c: number,
+					offset: Vector3,
+					minWidth: number
+				): (Vector3, Vector3, number)
+					local center, radius = groupAt(names, c)
+					local subject = center + LIFT
+					return subject + offset, subject, math.max(minWidth, radius * 2 + 3)
+				end
+				-- Una viñeta de c0 a c1: la cámara a `offA` del grupo al principio y a `offB` al final.
+				local function cellBetween(
+					c0: number,
+					c1: number,
+					names: { string },
+					offA: Vector3,
+					offB: Vector3,
+					minWidth: number,
+					bg: string
+				): ComicCell
+					local posA, subjectA, widthA = framed(names, c0, offA, minWidth)
+					local posB, subjectB, widthB = framed(names, c1, offB, minWidth)
+					local cell = comicCell(c0, c1, posA, subjectA, widthA, bg, subjectB)
+					cell.posB = posB
+					cell.widthB = widthB
+					return cell
+				end
+				-- La cámara en un sitio fijo del mapa, mirando al grupo.
+				local function cellFixed(
+					c0: number,
+					c1: number,
+					pos: Vector3,
+					names: { string },
+					minWidth: number,
+					bg: string
+				): ComicCell
+					local _, subjectA, widthA = framed(names, c0, Vector3.zero, minWidth)
+					local _, subjectB, widthB = framed(names, c1, Vector3.zero, minWidth)
+					local cell = comicCell(c0, c1, pos, subjectA, widthA, bg, subjectB)
+					cell.posB = pos
+					cell.widthB = widthB
+					return cell
+				end
+				local function followCells(
+					c0: number,
+					c1: number,
+					step: number,
+					names: { string },
+					offset: Vector3,
+					minWidth: number,
+					bg: string
+				): { ComicCell }
+					local list: { ComicCell } = {}
+					local count = math.max(1, math.round((c1 - c0) / step))
+					for index = 1, count do
+						local a = c0 + (c1 - c0) * (index - 1) / count
+						local b = c0 + (c1 - c0) * index / count
+						table.insert(list, cellBetween(a, b, names, offset, offset, minWidth, bg))
+					end
+					return list
+				end
+				local s = scale
+				-- P1 Central (four_a): presentación del avatar, el rival rodando, el deslizamiento y el remate (la grande).
+				sampleCap = 15.2 -- el salto a las Alcantarillas es a 15,3
+				local cells1: { ComicCell } = {
+					cellBetween(
+						0,
+						3.45 * s,
+						{ "avatar" },
+						Vector3.new(-6, 1.2, -7),
+						Vector3.new(-5, 1.2, -6),
+						7,
+						"flat"
+					),
+					cellBetween(
+						3.45 * s,
+						6.2 * s,
+						{ "pDart" },
+						Vector3.new(8, 1.4, 5),
+						Vector3.new(8, 1.4, 5),
+						9,
+						"dots"
+					),
+					cellBetween(
+						6.2 * s,
+						8.9 * s,
+						{ "avatar" },
+						Vector3.new(-5, 1, -9),
+						Vector3.new(-5, 1, -9),
+						9,
+						"flat"
+					),
+				}
+				local order1 = { 1, 2, 3 }
+				for _, extra in
+					followCells(8.9 * s, 15.45 * s, 1, { "avatar", "pDart" }, Vector3.new(4, 3, 12), 14, "dots")
+				do
+					table.insert(cells1, extra)
+					table.insert(order1, 4)
+				end
+				addPage("four_a", COMIC_COLORS.jungle, nil, cells1, order1)
+				-- P2 Alcantarillas (grid6): la carrera en fila, la red, el ácido, la contra-red, el deslizamiento y la salida.
+				sampleCap = 29.7 -- el salto a la Azotea es a 29,8
+				local duel = { "avatar", "pNet" }
+				local cells2: { ComicCell } = {
+					cellFixed(15.45 * s, 18 * s, sewer(-14.8, 3.6, 5.5), duel, 12, "flat"),
+					cellFixed(18 * s, 20.5 * s, sewer(-14.8, 2.8, -5.4), duel, 12, "dots"),
+					cellFixed(20.5 * s, 22.4 * s, sewer(-4.9, 6.2, 5.6), duel, 12, "flat"),
+					cellFixed(22.4 * s, 24 * s, sewer(-5, 13, -5.5), duel, 14, "dots"),
+					cellFixed(24 * s, 26.5 * s, sewer(-14.8, 2.8, -5.4), duel, 12, "flat"),
+					cellFixed(26.5 * s, 30 * s, sewer(-4.9, 2.4, -5.4), duel, 12, "dots"),
+				}
+				addPage("grid6", COMIC_COLORS.mangrove, "down", cells2, { 1, 2, 3, 4, 5, 6 })
+				-- P3 Azotea (four_b): el avatar en el helipuerto, los Piratas, el visor (muy cerrada) y el impacto (la grande).
+				sampleCap = math.huge
+				local cells3: { ComicCell } = {
+					cellBetween(
+						30 * s,
+						34.5 * s,
+						{ "avatar" },
+						Vector3.new(-4, 1.2, -8),
+						Vector3.new(-3, 1.2, -6),
+						8,
+						"flat"
+					),
+					cellBetween(
+						34.5 * s,
+						37 * s,
+						{ "pDart", "pCannon" },
+						Vector3.new(-6, 2.6, -5),
+						Vector3.new(-6, 2.6, -5),
+						12,
+						"dots"
+					),
+					cellBetween(
+						37 * s,
+						39.8 * s,
+						{ "avatar" },
+						Vector3.new(-3, 0.4, -3.5),
+						Vector3.new(-2.5, 0.4, -3),
+						3.2,
+						"flat"
+					),
+					cellBetween(
+						39.8 * s,
+						LAB_COMIC_SECONDS,
+						{ "pDart" },
+						Vector3.new(5.5, 0.6, 4),
+						Vector3.new(5.5, 0.6, 4),
+						9,
+						"dots"
+					),
+				}
+				addPage("four_b", COMIC_COLORS.mountain, "left", cells3, { 1, 2, 3, 4 })
+				camera = cutShots(comicShots(cuts)) :: any
+				addComicPages(events, cuts)
+
+				local function narration(t: number, text: string, seconds: number)
+					table.insert(events, {
+						t = t,
+						kind = "bubble",
+						balloon = "narration",
+						corner = "BL",
+						onPage = true,
+						text = text,
+						seconds = seconds,
+					})
+				end
+				local lastSfx = -math.huge
+				local function sfx(
+					t: number,
+					text: string,
+					layout: string,
+					cell: number,
+					fx: number,
+					fy: number,
+					rot: number
+				)
+					if t - lastSfx < 0.7 then
+						return -- ninguna onomatopeya pisa a la anterior
+					end
+					lastSfx = t
+					table.insert(events, {
+						t = t,
+						kind = "sfx",
+						text = text,
+						pos = ComicPages.cellPoint(layout, cell, fx, fy),
+						rot = rot,
+						size = 0.3,
+						color = Color3.new(1, 1, 1),
+						seconds = 0.6,
+					})
+				end
+				narration(0.2, Strings.later("Un duelo en el Central."), 1.8)
+				narration(15.5 * s + 0.1, Strings.later("Un duelo a corta distancia."), 2)
+				narration(30 * s + 0.1, Strings.later("Y desde la azotea, un solo disparo."), 2.2)
+				-- Solo la red y el ácido llevan onomatopeya de página: el golpe ya sale con el PEW! y el K.O.! del juego.
+				sfx(18.55 * s, Strings.later("¡FLUP!"), "grid6", 2, 0.55, 0.3, -10)
+				sfx(21.5 * s, Strings.later("¡SPLASH!"), "grid6", 3, 0.5, 0.3, 12)
+				sfx(24.3 * s, Strings.later("¡ZAS!"), "grid6", 5, 0.5, 0.3, -12)
+				sfx(39.7 * s, Strings.later("¡BLAM!"), "four_b", 3, 0.55, 0.3, -10)
+				-- Cartel final en la viñeta grande: título, logo del juego y fundido a negro.
+				table.insert(events, { t = 23.1, kind = "title", text = LAB_TITLE, seconds = 0.9 })
+				table.insert(events, {
+					t = 23.9,
+					kind = "logo",
+					text = Strings.later("Primal Banana Islands"),
+					sub = Strings.later("Monkey Survival"),
+					seconds = 0.5,
+				})
+				table.insert(events, { t = 24.1, kind = "fade", seconds = 0.5, toBlack = true })
+			else
+				-- Cámara de la versión larga. Corte seco: cada plano empieza 0,05 s después de acabar el anterior.
+				local function put(t0: number, t1: number, a: CameraPoint, b: CameraPoint)
+					pushShot(camera, if t0 == 0 then 0 else t0 + 0.05, t1, a, b)
+				end
+				local function follow(t0: number, t1: number, fn: (t: number) -> (Vector3, Vector3, number))
+					ballgameFollow(camera, t0 + 0.05, t1, fn)
+				end
+				-- Una grúa o travelling con aceleración suave (smoothstep) entre dos encuadres.
+				local function sweep(t0: number, t1: number, a: CameraPoint, b: CameraPoint)
+					local start = t0 + 0.05
+					follow(t0, t1, function(t)
+						local u = math.clamp((t - start) / (t1 - start), 0, 1)
+						local k = u * u * (3 - 2 * u)
+						local fovA, fovB = a.fov or 55, b.fov or 55
+						return a.pos:Lerp(b.pos, k), a.look:Lerp(b.look, k), fovA + (fovB - fovA) * k
+					end)
+				end
+				-- Acto 1
+				local avatarEye = A1_AVATAR + Vector3.new(0, 4.6, 0)
+				-- 1.1 Presentación en dos planos cerrados (antes, un travelling por un pasillo vacío): el avatar con el rifle de
+				-- bananas, de tres cuartos y de frente, y el rival que avanza hacia él con el lanzadardos.
+				-- 1.1a La cámara empieza arriba y lejos (cabeza y rifle enteros) y baja acercándose al avatar, que apunta.
+				put(
+					0,
+					1.6,
+					shot(central(45.5, 1.4, 11.5), A1_AVATAR + Vector3.new(0, 2.4, 0), 50),
+					shot(central(48.6, 4.5, 6.8), A1_AVATAR + Vector3.new(0, 4.4, 0), 36)
+				)
+				-- 1.1b Plano del Pirata que avanza hacia el avatar: la cámara va con él, de frente y de lado.
+				follow(1.6, 2.8, function(t)
+					local p = posAt("pDart", t)
+					local k = (t - 1.6) / 1.2
+					return p + Vector3.new(8 - 3 * k, 2.4, -7), p + Vector3.new(0, 2.6, 0), 44
+				end)
+				-- 1.1c El mismo Pirata en primera persona (la cámara la pone fpView en su cabeza).
+				put(
+					2.8,
+					4,
+					shot(central(26, 4.5, 5), A1_AVATAR + Vector3.new(0, 3, 0), 70),
+					shot(central(27, 4.5, 5), A1_AVATAR + Vector3.new(0, 3, 0), 70)
+				)
+				put(4, 7, shot(avatarEye, lookAtPawn("pDart", 5.5), 70), shot(avatarEye, lookAtPawn("pDart", 6.5), 70))
+				-- 1.3 La cámara recorre la línea de fuego de lado, de un duelista al otro, mientras los dos se mueven.
+				put(
+					7,
+					10,
+					shot(central(47, 3.4, 18), central(41.5, 1.8, 5.2), 66),
+					shot(central(38, 3.4, 19), central(39, 1.8, 5.2), 74)
+				)
+				do
+					-- Desde el norte, como el plano 1.3 pero más abajo y empujando: caben el tirador, la banana en vuelo y el rival.
+					-- Detrás del hombro el avatar tapaba la pantalla y, a 9 studs, la Caja de x 34 (z 15) quedaba a 2 studs de la
+					-- cámara (se vio en la grabación).
+					local aim = central(38.5, 1.8, 4.8)
+					put(
+						10,
+						14,
+						shot(central(44, 2.6, 18), aim, 62),
+						shot(central(39.5, 2, 12.5), aim:Lerp(central(35, 1.8, 5.4), 0.7), 50)
+					)
+				end
+				do
+					local fallen = posAt("pDart", 14.2) + Vector3.new(0, 14, 0)
+					local center = posAt("pDart", 14.2)
+					put(
+						14,
+						14.5,
+						shot(fallen, center + Vector3.new(0, 0, -0.3), 60),
+						shot(fallen, center + Vector3.new(0, 0, -0.3), 58)
+					)
+				end
+				-- Acto 2: el duelo va en primera persona (fpView, alternando los dos duelistas). Esta cámara de esquina solo se ve en
+				-- los huecos de 0,05 s entre vistas: queda en la esquina noroeste del claro, mirando al centro.
+				put(
+					14.5,
+					29.5,
+					shot(sewer(-14.8, 3.6, 5.5), sewer(-8.5, 1.8, 0.4), 60),
+					shot(sewer(-13.2, 3.9, 5.4), sewer(-8.5, 1.8, 0.4), 58)
+				)
+				-- Acto 3
+				-- 3.1 Grúa que sube desde justo bajo el borde, más rápida (3,5 s en vez de 4,5): el acto empieza en pleno movimiento.
+				sweep(
+					act.three,
+					33,
+					shot(roof(0, -4, 82), roof(0, 4, 40), 55),
+					shot(roof(0, 22, 75), roof(0, 5, 35), 50)
+				)
+				-- 3.2 Travelling lateral por el sur, con los dos Piratas centrados (la cámara miraba a 4 studs por delante del primero
+				-- y el segundo salía cortado): a 12 studs, un poco más alta, apuntando al punto medio entre los dos.
+				follow(33, 37, function(t)
+					local mid = (posAt("pDart", t) + posAt("pCannon", t)) / 2
+					local h = heading("pDart", t)
+					local side = Vector3.new(-h.Z, 0, h.X)
+					return mid + side * 12 + Vector3.new(0, 3.2, 0), mid + Vector3.new(0, 2.2, 0), 64
+				end)
+				do
+					local eye = A3_AVATAR + Vector3.new(0, 4.6, 0)
+					put(37, 40, shot(eye, lookAtPawn("pDart", 38.5), 70), shot(eye, lookAtPawn("pDart", 40), 30))
+				end
+				do
+					-- El impacto, de lado: perpendicular a la línea del tiro.
+					local body = posAt("pDart", sniperAt)
+					local line = ((body - A3_AVATAR) * Vector3.new(1, 0, 1)).Unit
+					local side = Vector3.new(-line.Z, 0, line.X)
+					local look = body + Vector3.new(0, 1.2, 0) + line * 0.8
+					put(
+						40,
+						42,
+						shot(body - side * 12 + Vector3.new(0, 2.6, 0), look, 45),
+						shot(body - side * 10 + Vector3.new(0, 2.4, 0), look, 40)
+					)
+				end
+				do
+					-- Cierre en dronie: la cámara arranca junto a la cara del avatar, por delante, y se aleja subiendo mientras lo
+					-- mantiene en el centro, hasta enseñar el helipuerto y la ciudad.
+					local forward = ((A3_PDART_PATH[3] - A3_AVATAR) * Vector3.new(1, 0, 1)).Unit
+					local face = A3_AVATAR + Vector3.new(0, 4.4, 0)
+					sweep(
+						42,
+						LAB_SECONDS,
+						shot(face + forward * 4.5 + Vector3.new(0, 0.4, 0), face, 42),
+						shot(face + forward * 26 + Vector3.new(0, 20, 0), face, 58)
+					)
+				end
+
+				table.insert(events, {
+					t = 0.6,
+					kind = "caption",
+					text = Strings.later("Un duelo en el Central."),
+					seconds = 2.6,
+				})
+				table.insert(events, {
+					t = 15.9,
+					kind = "caption",
+					text = Strings.later("Un duelo a corta distancia."),
+					seconds = 2.4,
+				})
+				table.insert(events, {
+					t = 30.6,
+					kind = "caption",
+					text = Strings.later("Y desde la azotea, un solo disparo."),
+					seconds = 2.6,
+				})
+				-- Cartel final, logo del juego y fundido (los mismos tiempos relativos que Pets, Mounts, Ballgame y Flag).
+				table.insert(events, {
+					t = 42.2,
+					kind = "title",
+					text = LAB_TITLE,
+					sub = Strings.later("Shooter por equipos en primera persona"),
+					seconds = 1.3,
+				})
+				table.insert(events, {
+					t = 43.6,
+					kind = "logo",
+					text = Strings.later("Primal Banana Islands"),
+					sub = Strings.later("Monkey Survival"),
+					seconds = 0.9,
+				})
+				table.insert(events, { t = 44.4, kind = "fade", seconds = 0.6, toBlack = true })
+			end
+
+			return {
+				duration = if comic then LAB_COMIC_SECONDS else LAB_SECONDS,
+				audience = "Self",
+				freeze = true,
+				skippable = true,
+				noBlur = true, -- sin DepthOfField ni Blur del place mientras suena (SceneLight)
+				actors = actors,
+				camera = camera,
+				events = events,
+			}
+		end
+
+		-- Cada variante va en su pcall, para que una que falle no tumbe a la otra ni al resto de cinemáticas.
+		for name, variant in { Lab = "full", Lab_Comic = "comic" } do
+			local labOk, labBuilt = pcall(labScene, variant)
+			if labOk then
+				scenes[name] = labBuilt :: Scene
+			else
+				warn(`Cinematics: no se pudo construir la escena {name}: {labBuilt}`)
+			end
+		end
+	end
+	buildLabScenes(out)
+	return out
 end)()
 
 local Cinematics: { [string]: Scene } = {
 	-- Motor en el Laboratorio (G12): escena de prueba; la lanza «🎬 Motor del Laboratorio» del panel del Laboratorio
 	-- (LabCineController).
-	LabEngine = labEngineScene,
+	LabEngine = labScenes.LabEngine,
+
+	-- Laboratorio en ruinas (G13): las escenas de tres actos del tráiler y su variante cómic; las lanzan «🎬 Laboratorio en
+	-- ruinas» y «… cómic» del panel del Laboratorio (LabCineController).
+	Lab = labScenes.Lab,
+	Lab_Comic = labScenes.Lab_Comic,
 
 	-- Captura la bandera (G10): solo para grabar; las lanzan «🎬 Captura la bandera» y «… cómic» del panel de Dunas
 	-- (DunasCineController).

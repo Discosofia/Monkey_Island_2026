@@ -36,6 +36,7 @@ local Workspace = game:GetService("Workspace")
 local ArmorModels = require(script.Parent.Parent.ArmorModels)
 local BallgameGear = require(script.Parent.Parent.BallgameGear)
 local Config = require(script.Parent.Parent.Config)
+local LabUniforms = require(script.Parent.LabUniforms)
 local LabWeapons = require(script.Parent.Parent.Data.LabWeapons)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
@@ -264,9 +265,10 @@ local function equip(rig: Model, def: ActorDef): string?
 	local weaponId: string? = nil
 	local skin = def.skin
 	if def.labWeapon then
-		-- Arma del Laboratorio: WeaponTools.build toma la facción como aspecto.
+		-- Arma del Laboratorio: WeaponTools.build toma la facción como aspecto, y el actor lleva el traje de su bando.
 		weaponId = def.labWeapon
 		skin = def.faction
+		LabUniforms.wear(rig, def.faction)
 	elseif def.weapon ~= false then
 		weaponId = if typeof(def.weapon) == "string"
 			then def.weapon

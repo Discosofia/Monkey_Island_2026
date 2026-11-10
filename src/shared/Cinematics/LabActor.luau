@@ -6,26 +6,35 @@
 --       el sonido del arma. `target` = Vector3 relativo al anchor o id de otro actor; sin él, hacia donde mira el actor.
 --       `speed` y `range` por defecto los del arma (el alcance se recorta a la distancia al blanco).
 --       Si el actor es el de la vista (fpView), sale de la boca del arma de la vista.
+--       `hit` (true o { damage?, head?, ko?, poison?, seconds? }, con `target` = id de otro actor): al llegar el proyectil
+--       (distancia ÷ velocidad) se repite en local la respuesta del combate (Cinematics/LabHitFx): destello rojo, número de
+--       daño, crítico, cómic de impacto, hitmarker y el efecto del arma (red del arpón, charco del cañón).
 --   labLight { map }                                        pone la luz de un mapa del Laboratorio (Shared/LabLighting).
 --       Al acabar la escena vuelve la del mapa de la partida (Workspace.LabMap, atributo Map).
---   fpView { on, actor?, weapon?, faction?, skin?, target?, fov? }   primera persona de un actor: con on, la cámara pasa a
---       su cabeza (mirando a `target` o hacia delante) y se monta el arma con los brazos (CombatClient/LabViewBuilder);
+--   fpView { on, actor?, weapon?, faction?, skin?, target?, fov?, scope? }   primera persona de un actor: con on, la cámara
+--       pasa a su cabeza (mirando a `target` o hacia delante) y se monta el arma con los brazos (CombatClient/LabViewBuilder);
 --       con on = false, o al acabar, se quita. Mientras dura, el jugador tiene el atributo CinematicActive para que
---       FirstPersonController no dibuje su propia vista.
---   fpAnim { key, seconds?, weight? }                       una pista de la vista (Fire, Reload, Equip; Aim con `weight`).
+--       FirstPersonController no dibuje su propia vista. Con `scope`, se monta la mira del arma (UI/Sights; el visor del
+--       rifle) con el peso de Aim, y el visor esconde el arma de la vista, como en FirstPersonController.
+--   fpAnim { key, seconds?, weight?, fov? }                 una pista de la vista (Fire, Reload, Equip; Aim con `weight`).
+--       Aim con `fov` lleva además el campo de visión de la cámara a `fov` (y el peso, con suavizado) en `seconds` (0,4).
 -- Solo cliente. Necesita CombatClient (AbilityFxController y LabViewBuilder): se cargan al usarse, sin ellos solo avisa.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Actors = require(script.Parent.Actors)
 local Ballistics = require(script.Parent.Parent.Ballistics)
 local Config = require(script.Parent.Parent.Config)
+local LabHitFx = require(script.Parent.LabHitFx)
 local LabLighting = require(script.Parent.Parent.LabLighting)
 local LabWeapons = require(script.Parent.Parent.Data.LabWeapons)
 local Sequencer = require(script.Parent.Sequencer)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Sights = require(script.Parent.Parent.UI.Sights)
 local WeaponAnimations = require(script.Parent.Parent.Data.WeaponAnimations)
 
 local LabActor = {}
@@ -35,18 +44,40 @@ local EYE_LIFT = 0.2 -- studs sobre el centro de la cabeza
 local CHEST_LIFT = 0.5 -- el blanco de un disparo a otro actor: el torso, un poco alto
 local ACTIVE_ATTRIBUTE = "CinematicActive"
 local FACTIONS = { Guardians = true, Pirates = true }
+local AVATAR_NAME = "Cinematic_Avatar" -- el nombre de la copia del jugador (Actors.spawn)
+local SCOPE_GUI = "CinematicScope"
+local SCOPE_HIDES_VIEW = 0.9 -- como FirstPersonController: con el visor casi opaco, el arma de la vista se esconde
+local AIM_SECONDS = 0.4 -- lo que tarda en entrar el visor si fpAnim Aim no dice `seconds`
+local FAR_AIM = 200 -- el punto de mira del visor cuando la vista no tiene blanco
 
 type Hidden = { inst: BasePart, old: number }
+-- Lo que cambia por cuadro en la vista: el campo de visión y el peso de Aim, con el suavizado de uno a otro.
+type Zoom = {
+	t0: number,
+	seconds: number,
+	fovFrom: number,
+	fovTo: number,
+	weightFrom: number,
+	weightTo: number,
+}
 type FirstPerson = {
 	actor: Model,
 	view: any, -- LabViewBuilder.View
 	hook: (t: number) -> (),
 	hidden: { Hidden },
 	target: any,
-	fov: number,
+	fov: number, -- el campo de visión base
 	weaponId: string,
+	live: { fov: number, weight: number, zoom: Zoom? },
+	setWeight: (weight: number) -> (),
+	scopeGui: ScreenGui?,
 }
-type State = { fp: FirstPerson?, light: boolean }
+type State = {
+	fp: FirstPerson?,
+	light: boolean,
+	preset: LabLighting.LightingPreset?, -- la luz de la escena (labLight) que se defiende de los cambios del servidor
+	guard: { RBXScriptConnection }?,
+}
 
 -- Un módulo de CombatClient (AbilityFxController, LabViewBuilder), o nil si el place no lo tiene.
 local cached: { [string]: any } = {}
@@ -71,7 +102,7 @@ end
 local function stateOf(ctx: Sequencer.Context): State
 	local state = ctx._lab
 	if not state then
-		state = { fp = nil, light = false }
+		state = { fp = nil, light = false, preset = nil, guard = nil }
 		ctx._lab = state
 	end
 	return state
@@ -197,6 +228,27 @@ local function fireEffects(
 		fx.play("LabMuzzle", flash, weapon.projectile)
 	end
 	Sfx.play(weapon.sound, toolHandle)
+
+	-- El impacto: al llegar el proyectil (distancia ÷ velocidad) sale la respuesta del combate sobre el actor blanco.
+	local victim = if typeof(event.target) == "string" and ctx.actors then ctx.actors[event.target] else nil
+	if event.hit and victim and aimed then
+		local spec: LabHitFx.HitSpec = if typeof(event.hit) == "table" then event.hit else {}
+		local flight = (aimed - origin).Magnitude / math.max(speed, 1)
+		task.delay(flight, function()
+			if not handle.isPlaying() or ctx.seeking then
+				return
+			end
+			LabHitFx.play({
+				shooter = actor,
+				target = victim,
+				weaponId = weaponId,
+				point = aimed,
+				hit = spec,
+				byAvatar = actor.Name == AVATAR_NAME,
+				combatModule = combatModule,
+			})
+		end)
+	end
 end
 
 local function paintHidden(actor: Model, hidden: { Hidden })
@@ -234,6 +286,9 @@ local function stopFirstPerson(ctx: Sequencer.Context, final: boolean?)
 		end
 	end
 	fp.view.rig.model:Destroy()
+	if fp.scopeGui then
+		fp.scopeGui:Destroy() -- la mira (Sights) cuelga de este ScreenGui
+	end
 	restoreHidden(fp.hidden)
 	local player = Players.LocalPlayer
 	if player and final then
@@ -267,11 +322,67 @@ local function startFirstPerson(event: Sequencer.Event, ctx: Sequencer.Context)
 	local fov: number = event.fov or DEFAULT_FOV
 	local head = actor:FindFirstChild("Head")
 	local root = actor:FindFirstChild("HumanoidRootPart")
+	local aimTrack = view.tracks.Aim
+	local live = { fov = fov, weight = 0, zoom = nil :: Zoom? }
+
+	-- El peso de la pista Aim (el acercado: 0 = cadera), como en FirstPersonController.
+	local function setWeight(weight: number)
+		live.weight = weight
+		if aimTrack then
+			aimTrack:AdjustWeight(math.max(weight, 0.001))
+		end
+	end
+
+	-- La mira del arma (el visor del rifle): un ScreenGui propio a pantalla completa, con el alpha del peso de Aim.
+	local scopeGui: ScreenGui? = nil
+	local sights: Sights.Handle? = nil
+	local viewHidden = false
+	local player = Players.LocalPlayer
+	local playerGui = if player then player:FindFirstChildOfClass("PlayerGui") else nil
+	if event.scope and playerGui then
+		local gui = Instance.new("ScreenGui")
+		gui.Name = SCOPE_GUI
+		gui.IgnoreGuiInset = true
+		gui.ResetOnSpawn = false
+		gui.DisplayOrder = 5
+		gui:SetAttribute("CinematicKeep", true) -- HudHider esconde los ScreenGui nuevos de una cinemática salvo este
+		gui.Parent = playerGui
+		local holder = Instance.new("Frame")
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.fromScale(1, 1)
+		holder.Parent = gui
+		scopeGui = gui
+		sights = Sights.mount(holder)
+		sights.setWeapon((LabWeapons.weapons :: any)[weaponId])
+	end
+	-- Con el visor casi opaco, el arma de la vista se esconde (SCOPE_HIDES_VIEW).
+	local function setViewHidden(hide: boolean)
+		if hide == viewHidden then
+			return
+		end
+		viewHidden = hide
+		for _, part in rig.model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.LocalTransparencyModifier = if hide then 1 else 0
+			end
+		end
+	end
 
 	-- Tras colocar la cámara de la escena: la cámara en la cabeza del actor y el rig delante de ella.
 	local function place(_t: number)
 		if not (head and head:IsA("BasePart") and actor.Parent) then
 			return
+		end
+		-- Entra el visor: el campo de visión y el peso de Aim van de uno a otro con suavizado.
+		local zoom = live.zoom
+		if zoom then
+			local u = math.clamp((os.clock() - zoom.t0) / zoom.seconds, 0, 1)
+			local eased = u * u * (3 - 2 * u)
+			live.fov = zoom.fovFrom + (zoom.fovTo - zoom.fovFrom) * eased
+			setWeight(zoom.weightFrom + (zoom.weightTo - zoom.weightFrom) * eased)
+			if u >= 1 then
+				live.zoom = nil
+			end
 		end
 		local eye = head.Position + Vector3.new(0, EYE_LIFT, 0)
 		local aimed = targetPoint(event.target, ctx)
@@ -280,10 +391,18 @@ local function startFirstPerson(event: Sequencer.Event, ctx: Sequencer.Context)
 			elseif root and root:IsA("BasePart") then root.CFrame.LookVector
 			else head.CFrame.LookVector
 		camera.CFrame = CFrame.lookAt(eye, eye + direction)
-		camera.FieldOfView = fov
+		camera.FieldOfView = live.fov
 		rig.root.CFrame = camera.CFrame
 			* CFrame.new(builder.HIP_OFFSET)
 			* CFrame.Angles(builder.HIP_PITCH, builder.HIP_YAW, 0)
+		if sights then
+			sights.update({
+				alpha = live.weight,
+				aimPoint = aimed or (eye + direction * FAR_AIM),
+				camera = camera,
+			})
+			setViewHidden(Sights.scopeAlpha() > SCOPE_HIDES_VIEW)
+		end
 	end
 	local hidden: { Hidden } = {}
 	paintHidden(actor, hidden)
@@ -301,13 +420,15 @@ local function startFirstPerson(event: Sequencer.Event, ctx: Sequencer.Context)
 		target = event.target,
 		fov = fov,
 		weaponId = weaponId,
+		live = live,
+		setWeight = setWeight,
+		scopeGui = scopeGui,
 	}
-	local player = Players.LocalPlayer
 	if player then
 		player:SetAttribute(ACTIVE_ATTRIBUTE, true)
 	end
 	-- Como FirstPersonController: la pista Aim parada en su primer fotograma (la mira no se mueve) y Equip al sacarla.
-	local aim = view.tracks.Aim
+	local aim = aimTrack
 	if aim then
 		aim:Play(0, 0.001)
 		aim:AdjustSpeed(0)
@@ -317,6 +438,70 @@ local function startFirstPerson(event: Sequencer.Event, ctx: Sequencer.Context)
 		equip:Play(0)
 	end
 	place(0)
+end
+
+-- La partida real sigue su curso mientras suena la escena y su servidor cambia la luz del mapa (por ejemplo al acabar la cuenta
+-- atrás de elegir arma): esa luz se replica y pisaba la de la escena, y las Alcantarillas salían quemadas con la luz del
+-- Central (se vio en la grabación). Mientras dura la escena se vuelve a poner su luz cada vez que algo la cambia.
+local LIGHT_PROPERTIES =
+	{ "Brightness", "ClockTime", "Ambient", "OutdoorAmbient", "ExposureCompensation", "GeographicLatitude" }
+local ATMOSPHERE_PROPERTIES = { "Density", "Offset", "Color", "Decay", "Glare", "Haze" }
+local GRADE_PROPERTIES = { "Brightness", "Contrast", "Saturation", "TintColor" }
+
+local function holdLight(state: State)
+	if state.guard then
+		return
+	end
+	local connections: { RBXScriptConnection } = {}
+	local applying = false
+	local function reapply()
+		local preset = state.preset
+		if applying or not preset then
+			return
+		end
+		applying = true
+		LabLighting.apply(preset)
+		applying = false
+	end
+	for _, property in LIGHT_PROPERTIES do
+		table.insert(connections, Lighting:GetPropertyChangedSignal(property):Connect(reapply))
+	end
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		for _, property in ATMOSPHERE_PROPERTIES do
+			table.insert(connections, atmosphere:GetPropertyChangedSignal(property):Connect(reapply))
+		end
+	end
+	local grade = Lighting:FindFirstChild("ColorLaboratorio")
+	if grade and grade:IsA("ColorCorrectionEffect") then
+		for _, property in GRADE_PROPERTIES do
+			table.insert(connections, grade:GetPropertyChangedSignal(property):Connect(reapply))
+		end
+	end
+	-- Además de las señales (que no ven una instancia nueva que sustituya a la vieja), la luz se repone cada 0,25 s.
+	local sinceApply = 0
+	table.insert(
+		connections,
+		RunService.Heartbeat:Connect(function(dt)
+			sinceApply += dt
+			if sinceApply >= 0.25 then
+				sinceApply = 0
+				reapply()
+			end
+		end)
+	)
+	state.guard = connections
+end
+
+local function releaseLight(state: State)
+	state.preset = nil
+	local connections = state.guard
+	state.guard = nil
+	if connections then
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+	end
 end
 
 -- Vuelve a poner la luz del mapa de la partida (Workspace.LabMap, atributo Map; si no, el del estudio).
@@ -362,8 +547,23 @@ function LabActor.install(sequencer: typeof(Sequencer))
 			warn(`LabActor: labLight con un mapa desconocido ({event.map})`)
 			return
 		end
-		stateOf(ctx).light = true
+		local state = stateOf(ctx)
+		state.light = true
+		state.preset = preset
 		LabLighting.apply(preset)
+		holdLight(state)
+	end)
+
+	-- speedLines { value }: las líneas de velocidad del juego (SpeedLinesController) con la intensidad `value` (0 a 1; 0 las
+	-- apaga). Se encienden con los dashes, saltos, deslizamientos y carreras de la escena.
+	sequencer.registerHandler("speedLines", function(event: Sequencer.Event, ctx: Sequencer.Context)
+		if ctx.seeking then
+			return
+		end
+		local controller = combatModule("SpeedLinesController")
+		if controller and controller.setExternal then
+			controller.setExternal(event.value or 0)
+		end
 	end)
 
 	sequencer.registerHandler("fpView", function(event: Sequencer.Event, ctx: Sequencer.Context)
@@ -384,8 +584,23 @@ function LabActor.install(sequencer: typeof(Sequencer))
 			return
 		end
 		if event.key == "Aim" then
-			-- Apuntar: el peso es el acercado (0 = cadera), como en FirstPersonController.
-			track:AdjustWeight(math.max(event.weight or 0, 0.001))
+			-- Apuntar: el peso es el acercado (0 = cadera), como en FirstPersonController. Con `fov`, el campo de visión (y el
+			-- peso) se acercan poco a poco (por cuadro, en el hook de la vista): entra el visor.
+			local weight: number = event.weight or 0
+			if event.fov then
+				fp.live.zoom = {
+					t0 = os.clock(),
+					seconds = math.max(event.seconds or AIM_SECONDS, 0.05),
+					fovFrom = fp.live.fov,
+					fovTo = event.fov,
+					weightFrom = fp.live.weight,
+					weightTo = weight,
+				}
+			else
+				fp.live.zoom = nil
+				fp.live.fov = fp.fov
+				fp.setWeight(weight)
+			end
 		elseif event.key == "Fire" then
 			if track.IsPlaying then
 				track:Stop(0)
@@ -411,6 +626,11 @@ function LabActor.install(sequencer: typeof(Sequencer))
 				return
 			end
 			stopFirstPerson(ctx, true)
+			local lines = combatModule("SpeedLinesController")
+			if lines and lines.setExternal then
+				lines.setExternal(0)
+			end
+			releaseLight(state)
 			if state.light then
 				LabActor.restoreMapLighting()
 			end

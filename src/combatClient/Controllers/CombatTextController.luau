@@ -95,9 +95,16 @@ local function headOf(model: Instance): BasePart?
 	return nil
 end
 
+-- Verdadero solo mientras se dibuja el número de una cinemática: el cartel nace con CinematicKeep y HudHider (que esconde
+-- los carteles del mundo mientras suena una cinemática) lo deja a la vista.
+local keepVisible = false
+
 local function billboard(name: string, adornee: BasePart): BillboardGui
 	local gui = Instance.new("BillboardGui")
 	gui.Name = name
+	if keepVisible then
+		gui:SetAttribute("CinematicKeep", true)
+	end
 	gui.Adornee = adornee
 	gui.AlwaysOnTop = true
 	gui.ResetOnSpawn = false
@@ -322,6 +329,25 @@ local function show(entry: any)
 	if typeof(target) ~= "Instance" or typeof(amount) ~= "number" or typeof(kind) ~= "string" then
 		return
 	end
+	if entry.cinematic == true then
+		-- Cinemática (showLocal): los actores no son jugadores, así que cualquier número sale sobre la cabeza del actor, con
+		-- el color de su tipo (rojo si es "Taken", amarillo y estilo propio si es "Dealt" tuyo, morado si es "Poison").
+		local head = entry.head == true
+		local crit = entry.crit == true or head
+		keepVisible = true
+		local column = worldColumn(target)
+		keepVisible = false
+		if column then
+			column:push(labelOf(textOf(kind, amount), head), {
+				color = colorOf(kind, crit),
+				skin = if kind == "Dealt" and entry.by == player.UserId then skinOf(entry.by) else nil,
+				crit = crit,
+				scale = 1,
+				dim = 0,
+			})
+		end
+		return
+	end
 	-- Un golpe a la cabeza (PvP con armas a distancia) sale como un crítico reforzado, con su etiqueta.
 	local head = entry.head == true
 	local crit = entry.crit == true or head
@@ -402,6 +428,17 @@ local function showLoot(itemId: any, amount: any, by: any)
 	end
 	lastLoot = { itemId = itemId, total = total, at = now }
 	column:push(`+{total} {item.icon} {Strings.t(item.name)}`, { color = rarity.color, key = itemId })
+end
+
+-- Un número de combate lanzado en local, sin pasar por el servidor (las cinemáticas del Laboratorio, LabActor). La entrada es la
+-- de Remotes.CombatText ({ target, amount, kind, crit, head, by }); target puede ser un actor de la escena.
+function CombatTextController.showLocal(entry: { [string]: any })
+	if not Settings.get().showNumbers then
+		return
+	end
+	local copy = table.clone(entry)
+	copy.cinematic = true
+	show(copy)
 end
 
 function CombatTextController:Start()

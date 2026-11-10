@@ -14,6 +14,10 @@ local UserInputService = game:GetService("UserInputService")
 
 local HudHider = {}
 
+-- Una cinemática que dibuja su propia interfaz (el visor, los números de daño y los cómics de impacto del Laboratorio)
+-- pone este atributo a true al crear su ScreenGui o BillboardGui, antes de ponerle padre: HudHider lo deja a la vista.
+local KEEP_ATTRIBUTE = "CinematicKeep"
+
 local count = 0
 local excluded: { [ScreenGui]: boolean } = {}
 local savedGuis: { [ScreenGui]: boolean } = {}
@@ -41,7 +45,7 @@ end
 
 -- Esconde un cartel del mundo (BillboardGui del PlayerGui) y lo vuelve a esconder si el juego lo enciende.
 local function hideBillboard(gui: BillboardGui)
-	if savedBillboards[gui] ~= nil then
+	if savedBillboards[gui] ~= nil or gui:GetAttribute(KEEP_ATTRIBUTE) then
 		return
 	end
 	savedBillboards[gui] = gui.Enabled
@@ -76,14 +80,19 @@ function HudHider.hide(except: { ScreenGui }?)
 	end
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 	for _, child in playerGui:GetChildren() do
-		if child:IsA("ScreenGui") and not excluded[child] then
+		if child:IsA("ScreenGui") and not excluded[child] and not child:GetAttribute(KEEP_ATTRIBUTE) then
 			hideGui(child)
 		end
 	end
 	table.insert(
 		connections,
 		playerGui.ChildAdded:Connect(function(child)
-			if count > 0 and child:IsA("ScreenGui") and not excluded[child] then
+			if
+				count > 0
+				and child:IsA("ScreenGui")
+				and not excluded[child]
+				and not child:GetAttribute(KEEP_ATTRIBUTE)
+			then
 				hideGui(child)
 			elseif count > 0 and child:IsA("BillboardGui") then
 				hideBillboard(child)

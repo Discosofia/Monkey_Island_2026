@@ -89,6 +89,10 @@ end
 
 -- Un estallido fijo en "position" (no sigue al enemigo: dura menos de un segundo y así se ve aunque
 -- el enemigo desaparezca al caer).
+-- Verdadero solo dentro de burstLocal: el cartel nace con CinematicKeep y HudHider (que esconde los carteles del mundo
+-- mientras suena una cinemática) lo deja a la vista.
+local keepVisible = false
+
 local function spawnAt(position: Vector3, kind: ComicBurst.Kind, word: string, offset: Vector2)
 	if active >= SETTINGS.MaxActive then
 		return
@@ -109,6 +113,9 @@ local function spawnAt(position: Vector3, kind: ComicBurst.Kind, word: string, o
 	gui.MaxDistance = SETTINGS.MaxDistance
 	gui.Size = UDim2.fromOffset(pixels, pixels)
 	gui.SizeOffset = Vector2.new(offset.X + (math.random() - 0.5) * 0.3, offset.Y)
+	if keepVisible then
+		gui:SetAttribute("CinematicKeep", true)
+	end
 	gui.Parent = player:WaitForChild("PlayerGui")
 	local frame = Instance.new("Frame")
 	frame.BackgroundTransparency = 1
@@ -249,6 +256,21 @@ local function onBatch(batch: any)
 	end
 	for target, kind in strongest do
 		onDealt(target, kind, values.comicLevel)
+	end
+end
+
+-- Un estallido de impacto sobre "target" lanzado en local, sin pasar por el servidor (las cinemáticas del Laboratorio,
+-- LabActor): "Hit" (PEW!, ZING!…) o "KO", con el estilo de estallido del jugador y sus ajustes de cómic.
+function ComicFxController.burstLocal(target: Instance, kind: "Hit" | "KO")
+	local values = Settings.get()
+	if not values.comicFx or (kind == "Hit" and values.comicLevel == "Strong") then
+		return
+	end
+	local head = headOf(target)
+	if head then
+		keepVisible = true
+		spawnAt(head.Position, kind, ComicBurst.word(kind, "Ranged", burstStyle()), DEALT_OFFSET)
+		keepVisible = false
 	end
 end
 

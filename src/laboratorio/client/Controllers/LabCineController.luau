@@ -15,7 +15,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local CinematicClient = require(ReplicatedStorage.Shared.Cinematics.CinematicClient)
+local Config = require(ReplicatedStorage.Shared.Config)
 local LabActor = require(ReplicatedStorage.Shared.Cinematics.LabActor)
+local Sequencer = require(ReplicatedStorage.Shared.Cinematics.Sequencer)
 local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 local ViewMode = require(ReplicatedStorage.CombatClient.ViewMode)
 
@@ -26,18 +28,18 @@ local MAP_FOLDER = "LabMap"
 local WAIT_SECONDS = 8
 local POLL_SECONDS = 0.2
 
--- Dónde empieza cada mapa en el mundo (las mismas posiciones que OFFSETS de LabBuilder, en el servidor).
-local MAP_ORIGINS: { [string]: Vector3 } = {
-	Central = Vector3.zero,
-	Azotea = Vector3.new(2000, 160, 0),
-	Alcantarillas = Vector3.new(-2000, 0, 0),
-}
+-- Dónde empieza cada mapa en el mundo (Config.Lab.MapOffsets, las mismas posiciones que usa LabBuilder).
+local MAP_ORIGINS: { [string]: Vector3 } = Config.Lab.MapOffsets
 
 -- Escena → mapa, punto del ancla (en coordenadas del mapa) y sitio donde espera el personaje (idem).
 type SceneInfo = { map: string, anchor: Vector3, park: Vector3 }
 local LAB_SCENES: { [string]: SceneInfo } = {
 	-- Explanada este del Central (x 47, entre las cajas de x 40 y x 57); el personaje espera en la sala del reactor oeste.
 	LabEngine = { map = "Central", anchor = Vector3.new(47, 0, 0), park = Vector3.new(-30, 3, 4) },
+	-- Las escenas de tres actos (G13): el ancla es el origen del Central; los actos 2 y 3 suman Config.Lab.MapOffsets en los
+	-- datos de la escena y el personaje se lleva a cada mapa con el evento labPark.
+	Lab = { map = "Central", anchor = Vector3.zero, park = Vector3.new(-30, 3, 4) },
+	Lab_Comic = { map = "Central", anchor = Vector3.zero, park = Vector3.new(-30, 3, 4) },
 }
 
 local LabCineController = {}
@@ -126,6 +128,15 @@ end
 
 function LabCineController:Start()
 	local player = Players.LocalPlayer
+	-- labPark { map, pos }: lleva el personaje (anclado, fuera de plano) cerca del acto que se rueda, por si el place carga el
+	-- mapa por streaming. `restore` lo devuelve a su sitio al acabar.
+	Sequencer.registerHandler("labPark", function(event)
+		local origin = MAP_ORIGINS[event.map]
+		local character = player.Character
+		if origin and character and event.pos then
+			character:PivotTo(CFrame.new(origin + event.pos))
+		end
+	end)
 	player:GetAttributeChangedSignal(ATTRIBUTE):Connect(function()
 		local id = sceneOf(player:GetAttribute(ATTRIBUTE))
 		local info = if id then LAB_SCENES[id] else nil

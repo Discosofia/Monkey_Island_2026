@@ -1532,6 +1532,13 @@ local Config = {
 		-- baja del último que hirió a la víctima si fue hace tanto o menos. FallDepth: studs bajo el suelo
 		-- del mapa a los que se cae al vacío (LabWorldService.fallY).
 		Maps = { "Central", "Azotea", "Alcantarillas" },
+		-- Dónde empieza cada mapa en el mundo (todos a la vez en Workspace.LabMap, para que no se pisen): los leen
+		-- LabBuilder (servidor), LabCineController y las escenas «Lab» (cliente).
+		MapOffsets = {
+			Central = Vector3.zero,
+			Azotea = Vector3.new(2000, 160, 0),
+			Alcantarillas = Vector3.new(-2000, 0, 0),
+		},
 		MapNames = {
 			Central = later("Laboratorio central"),
 			Azotea = later("Azotea de la torre"),

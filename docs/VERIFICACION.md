@@ -6937,6 +6937,150 @@ Escena de prueba `LabEngine` (16 s, de Central a Azotea), solo de ingeniería y 
 2. [ ] Con el que ve la escena, mientras dura, el otro jugador sigue disparando y recargando con normalidad.
    ✅ Sus disparos y recargas se ven igual que siempre en los dos clientes. Al acabar la escena, la partida sigue igual para los dos.
 
+## 180. Fase 25 G13: escenas `Lab` y `Lab_Comic` del Laboratorio (09-11-2026)
+
+Escena `Lab` (45 s, tres actos) y `Lab_Comic` (25 s, tres páginas), en `Data/Cinematics` (`buildLabScenes`). Órdenes «🎬 Laboratorio en ruinas (3 actos, 45 s)» y «🎬 Laboratorio en ruinas cómic (25 s)» en el panel de pruebas del Laboratorio. Acto 1, Central: duelo 1 contra 1 con el rifle de bananas del avatar. Acto 2, Alcantarillas: duelo 1 contra 1 con el Pirata del arpón (rehecho; antes 3 contra 3). Acto 3, Azotea: el visor del rifle y el disparo final, con título y fundido. Los impactos salen de `labShot` con `hit` (`Shared/Cinematics/LabHitFx`), y la primera persona de `fpView` tiene visor (`scope`) y `fpAnim Aim` con zoom. En modo edición se comprobó la versión de 3 contra 3 del acto 2 (construcción, tiros, cámaras y capturas). El 1 contra 1, las líneas de velocidad, el streaming y la luz nueva no se han probado todavía: van en §180.5. Lo de abajo no se ha probado en Play, salvo lo medido en Play el 09-11-2026 (§180.4, paso 14): el MCP no captura Play, así que el juicio visual lo hace el usuario.
+
+### 180.1 En el Studio del Laboratorio, en Play, con un jugador: las dos escenas (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0)
+
+1. [ ] Pulsa «🎬 Laboratorio en ruinas (3 actos, 45 s)» con el botón del panel (no desde la barra de comandos ni el MCP) y mira la escena entera sin tocar la cámara.
+   ✅ Arranca sin pantalla negra larga y sin avisos en rojo en la Salida. Al acabar, el jugador recupera la cámara en `LockFirstPerson`, puede moverse, y ve la luz del mapa en el que estaba.
+2. [x] Acto 1, Central: mira el duelo 1 contra 1 con el rifle de bananas del avatar, desde su primera persona, y el remate a cámara lenta. Visto en la grabación del 09-11-2026: el duelo, el disparo y el destello rojo del blanco. El remate cambió después (ver 180.4, paso 5).
+   ✅ El rifle sale en la mano del avatar y el disparo sale de su boca. La cámara lenta del remate frena también las animaciones de los maniquíes, no solo la cámara.
+3. [ ] Acto 1: mira los maniquíes del duelo con su arma en la mano y la pista de apuntar.
+   ✅ Cada uno sostiene su arma, sin flotar ni atravesar el cuerpo. Si el rival patina al correr, anota el segundo (las pistas `Run*` ignoran `speed`).
+4. [ ] Acto 2, Alcantarillas (1 contra 1): mira la red de arpón que cae sobre el avatar y el salto sobre la red del Pirata.
+   ✅ El avatar salta la red sin atravesarla, y la red lo inmoviliza al caer sin quedar en el aire. Si aparecen el cañón de ácido o su charco, anota el segundo: los otros cuatro actores deberían esperar bajo el mapa, y no está comprobado.
+5. [ ] Acto 2 (1 contra 1): mira los saltos, el deslizamiento y el tiro a la cabeza del Pirata (K.O.), y que los otros cuatro actores no aparecen en ningún plano.
+   ✅ Los saltos y el deslizamiento salen sin cortes y sin quedar flotando. El tiro a la cabeza sale con «¡Cabeza!» y el cómic K.O.!, y el Pirata cae hacia atrás; si cae hacia delante o flota, anota el segundo (la caída usa `pitch = 80`, sin comprobar).
+6. [ ] Acto 3, Azotea: mira la grúa que sube sobre la torre al empezar y al acabar el plano.
+   ✅ La grúa sube desde el vacío sin cortes y sin atravesar la torre.
+7. [ ] Acto 3: mira la primera persona apuntando con el visor (la mira `Scope`).
+   ✅ El visor ocupa la pantalla con su viñeta, el zoom baja a campo de visión 30 y el arma se esconde. No queda ningún arma colgando de la cámara.
+8. [ ] Acto 3: mira el disparo final desde la mira.
+   ✅ La marca de acierto sale en el centro de la mira, el fogonazo sale de la boca del arma, y el impacto se ve en el blanco.
+9. [ ] Con la versión larga, mira los impactos a 8,8 s, 11,3 s, 21,3–24,3 s y 40,3 s (son de la versión de 3 contra 3: mídelos otra vez en la grabación nueva).
+   ✅ Cada impacto sale a su hora: el número de daño, el crítico «¡Cabeza!» cuando toca, los cómics de impacto (PEW! y K.O.!) y los números morados del veneno. Si alguno sale antes o después del disparo, anota el segundo.
+10. [ ] Mira que los encuadres no atraviesan ninguna pared ni muro, sobre todo en Alcantarillas.
+    ✅ La cámara no choca con ninguna pieza en ningún plano. Si choca, anota el segundo.
+11. [ ] Mira el cierre en el helipuerto: título, logo y fundido.
+    ✅ El título y el logo se leen y el fundido acaba en negro sin saltos.
+12. [ ] Lanza la escena estando en la Azotea y mira al empezar el acto 1 y el acto 2: los mapas se ven cargados.
+    ✅ Ningún acto empieza con el mapa sin cargar (ni vacío ni el suelo en gris). Si un acto empieza con el mapa sin cargar, anota el acto.
+13. [ ] Pulsa «Saltar» a mitad del acto 2, con la red en pantalla, y lanza la escena otra vez para pulsar «Saltar» durante el visor del acto 3.
+    ✅ En los dos casos vuelve la cámara del jugador, su vista propia y el ratón libre, con la luz del mapa en el que estaba y el personaje en su sitio. No queda pantalla negra, ni restos de la escena, ni el visor colgado.
+14. [ ] Entra en Alcantarillas o en Azotea, lanza la escena desde el panel y espera a que acabe.
+    ✅ Al acabar vuelve la luz de ese mapa, no la de Central, y el personaje queda en su sitio.
+15. [ ] Pulsa «🎬 Laboratorio en ruinas cómic (25 s)» con el botón del panel y mira las tres páginas.
+    ✅ Las páginas salen en orden (four_a, grid6 y four_b) y cada viñeta muestra a sus personajes, sin huecos vacíos ni personajes cortados. Los cómics de impacto salen con el golpe. Si una viñeta sale vacía o con un personaje cortado, anota la página y el segundo. Mira con cuidado las viñetas con aviso de raycast: Relleno en Alcantarillas y Depósito en la Azotea.
+
+### 180.2 En Play, con un jugador: partida normal y mapas (Central, Alcantarillas y Azotea)
+
+1. [ ] Juega una partida normal en Central, en Alcantarillas y en la Azotea, unos minutos en cada uno.
+   ✅ Cada mapa se ve igual que antes de G13 (commit `2946e57`, G12): mismo tono, mismas sombras y mismo cielo. Si ves diferencias, anota el mapa.
+2. [ ] En una partida normal, equipa las cuatro armas y usa cada una: apunta, dispara, recarga y cambia de arma.
+   ✅ Se ve y suena igual que antes: retroceso, fogonazo, sonidos y recarga, y la vista de brazos en primera persona no cambia. Si algo se ve distinto, anota el arma y la acción.
+3. [ ] En la misma partida, dispara a un blanco de práctica del Laboratorio o a un muñeco de prueba y mira los números de daño, el hitmarker y el veneno, si hay.
+   ✅ Los números de daño, el hitmarker y el sonido salen igual que antes de G13. Se tocaron `CombatTextController`, `HitFeedbackController` y `ComicFxController`, así que si algo falta o aparece de más, anota el arma y el momento.
+
+### 180.3 Aparte: dos jugadores y juego publicado
+
+1. [ ] Con los dos en la partida, uno lanza «🎬 Laboratorio en ruinas (3 actos, 45 s)» en *Test → Clientes y servidores*. Mira desde el otro jugador durante el acto 1 y el acto 2.
+   ✅ El otro jugador no ve maniquíes, ni luz, ni cámara. La escena es solo local.
+2. [ ] Mientras dura la escena, el otro jugador sigue disparando y recargando con normalidad.
+   ✅ Sus disparos y recargas se ven igual en los dos clientes. Al acabar la escena, la partida sigue igual para los dos.
+3. [ ] Juega el Laboratorio publicado con la cuenta dueña del juego, en una partida normal con las cuatro armas. Si el panel de pruebas está disponible en el publicado, lanza la escena `Lab` una vez.
+   ✅ Suenan y se ven las mismas pistas que en Studio. Si una pista no carga, anota su id. El aviso ya conocido de `rbxassetid://203785492` no cuenta.
+
+### 180.4 Tras la grabación del 09-11-2026: arreglos sin repetir en Play (con un jugador, copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0)
+
+Ya vistos en la grabación del 09-11-2026 (`Lab`, en Play): el acto 1 de principio a fin (travelling, primera persona del rifle con brazo y arma, disparo con el rayo de banana, destello rojo del blanco, el rival que salta atrás y cae, y el plano cenital final); el charco morado del ácido; el título «Ruined Laboratory» con su subtítulo y el logo; y los subtítulos en inglés. En la grabación no salían los números de daño, los cómics de impacto ni el visor: `HudHider` los escondía durante la cinemática. Ya está arreglado. Se midió en Play en dos pruebas con un jugador, sin copia del perfil (paso 14), pero el juicio visual sigue pendiente y hay que repetir la grabación (paso 13). El hitmarker solo suena y no se ve en pantalla: es una decisión, no un fallo. El paso 6 es del acto 2 de 3 contra 3, que el 1 contra 1 sustituye (§180.5).
+
+1. [ ] Pulsa «🎬 Laboratorio en ruinas (3 actos, 45 s)» con el botón del panel y mira los números de daño en el acto 1 y el acto 2, a 8,8 s, 11,3 s, 21,3–24,3 s y 40,3 s.
+   ✅ Sale el número de daño sobre el blanco o el maniquí, a su hora, con «¡Cabeza!» cuando toca. Los números morados del veneno salen del cañón. Antes de la corrección no salían.
+2. [ ] Mira los cómics de impacto (PEW! y K.O.!) durante los disparos del avatar.
+   ✅ Salen con el golpe del avatar, en el encuadre de la cinemática. Los disparos de los maniquíes rivales no los sacan.
+3. [ ] Acto 3, Azotea: mira el visor del rifle con su viñeta y su zoom, y el número del disparo final.
+   ✅ Los bordes de la pantalla se oscurecen (viñeta), el zoom baja a campo de visión 30, el arma se esconde y el número de daño se lee encima del visor.
+4. [ ] Acto 3: escucha el hitmarker del disparo final y mira si aparece la marca en la pantalla.
+   ✅ Suena el hitmarker y la marca no se ve en pantalla, como está previsto. Si la marca aparece, anota el segundo.
+5. [ ] Acto 1, remate: mira el plano bajo del remate, desde el lado z positivo de la línea de tiro.
+   ✅ El avatar ya no tapa la pantalla. La cámara está a 7 studs de la línea de tiro (antes por encima del hombro, a 9 studs de distancia) y no entra en ninguna pieza.
+6. [ ] Alcantarillas, acto 2: mira la cámara de seguimiento y el deslizamiento de los personajes.
+   ✅ Los personajes salen enteros, con la cámara más lejos que antes (8,5 studs en el seguimiento y 7 en el deslizamiento, antes 5 y 4,5). La cámara no choca con ninguna pared.
+7. [ ] Azotea, acto 3: mira el plano del impacto del blanco.
+   ✅ El blanco se ve entero y no una pierna del avatar llenando la pantalla. La cámara está a 10 studs (con 6 studs y fov 45, el plano llenaba el encuadre con una pierna).
+8. [ ] Alcantarillas, entre los segundos 18 y 28 de `Lab`: mira la luz de los planos y los fogonazos.
+   ✅ Los planos no salen sobreexpuestos: sin blanco-amarillo ni fogonazos enormes, y el mapa tiene el tono oscuro y azulado que tiene en edición. Si sigue sobreexpuesto, pasa al paso 9.
+9. [x] Si sigue sobreexpuesto, diagnóstico: en Play, durante el acto 2, anota `Lighting` (Bloom, ExposureCompensation, Brightness, ColorCorrection, Atmosphere) y el fogonazo `LabMuzzle` a poca distancia.
+   ✅ Queda anotado qué valor o efecto sube la luz de los planos. Con eso se decide el arreglo.
+10. [ ] Acto 3, primera persona: mira el contraplano de los Piratas, a 34,5–37 s.
+    ✅ El Depósito no sale grande en primer plano. Si aparece, anota el segundo.
+11. [ ] Mira los trajes de bando en Play, en los actos 2 y 3, también de espaldas: Guardianes (bata blanca, cruz azul a la espalda, gafas) y Piratas (chaleco oscuro, banda, hombreras doradas, calavera blanca a la espalda con capa). El avatar también pierde su ropa, sustituida por el traje (ya se sabe).
+    ✅ Cada bando se distingue a primera vista, también de espaldas. No se ve ninguna camiseta ni pantalón del actor (`Shirt` y `Pants` quitados). Si un actor sale sin traje, anota el nombre y el acto.
+12. [ ] Tras los arreglos, pulsa «🎬 Laboratorio en ruinas cómic (25 s)» en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0), mira las tres páginas y, si puedes, el brillo de la luz (el paso 15 de 180.1 cubre el resto del cómic).
+    ✅ Las páginas salen en orden y sin personajes cortados. El cómic no sale quemado, y al acabar la luz vuelve a su nivel de Bloom (1 de intensidad y 2 de umbral). Si una página sale quemada o la luz no vuelve, anota la página.
+13. [ ] Repite la grabación de `Lab` (la versión larga, con el botón del panel, con copia del perfil antes, §10.0) y pásala a la hoja de contacto numerada (§180.5, paso 16).
+    ✅ En la hoja se ven los trajes de espaldas, los números de daño y los cómics de impacto, el visor del acto 3, los encuadres nuevos y que Alcantarillas ya no sale quemada. Si algo falla, anota el segundo y el número de paso.
+14. [x] Medido en Play el 09-11-2026, con dos pruebas y un jugador, sin copia del perfil (Play escribió el perfil real; el DataStore daba 502 desde Edit).
+    ✅ Carteles con `CinematicKeep` a 11,6 s (3), 22 s (1), 24 s (2) y 40,7 s (2), sin mirar si son el número y el cómic. `CinematicScope` con Enabled y 45 descendientes visibles en el acto 1 y a 38,1 s en el acto 3. Bloom a 0,25 y umbral 3 durante la escena, y 1 y 2 al acabar. 6 actores por escena (5 maniquíes `Cinematic_Guerrero` y `Cinematic_Avatar`), con los Guardianes y los Piratas con su traje. Consola sin errores propios. Al acabar, `CameraMode` `LockFirstPerson`, sin `Cinematic_*` ni `CinematicScope`.
+
+### 180.5 Cambios sin grabar: pasada de Edit y luego Play (con un jugador; copia antes `PlayerData_v1` en `PlayerData_v1_backups`, §10.0)
+
+1. [ ] En Edit, pasada de `Lab` con el acto 2 de 1 contra 1: tiros con blanco actor, cámaras y choques de actores, y distancias entre actores. Lo hace el probador si el Studio no está en Play.
+   ✅ Ningún tiro choca con una pieza, ninguna cámara queda dentro de una pieza ni sobre ella, y dos actores no se atraviesan. Si algo falla, anota el acto y el segundo.
+2. [ ] Acto 1, 1.1a: la cámara sube a unos 9 studs y mira al avatar desde arriba (0 a 1,6 s).
+   ✅ La cámara sube y mira al avatar desde arriba sin entrar en ninguna pieza. Si choca, anota el segundo.
+3. [ ] Acto 1, 1.1b y 1.1c: travelling lateral con el Pirata y después su primera persona (1,6 a 4 s).
+   ✅ En el travelling el Pirata sale entero. En 1.1c se ve desde su cabeza, con sus brazos y su lanzadardos en la mano, sin flotar, y con su traje de bando.
+4. [ ] Acto 1, 1.2 y 1.3: primera persona del avatar con visor, y después cámara abierta con fov de 66 a 74.
+   ✅ En 1.2 el visor se ve con su viñeta y el arma en la mano del avatar. En 1.3 el Pirata entra entero en el plano y no queda cortado por el borde.
+5. [ ] Acto 1: el rival trota de x 14 a 26 y el avatar se desplaza de lado mientras el rival avanza a tiros.
+   ✅ El rival avanza a tiros y el avatar se mueve de lado sin cortes. Si el rival patina al trotar, anota el segundo (paso 3 de 180.1).
+6. [ ] Acto 2, 2.1 y 2.2 (de 15,5 a 21 s): salida de la boca del túnel, salto sobre la red del Pirata y la red que cae sobre el avatar.
+   ✅ El avatar sale del túnel y salta la red sin atravesarla. La red lo alcanza, lo inmoviliza y no queda en el aire.
+7. [ ] Acto 2, 2.3 a 2.5 (de 21 a 30 s): gran salto, deslizamiento, salto alto y tiro a la cabeza del Pirata.
+   ✅ Los saltos y el deslizamiento salen sin cortes ni flotando. El tiro a la cabeza sale con su número de daño, «¡Cabeza!» y el cómic K.O.!, y el Pirata cae. Los otros cuatro actores no se ven en ningún plano.
+8. [ ] Acto 2: las cámaras de las esquinas del claro y la de 13 studs sobre la bomba grande.
+   ✅ Ninguna cámara queda dentro de la bomba grande, de la red ni de una pieza, y ningún personaje llena la pantalla.
+9. [ ] Acto 3, 3.1 a 3.4: grúa desde y −4, travelling lateral por el norte y cámara por el lado sin Aparato.
+   ✅ La grúa sube sin cortes. Los Piratas cruzan al norte del Aparato sin atravesarlo, y en 3.4 el Aparato no tapa a los Piratas.
+10. [ ] Acto 3: el avatar está en el tejado (roof 6, 4, 40), pDart queda quieto desde 39,4 s y el disparo del visor sale hacia él.
+    ✅ El avatar no atraviesa el tejado. El disparo del visor da donde apunta la mira, en el Pirata quieto, y sale de la boca del arma.
+11. [ ] Líneas de velocidad: en carreras de 6 studs/s o más, saltos, saltos atrás, rodadas y deslizamientos.
+    ✅ Las líneas salen y se apagan con cada movimiento, y son más fuertes en las carreras rápidas. No salen en ningún plano del cómic y no tapan los números de daño ni la mira. Si aparecen en el cómic o tapan algo, anota el segundo.
+12. [ ] Luz de las Alcantarillas (18 a 28 s): mira el tono de los planos, sobre todo hacia los 23 s, cuando acaba la cuenta atrás «Ready» de elegir arma.
+    ✅ No hay salto de luz a mitad del acto 2, y el mapa mantiene su tono oscuro y azulado sin quemarse. Esto también cubre el paso 8 de 180.4.
+13. [ ] Streaming: lanza la escena desde Alcantarillas o desde la Azotea y mira el inicio del acto 1 (Central).
+    ✅ El Central carga con sus baldosas y muros desde el primer plano, sin suelo vacío ni en gris. Si sale sin muros o sin baldosas, anota el segundo.
+14. [ ] Pulsa «🎬 Laboratorio en ruinas cómic (25 s)» y mira las tres páginas, con atención al acto 2 (1 contra 1) y a las cámaras de los actos 1 y 3, que no están revisadas.
+    ✅ Cada viñeta muestra a su personaje entero o en un plano con sentido, sin cámara pegada a un actor ni dentro de la bomba grande. Ninguna viñeta sale vacía. Si una sale mal, anota la página y el segundo.
+15. [ ] Toma sin localizar: la toma donde los dos bandos apuntan a algo sin sentido (observación del usuario). Cuando la veas, anota el segundo y lo que pasa.
+    ✅ Cada bando apunta a algo que está en la escena. Si un bando apunta a algo que no tiene sentido, anota el segundo.
+16. [ ] Con la grabación nueva de `Lab`, saca la hoja numerada: ffmpeg extrae un fotograma cada 0,5 s desde el inicio de la escena (`-vf "fps=2,crop=1563:603:25:240,scale=640:-1"`), `python tools/video/lab_hojas.py <carpeta_fotogramas> <carpeta_salida>` pone el número de toma y de acto en cada uno, y `python tools/video/lab_detectar.py <video>` da la ventana del botón Skip (el principio es el final menos 45,5 s, porque el «Ready» amarillo confunde la detección).
+    ✅ La hoja sale con un fotograma cada 0,5 s y cada uno con su toma (1.1a a 3.5) y su acto, y con ella se sigue cada paso de la escena. Si la detección del Skip falla, usa el final menos 45,5 s.
+17. [ ] Play: repite los pasos 2 a 13 de este apartado en Play, con la copia del perfil hecha (§10.0), y la escena entera.
+    ✅ Lo mismo que en Edit, y sin errores propios en la Salida.
+
+## 181. Fase 25 G13 (tanda del 10-11-2026): `Lab` con el acto 2 en combate cercano y el acto 3 en 2 contra 2
+
+Cambios sin probar tras la última grabación (graba `Lab` otra vez, con copia del perfil antes, §10.0, y saca la hoja con `tools/video/lab_hojas.py`).
+
+1. [ ] Toma 1.5 (14 a 14,5 s): corte seco al acto 2, sin fundido, y el plano cenital muestra al Pirata caído en la Central (antes salían los actores aparcados superpuestos).
+   ✅ Se ve un solo actor caído, sin cuerpos superpuestos, y entra el acto 2 en pleno movimiento.
+2. [ ] Acto 2 (14,5 a 29,5 s), tomas 2.1 a 2.9 en primera persona alternando avatar y Pirata, con los duelistas a unos 6-8 studs.
+   ✅ Ningún cuerpo ni arma llena la pantalla ni se superpone, los dos se miran en todo momento y no hay red que atrape ni remate. Pasada de Edit del probador con las posiciones nuevas: distancia entre 5 y 9 studs y ningún actor atraviesa una pieza.
+3. [ ] Luz de las Alcantarillas con una partida real en marcha (la cuenta atrás «Ready» del servidor a ~23 s de la grabación), ahora con la reposición de luz cada 0,25 s.
+   ✅ Sin filtro dorado ni imagen quemada de 18 a 29,5 s. Si vuelve, anota el segundo.
+4. [ ] Acto 3 (29,5 a 45 s) como 2 contra 2: el avatar y el Guardián gDart entran moviéndose de lado sobre el helipuerto; los Piratas corren desde el segundo 29,5, rodean el muro de su base y se paran hacia 37,4 s.
+   ✅ Nadie flota ni atraviesa el muro. Los dardos del compañero pasan por encima del Depósito. A 37,6 s pDart se vuelve hacia el avatar y a 38,6 s pCannon.
+5. [ ] Tomas 3.1 (grúa más rápida, 29,5 a 33 s), 3.2 (los dos Piratas centrados; hoy ambos apuntan hacia la cámara y no al avatar), 3.4 (primera persona del Pirata del cañón, 40 a 41,5 s) y 3.5 (dronie desde la cara del avatar).
+   ✅ Los Piratas no salen recortados y corren con las piernas en movimiento; 3.4 enseña la caída de pDart sin cortar cabezas; el dronie no atraviesa la barrera invisible de la azotea.
+6. [ ] `Lab_Comic` con los cambios de tiempos (`act.two` 15,3 y `act.three` 29,8) y el actor gDart nuevo.
+   ✅ Las tres páginas salen sin viñetas vacías ni actores a 2000 studs, y sin primera persona.
+7. [ ] Play con un jugador y con dos jugadores, y el juego publicado.
+   ✅ Mismos resultados que en Edit y sin errores propios en la Salida.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

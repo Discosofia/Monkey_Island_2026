@@ -181,6 +181,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 		{ id = "SkinKills", label = "➕ +100 bajas con mi arma (da las skins por bajas)" },
 		{ id = "CineLabEngine", label = "🎬 Motor del Laboratorio (escena de prueba, 16 s)" },
+		{ id = "CineLab", label = "🎬 Laboratorio en ruinas (3 actos, 45 s)" },
+		{ id = "CineLabComic", label = "🎬 Laboratorio en ruinas, cómic (25 s)" },
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 }

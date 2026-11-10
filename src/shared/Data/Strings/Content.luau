@@ -925,4 +925,12 @@ return {
 	["¡Mía!"] = "Mine!",
 	["¡Alto ahí!"] = "Halt!",
 	["¡ZUM!"] = "VROOM!",
+	-- Cinemática del Laboratorio en ruinas (Lab y Lab_Comic, G13). «Laboratorio en ruinas» ya está en Lobby.
+	["Un duelo en el Central."] = "A duel in the Central.",
+	["Un duelo a corta distancia."] = "A close-range duel.",
+	["Y desde la azotea, un solo disparo."] = "And from the rooftop, a single shot.",
+	["Shooter por equipos en primera persona"] = "First-person team shooter",
+	["¡FLUP!"] = "FLOP!",
+	["¡SPLASH!"] = "SPLASH!",
+	["¡BLAM!"] = "BLAM!",
 }

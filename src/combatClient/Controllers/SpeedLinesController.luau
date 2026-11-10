@@ -28,6 +28,14 @@ local REFERENCE_HEIGHT = 720
 
 local SpeedLinesController = {}
 
+-- Intensidad (de 0 a 1) que pide una cinemática (LabActor, evento speedLines): en la escena el personaje del jugador está
+-- aparcado y quieto, y quien corre, salta o se desliza es una copia, así que las líneas se encienden desde los datos.
+local external = 0
+
+function SpeedLinesController.setExternal(value: number)
+	external = math.clamp(value, 0, 1)
+end
+
 function SpeedLinesController:Start()
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
@@ -37,6 +45,8 @@ function SpeedLinesController:Start()
 	local linesGui = Widgets.screen("SpeedLines", playerGui)
 	linesGui.IgnoreGuiInset = true
 	linesGui.DisplayOrder = -1
+	-- HudHider esconde la interfaz mientras suena una cinemática, salvo lo que nace con este atributo.
+	linesGui:SetAttribute("CinematicKeep", true)
 	local lines: { Frame } = {}
 	for index = 1, settings.Count do
 		local line = Instance.new("Frame")
@@ -98,6 +108,7 @@ function SpeedLinesController:Start()
 				end
 			end
 		end
+		target = math.max(target, external)
 		target *= DodgeFeel.speedScale()
 		-- Sube y baja en FadeSeconds.
 		local step = deltaTime / math.max(settings.FadeSeconds, 0.01)

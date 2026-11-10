@@ -103,18 +103,51 @@ local function toggleDummies(player: Player)
 end
 
 local cineCounter = 0
+local CINE_STREAM_SECONDS = 3 -- lo que espera cada petición de carga antes de seguir
+-- Por escena, los sitios (mapa y punto local) donde ocurre cada acto.
+local CINE_STREAM_POINTS: { [string]: { { map: string, pos: Vector3 } } } = {
+	LabEngine = { { map = "Central", pos = Vector3.new(47, 0, 0) } },
+}
+do
+	local threeActs = {
+		{ map = "Central", pos = Vector3.new(38, 0, 5) },
+		{ map = "Alcantarillas", pos = Vector3.new(-35, 0, 0) },
+		{ map = "Azotea", pos = Vector3.new(-10, 0, 20) },
+	}
+	CINE_STREAM_POINTS.Lab = threeActs
+	CINE_STREAM_POINTS.Lab_Comic = threeActs
+end
 
 -- Lanza una cinemática del Laboratorio (Fase 25, G12): LabCineController (cliente) la lanza en local. El atributo LabCine
 -- lleva «<id de la escena>:<contador>» para que repetir la misma orden también dispare el cambio.
 local function startCine(player: Player, sceneId: string)
 	cineCounter += 1
-	player:SetAttribute("LabCine", `{sceneId}:{cineCounter}`)
+	local value = `{sceneId}:{cineCounter}`
+	-- Con StreamingEnabled el servidor solo envía lo que rodea al personaje, y el personaje que aparca el cliente en cada
+	-- acto no cambia de sitio para el servidor (está anclado en local): los mapas lejanos llegaban vacíos (el Central se vio sin
+	-- baldosas ni muros). Antes de empezar se pide cargar el sitio de cada acto, como hace la Isla (CinematicService).
+	task.spawn(function()
+		local offsets = Config.Lab.MapOffsets
+		for _, point in CINE_STREAM_POINTS[sceneId] or {} do
+			pcall(player.RequestStreamAroundAsync, player, offsets[point.map] + point.pos, CINE_STREAM_SECONDS)
+		end
+		if player.Parent then
+			player:SetAttribute("LabCine", value)
+		end
+	end)
 end
 
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	-- Escena de prueba del motor (armas del Laboratorio, luz y primera persona).
 	CineLabEngine = function(player)
 		startCine(player, "LabEngine")
+	end,
+	-- La escena de tres actos del tráiler (Central, Alcantarillas y Azotea) y su variante cómic.
+	CineLab = function(player)
+		startCine(player, "Lab")
+	end,
+	CineLabComic = function(player)
+		startCine(player, "Lab_Comic")
 	end,
 	Solo = function()
 		LabMatchService.debugSolo()
