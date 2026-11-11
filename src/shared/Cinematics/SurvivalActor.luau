@@ -43,6 +43,7 @@ local Config = require(script.Parent.Parent.Config)
 local LabActor = require(script.Parent.LabActor)
 local NodeModels = require(script.Parent.Parent.NodeModels)
 local Presentation = require(script.Parent.Presentation)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Sequencer = require(script.Parent.Sequencer)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Survival = require(script.Parent.Parent.Survival)
@@ -52,7 +53,6 @@ local WeaponTools = require(script.Parent.Parent.WeaponTools)
 local SurvivalActor = {}
 
 local FOLDER_NAME = "CinematicSurvivalFx"
-local TOP_BAND = 0.12 -- el alto de la franja negra de arriba (Presentation), en fracción de la pantalla
 local BARS_FADE_SECONDS = 0.3
 local BARS_DEFAULT_SECONDS = 0.6
 local WOOD_CHIPS = Color3.fromRGB(150, 105, 60)
@@ -461,7 +461,7 @@ local function createBars(state: State, gui: ScreenGui, instant: boolean)
 	column.Name = "SurvivalBars"
 	column.BackgroundTransparency = 1
 	column.BorderSizePixel = 0
-	column.Position = UDim2.new(0, 12, TOP_BAND, 14)
+	column.Position = UDim2.new(0, 12, ScreenBands.TOP, ScreenBands.TOP_GAP)
 	column.Size = UDim2.fromOffset(SurvivalBar.BAR_WIDTH + 30, SurvivalBar.ROW_HEIGHT * 2 + 4)
 	column.GroupTransparency = if instant then 0 else 1
 	column.ZIndex = 2

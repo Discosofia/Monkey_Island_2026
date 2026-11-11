@@ -232,8 +232,8 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		-- ===== Noche, Día 12 (21 a 27,6): el Caudillo ante la puerta sur
 		-- El Caudillo sube de su escondite antes de la noche (empieza 400 studs bajo tierra: de día no se ve).
 		add({ t = 20.9, kind = "stageShow", server = true })
-		-- El reloj baja bajo la barra del jefe (BattleActor: alto NAME_HEIGHT 22 + 4 + BAR_HEIGHT 16 = 42 px desde +14 = 56; +8 de aire).
-		add({ t = 21.0, kind = "dayClock", show = true, day = 12, drop = 52 })
+		-- El reloj baja solo bajo la barra del jefe (ScreenBands apila BossBar y Clock).
+		add({ t = 21.0, kind = "dayClock", show = true, day = 12 })
 		add({ t = 21.0, kind = "clock", hour = 18.5, seconds = 0 })
 		ramp(21.1, 18.5, 19.5, 6.4)
 		-- Luz fría y tenue que sigue a la cámara (la de Night): de noche cerrada, sin ella los tres salen negros.

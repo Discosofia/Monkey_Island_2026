@@ -7632,6 +7632,40 @@ A5 pasa los jefes de plató a una tabla: `Shared/Data/StageBosses` (por id de es
 1. [ ] Cuando Studio pueda usar el DataStore (hoy da 502), haz la copia de `PlayerData_v1` (§10.0) antes de lanzar una escena de plató, y restaura la copia al acabar.
    ✅ La restauración deja el perfil como estaba. Hoy Play pudo marcar `cinematicsSeen` en el perfil real, sin restaurar (mismo caso que §190.1, paso 5).
 
+## 192. Fase 25 A6: tabla de bandas de pantalla (11-11-2026)
+
+A6 pasa las posiciones de pantalla de las cinemáticas a `Shared/Cinematics/ScreenBands`: la franja superior, la pila de la barra del jefe y el reloj del día, el título, el subtítulo, el caption y «Saltar». `Endless` no cambia: el reloj queda 12 px bajo la franja sin barra y 64 px con barra, igual que con el `drop = 52` que se quitó. El arnés `tools/cine_qa.luau` tiene dos marcas nuevas: **banda** (un elemento fuera de su banda) y **sinbanda** (aviso suave de un texto sin banda conocida). Ya probado en el Studio de la Isla (probador-studio, Play con un jugador): sin errores en consola; el reloj de `CineEndless` mide 12 px sin barra y 64 con barra, con la barra a 14 px y por encima del reloj; el caption sale a 0,87 con subtítulo de título y a 0,80 sin él; el arnés en su versión recortada no marca nada en `CineEndless`, `CineSurvival` ni `CineBossBattle`, y con la barra forzada marca `banda`. Lo que queda sin probar es esto.
+
+### 192.1 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Lanza `CineEndless` con el arnés completo de `tools/cine_qa.luau` (no la versión recortada) y lee el JSON al acabar. Repite con `CineSurvival` y con `CineBossBattle`.
+   ✅ Ninguna de las tres escenas marca `banda` ni `sinbanda`. Si sale alguna, anota el texto, la escena y el segundo.
+2. [ ] En `CineEndless`, espera a que la escena quite la barra del jefe (o llega al día sin barra) y mide en el cliente `AbsolutePosition.Y` del reloj y de la franja.
+   ✅ Sin barra, el reloj baja a 12 px bajo la franja, no se queda en el hueco de 64 px. Si no se recoloca, anota el segundo.
+3. [ ] Con el arnés completo, fuerza en el cliente (sin tocar el repo) la barra del jefe a y = 0,5 durante la escena. Repite por separado con el reloj (`DayClock`) y con el caption.
+   ✅ Sale una marca `banda` por cada elemento forzado, con su hora y la Y que pide la banda. Anota el primer segundo de la marca de la barra: en la prueba anterior fue 23,9 s, y no se sabe si la escena la recoloca antes.
+4. [ ] Lanza `CinePetsComic` y `CineBattleComic` con el arnés completo.
+   ✅ Puede salir `sinbanda` en las viñetas con texto (es lo esperado, los cómics no usan bandas). No debe salir ninguna marca `banda`.
+
+### 192.2 Lo que solo se ve en vídeo
+
+1. [ ] Graba `Endless` completa y mira el reloj del Día 12 bajo la barra del jefe.
+   ✅ El reloj no pisa la barra y queda 8 px por debajo de ella, en el mismo sitio que antes del cambio.
+2. [ ] Graba una escena real en la que salga un caption mientras se ve el subtítulo de un título (busca el caso y anota cuál es).
+   ✅ El caption se ve a 0,87 de alto y no pisa el subtítulo. Cuando el subtítulo se va, el caption no se mueve hasta acabar.
+
+### 192.3 En el emulador de teléfono y con otros tamaños de pantalla
+
+1. [ ] En el emulador de teléfono, lanza `CineEndless` y `CineSurvival` y mira título, subtítulo, caption, barra del jefe, reloj y «Saltar».
+   ✅ Ningún texto pisa a otro ni a «Saltar», y la franja queda bajo la barra superior del teléfono.
+2. [ ] Con el arnés completo y el viewport del teléfono (no el de 1562×793), lanza `CineEndless`.
+   ✅ Sin marcas `banda`. Si sale alguna, anota el tamaño de la pantalla: la tolerancia de 3 px puede no bastar con otro tamaño.
+
+### 192.4 Perfil real
+
+1. [ ] Cuando Studio pueda usar el DataStore (hoy da 502), haz la copia de `PlayerData_v1` (§10.0) antes de §192.1 y restaura al acabar.
+   ✅ El perfil queda como estaba. Hoy Play pudo marcar `CineEndless`, `CineSurvival`, `CineBossBattle` y los cómics en `cinematicsSeen` del perfil real, sin restaurar (mismo caso que §190.1 y §191.5).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

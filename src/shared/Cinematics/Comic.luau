@@ -61,6 +61,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(script.Parent.Parent.Config)
 local ComicPages = require(script.Parent.Parent.Data.ComicPages)
 local Presentation = require(script.Parent.Presentation)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Strings = require(script.Parent.Parent.Strings)
 
 local T = Strings.t
@@ -93,7 +94,7 @@ Comic.PAGES = ComicPages.PAGES
 
 -- Banda 9:16 del reel y su zona segura (los porcentajes de las interfaces de TikTok e Instagram).
 local REEL_ASPECT = 9 / 16
-local REEL_SAFE_TOP = 0.12
+local REEL_SAFE_TOP = ScreenBands.TOP
 local REEL_SAFE_BOTTOM = 0.22
 
 export type Background = {

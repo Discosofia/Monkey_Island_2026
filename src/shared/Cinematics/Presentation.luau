@@ -10,6 +10,7 @@ local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Branding = require(script.Parent.Parent.Data.Branding)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Sequencer = require(script.Parent.Sequencer)
 local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -32,7 +33,7 @@ export type TextOptions = {
 }
 
 local GUI_NAME = "Cinematic"
-local BAR_HEIGHT = 0.12 -- alto de cada franja, en fracción de la pantalla
+local BAR_HEIGHT = ScreenBands.TOP -- alto de cada franja, en fracción de la pantalla
 local GOLD = Color3.fromRGB(242, 178, 36)
 local FADE_IN = 0.5
 local FADE_OUT = 0.6
@@ -201,11 +202,18 @@ function Presentation.title(text: string, sub: string?, options: TextOptions?)
 	local token = titleToken
 	local main = safe:FindFirstChild("Title") :: TextLabel?
 	if not main then
-		main = textLabel("Title", safe, UDim2.fromScale(0.5, 0.7), UDim2.fromScale(0.92, 0.12), Color3.new(1, 1, 1))
+		main = textLabel(
+			"Title",
+			safe,
+			UDim2.fromScale(0.5, ScreenBands.TITLE_Y),
+			UDim2.fromScale(0.92, 0.12),
+			Color3.new(1, 1, 1)
+		)
 	end
 	local subLabel = safe:FindFirstChild("Subtitle") :: TextLabel?
 	if not subLabel then
-		subLabel = textLabel("Subtitle", safe, UDim2.fromScale(0.5, 0.8), UDim2.fromScale(0.8, 0.055), GOLD)
+		subLabel =
+			textLabel("Subtitle", safe, UDim2.fromScale(0.5, ScreenBands.SUB_Y), UDim2.fromScale(0.8, 0.055), GOLD)
 	end
 	local seconds = opts.seconds or TITLE_SECONDS
 	local function current(): number
@@ -222,7 +230,15 @@ function Presentation.title(text: string, sub: string?, options: TextOptions?)
 	if subLabel then
 		if sub and sub ~= "" then
 			showText(subLabel, T(sub, opts.subArgs), seconds, token, current)
+			-- Mientras el subtítulo se ve, el caption baja (ScreenBands.captionY).
+			ScreenBands.setTitleSub(true)
+			task.delay(FADE_IN + seconds + FADE_OUT, function()
+				if titleToken == token then
+					ScreenBands.setTitleSub(false)
+				end
+			end)
 		else
+			ScreenBands.setTitleSub(false)
 			subLabel.TextTransparency = 1
 			subLabel.TextStrokeTransparency = 1
 		end
@@ -276,9 +292,17 @@ function Presentation.caption(text: string, options: TextOptions?)
 	captionToken += 1
 	local label = safe:FindFirstChild("Caption") :: TextLabel?
 	if not label then
-		label = textLabel("Caption", safe, UDim2.fromScale(0.5, 0.8), UDim2.fromScale(0.92, 0.05), Color3.new(1, 1, 1))
+		label = textLabel(
+			"Caption",
+			safe,
+			UDim2.fromScale(0.5, ScreenBands.captionY()),
+			UDim2.fromScale(0.92, 0.05),
+			Color3.new(1, 1, 1)
+		)
 	end
 	if label then
+		-- Se coloca al mostrarlo (un caption dura 3 s: no se mueve después).
+		label.Position = UDim2.fromScale(0.5, ScreenBands.captionY())
 		showText(label, T(text, opts.args), opts.seconds or CAPTION_SECONDS, captionToken, function()
 			return captionToken
 		end)
@@ -302,6 +326,7 @@ end
 function Presentation.clear()
 	titleToken += 1
 	captionToken += 1
+	ScreenBands.reset()
 	if gui then
 		gui:Destroy()
 	end

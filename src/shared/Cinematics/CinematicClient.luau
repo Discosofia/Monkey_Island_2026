@@ -42,6 +42,7 @@ local HudHider = require(script.Parent.Parent.UI.HudHider)
 local PetFollowers = require(script.Parent.Parent.UI.PetFollowers)
 local Presentation = require(script.Parent.Presentation)
 local SceneLight = require(script.Parent.SceneLight)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Remotes = require(script.Parent.Parent.Remotes)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
@@ -434,8 +435,8 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 		local skip = Widgets.button(T("Saltar"), gui)
 		skip.Name = "Skip"
 		skip.AnchorPoint = Vector2.new(1, 1)
-		skip.Position = UDim2.new(1, -24, 1, -24)
-		skip.Size = UDim2.fromOffset(160, 48)
+		skip.Position = UDim2.new(1, -ScreenBands.SKIP.margin, 1, -ScreenBands.SKIP.margin)
+		skip.Size = UDim2.fromOffset(ScreenBands.SKIP.size.X, ScreenBands.SKIP.size.Y)
 		skip.ZIndex = 20
 		skip.Activated:Connect(function()
 			skip.Visible = false

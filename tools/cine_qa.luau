@@ -14,6 +14,11 @@
 --   atraviesa    piezas con colisión (pilares, props) dentro del torso
 --   fuera        el maniquí no está en pantalla (el revisor decide si era el sujeto del plano)
 --   gui          textos o imágenes que se pisan entre sí, que tapan al maniquí o que tapan el botón «Saltar»
+--   banda        un elemento de PlayerGui.Cinematic con nombre conocido (Title, Subtitle, Caption, BossBar, DayClock,
+--                SurvivalBars, Skip) cuya caja se sale de su banda en Cinematics/ScreenBands (Y esperada, franja de
+--                arriba o esquina de «Saltar»). Aviso suave «sinbanda»: un texto visible que no es de esa lista.
+--                ScreenBands se lee con require desde ReplicatedStorage.Shared (solo constantes: el estado de la pila
+--                en esta copia no sirve, así que la Y de BossBar y DayClock se deduce de si la barra está en pantalla).
 --   luz          aproximaciones de negro y quemado (ver abajo)
 --
 -- LÍMITES, dichos claros: (1) desde el motor no se leen los píxeles, así que «negro» es el velo `Fade` casi opaco y
@@ -39,13 +44,41 @@ local OPTS = {
 local FLOOR_TOL = 0.3
 local SLIDE_SPEED = 1.0
 local OFFSCREEN_MARGIN = 0
-local SKIP_RECT = { w = 160, h = 48, margin = 24 }
+local BAND_TOL = 3 -- px de tolerancia al comparar la caja de un elemento con su banda
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+
+-- ScreenBands: las constantes reales del juego. Si no se puede cargar (otro datamodel), copia a mano de sus valores.
+local BANDS = {
+	TOP = 0.12,
+	TOP_GAP = 14,
+	STACK_GAP = 8,
+	TITLE_Y = 0.70,
+	SUB_Y = 0.80,
+	CAPTION_Y = 0.80,
+	CAPTION_Y_WITH_SUB = 0.87,
+	SKIP = { size = Vector2.new(160, 48), margin = 24 },
+	OWN_GAP = { BossBar = 14, Clock = 12 },
+}
+local bandsSource = "copia"
+do
+	local shared = game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+	local folder = shared and shared:FindFirstChild("Cinematics")
+	local module = folder and folder:FindFirstChild("ScreenBands")
+	if module then
+		local ok, real = pcall(require, module)
+		if ok and typeof(real) == "table" and real.OWN_GAP then
+			BANDS = real
+			bandsSource = "ScreenBands"
+		end
+	end
+end
+-- Elementos con banda (por nombre) y sus descendientes; cualquier otro texto visible es «sinbanda».
+local KNOWN = { Title = true, Subtitle = true, Caption = true, BossBar = true, DayClock = true, SurvivalBars = true, Skip = true }
 
 local function save(state)
 	player:SetAttribute("CineQA", HttpService:JSONEncode(state))
@@ -68,7 +101,8 @@ if not remote then
 	return "STOP: no hay remoto DebugCommand (¿Play de la Isla?)"
 end
 
-local state = { status = "running", scene = OPTS.command, samples = 0, flags = {}, marks = {} }
+local state =
+	{ status = "running", scene = OPTS.command, samples = 0, flags = {}, marks = {}, bands = bandsSource }
 save(state)
 
 local function flag(kind, subject, detail, t)
@@ -285,6 +319,90 @@ local function sample(t)
 					then
 						flag("gui", a.gui.Name .. "+" .. b.gui.Name, "se pisan dos elementos", t)
 					end
+				end
+			end
+		end
+		-- bandas: cada elemento con nombre conocido contra la Y (o esquina) que le da ScreenBands
+		local screen = gui.AbsoluteSize
+		-- Con IgnoreGuiInset las AbsolutePosition salen desplazadas por el inset de la barra de Roblox (58 px en Studio):
+		-- el origen real del gui es el de «Fade», que ocupa toda la pantalla. Las bandas de arriba y abajo se miden desde él.
+		local fadeFrame = gui:FindFirstChild("Fade")
+		local originY = if fadeFrame and fadeFrame:IsA("GuiObject") then fadeFrame.AbsolutePosition.Y else 0
+		local topPx = BANDS.TOP * screen.Y + originY
+		local safeZone = gui:FindFirstChild("Safe")
+		local function shown(obj)
+			if not (obj and obj:IsA("GuiObject")) or not obj.Visible then
+				return false
+			end
+			if obj:IsA("CanvasGroup") then
+				return obj.GroupTransparency < 0.9
+			elseif obj:IsA("TextLabel") then
+				return obj.TextTransparency < 0.9 and obj.Text ~= ""
+			end
+			return true
+		end
+		local function bandCheck(obj, label, expectedY, edge, tol)
+			if not shown(obj) then
+				return
+			end
+			local p, s = obj.AbsolutePosition, obj.AbsoluteSize
+			local value = if edge == "top" then p.Y elseif edge == "bottom" then p.Y + s.Y else p.Y + s.Y / 2
+			if math.abs(value - expectedY) > tol then
+				flag(
+					"banda",
+					label,
+					string.format("%s a y=%.0f, su banda pide %.0f (%s)", label, value, expectedY, edge),
+					t
+				)
+			end
+		end
+		local bossBar = gui:FindFirstChild("BossBar")
+		local barShown = shown(bossBar)
+		bandCheck(bossBar, "BossBar", topPx + BANDS.OWN_GAP.BossBar, "top", BAND_TOL)
+		local clock = gui:FindFirstChild("DayClock")
+		if clock and shown(clock) then
+			local expected = topPx + BANDS.OWN_GAP.Clock
+			if barShown and bossBar then
+				expected = topPx + BANDS.OWN_GAP.BossBar + bossBar.AbsoluteSize.Y + BANDS.STACK_GAP
+			end
+			-- el latido de cambio de día (UIScale) mueve el borde de arriba, y `drop` es un extra a propósito
+			bandCheck(clock, "DayClock", expected, "top", BAND_TOL + clock.AbsoluteSize.Y * 0.15)
+		end
+		bandCheck(gui:FindFirstChild("SurvivalBars"), "SurvivalBars", topPx + BANDS.TOP_GAP, "top", BAND_TOL)
+		if skip and skip:IsA("GuiObject") and skip.Visible then
+			bandCheck(skip, "Skip", originY + screen.Y - BANDS.SKIP.margin, "bottom", BAND_TOL)
+			if math.abs(skip.AbsoluteSize.X - BANDS.SKIP.size.X) > BAND_TOL then
+				flag("banda", "Skip", "el botón Saltar no mide lo que dice ScreenBands.SKIP", t)
+			end
+		end
+		if safeZone then
+			local zoneY, zoneH = safeZone.AbsolutePosition.Y, safeZone.AbsoluteSize.Y
+			bandCheck(safeZone:FindFirstChild("Title"), "Title", zoneY + BANDS.TITLE_Y * zoneH, "center", BAND_TOL)
+			bandCheck(safeZone:FindFirstChild("Subtitle"), "Subtitle", zoneY + BANDS.SUB_Y * zoneH, "center", BAND_TOL)
+			local caption = safeZone:FindFirstChild("Caption")
+			if shown(caption) then
+				local mid = caption.AbsolutePosition.Y + caption.AbsoluteSize.Y / 2
+				local low = zoneY + BANDS.CAPTION_Y * zoneH
+				local high = zoneY + BANDS.CAPTION_Y_WITH_SUB * zoneH
+				if math.abs(mid - low) > BAND_TOL and math.abs(mid - high) > BAND_TOL then
+					flag("banda", "Caption", string.format("Caption a y=%.0f, sus bandas piden %.0f o %.0f", mid, low, high), t)
+				end
+			end
+		end
+		-- aviso suave: texto visible que no cuelga de ningún elemento con banda
+		for _, a in items do
+			if a.gui:IsA("TextLabel") or a.gui:IsA("TextButton") then
+				local known = false
+				local node = a.gui
+				while node and node ~= gui do
+					if KNOWN[node.Name] then
+						known = true
+						break
+					end
+					node = node.Parent
+				end
+				if not known then
+					flag("sinbanda", a.gui.Name, "texto visible sin banda en ScreenBands (aviso suave)", t)
 				end
 			end
 		end

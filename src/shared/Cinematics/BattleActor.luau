@@ -31,6 +31,7 @@ local FxQuality = require(script.Parent.Parent.FxQuality)
 local LabActor = require(script.Parent.LabActor)
 local LabHitFx = require(script.Parent.LabHitFx)
 local Presentation = require(script.Parent.Presentation)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Sequencer = require(script.Parent.Sequencer)
 local Strings = require(script.Parent.Parent.Strings)
 
@@ -39,7 +40,6 @@ local T = Strings.t
 local BattleActor = {}
 
 local FOLDER_NAME = "CinematicBossFx"
-local TOP_BAND = 0.12 -- el alto de la franja negra de arriba (Presentation), en fracción de la pantalla
 local BAR_WIDTH_SCALE = 0.34
 local BAR_MIN_WIDTH = 220
 local BAR_HEIGHT = 16
@@ -163,7 +163,9 @@ local function createBar(event: Sequencer.Event, gui: ScreenGui, instant: boolea
 	local holder = Instance.new("CanvasGroup")
 	holder.Name = "BossBar"
 	holder.AnchorPoint = Vector2.new(0.5, 0)
-	holder.Position = UDim2.new(0.5, 0, TOP_BAND, 14)
+	-- Se registra en la pila de arriba (ScreenBands) antes de colocarse: el reloj del día baja debajo de ella.
+	ScreenBands.setTop("BossBar", NAME_HEIGHT + 4 + BAR_HEIGHT)
+	holder.Position = UDim2.new(0.5, 0, ScreenBands.TOP, ScreenBands.topOffset("BossBar"))
 	holder.Size = UDim2.new(BAR_WIDTH_SCALE, 0, 0, NAME_HEIGHT + 4 + BAR_HEIGHT)
 	holder.BackgroundTransparency = 1
 	holder.BorderSizePixel = 0
@@ -418,6 +420,7 @@ function BattleActor.install(sequencer: typeof(Sequencer))
 			-- La barra cuelga del ScreenGui de Presentation (que se borra solo), pero se quita ya para no depender del orden.
 			if state.bar then
 				state.bar.holder:Destroy()
+				ScreenBands.setTop("BossBar", nil)
 			end
 			if state.folder then
 				state.folder:Destroy()

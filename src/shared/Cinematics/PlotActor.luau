@@ -32,6 +32,7 @@ local Config = require(script.Parent.Parent.Config)
 local PlotModels = require(script.Parent.Parent.PlotModels)
 local Presentation = require(script.Parent.Presentation)
 local Rarities = require(script.Parent.Parent.Data.Rarities)
+local ScreenBands = require(script.Parent.ScreenBands)
 local Sequencer = require(script.Parent.Sequencer)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Strings = require(script.Parent.Parent.Strings)
@@ -43,7 +44,6 @@ local PlotActor = {}
 local FOLDER_NAME = "CinematicPlotFx"
 local MARKERS_FOLDER = "Parcelas" -- la carpeta de BuildingService con los bordes y carteles reales
 local PLOT_ATTRIBUTE = "PlotStructure"
-local TOP_BAND = 0.12 -- el alto de la franja negra de arriba (Presentation), en fracción de la pantalla
 local PERMANENT_BORDER_COLOR = Color3.fromRGB(240, 190, 60) -- el de BuildingService
 local SIGN_POST_COLOR = Color3.fromRGB(205, 175, 115)
 local SIGN_TEXT_COLOR = Color3.fromRGB(255, 235, 190)
@@ -58,7 +58,6 @@ local FLASH_SECONDS = 0.6
 local CLOCK_FADE_SECONDS = 0.4
 local CLOCK_POP_SECONDS = 0.35
 local CLOCK_POP_SCALE = 1.25
-local CLOCK_BASE_DROP = 12 -- px bajo la franja de arriba
 local CLOCK_DAY_GRACE = 0.25 -- s tras un cambio de día en que la hora puede bajar
 local CLOCK_WRAP_HOURS = 12 -- una bajada mayor es la vuelta de medianoche, no un retroceso
 -- Colores de rareza de los huevos de la incubadora, uno por hueco (el II lleva uno y el III dos).
@@ -78,6 +77,7 @@ type State = {
 	maxHour: number?, -- la hora más alta mostrada en el día actual (guarda contra el reloj que baja)
 	graceUntil: number, -- os.clock() hasta el que la hora puede bajar (cambio de día)
 	drop: number,
+	unbindClock: (() -> ())?, -- desconecta el aviso de ScreenBands.onTopChanged del reloj
 	sign: BillboardGui?,
 	shownText: string,
 	hook: ((t: number) -> ())?,
@@ -123,6 +123,7 @@ local function stateOf(ctx: Sequencer.Context): State
 		maxHour = nil,
 		graceUntil = 0,
 		drop = 0,
+		unbindClock = nil,
 		sign = nil,
 		shownText = "",
 		hook = nil,
@@ -465,6 +466,23 @@ end
 
 -- ===================================== dayClock =====================================
 
+-- Colocación del reloj: su sitio en la pila de arriba (ScreenBands) más el `drop` extra del evento.
+local function placeClock(state: State)
+	local label = state.label
+	if label and label.Parent then
+		label.Position = UDim2.new(0.5, 0, ScreenBands.TOP, ScreenBands.topOffset("Clock") + state.drop)
+	end
+end
+
+-- El reloj sale de la pila de arriba y deja de escuchar sus cambios.
+local function releaseClock(state: State)
+	if state.unbindClock then
+		state.unbindClock()
+		state.unbindClock = nil
+	end
+	ScreenBands.setTop("Clock", nil)
+end
+
 local function createClock(state: State, instant: boolean): TextLabel?
 	local gui = Presentation.gui()
 	if not gui then
@@ -474,7 +492,6 @@ local function createClock(state: State, instant: boolean): TextLabel?
 	local label = Instance.new("TextLabel")
 	label.Name = "DayClock"
 	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, TOP_BAND, CLOCK_BASE_DROP + state.drop)
 	label.Size = UDim2.fromScale(0.42, 0.09)
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.new(1, 1, 1)
@@ -490,6 +507,15 @@ local function createClock(state: State, instant: boolean): TextLabel?
 	state.label = label
 	state.scale = scale
 	state.shownText = ""
+	-- Va el último de la pila (tras la barra del jefe): su alto no cuenta, así que se registra con 0.
+	if state.unbindClock then
+		state.unbindClock()
+	end
+	ScreenBands.setTop("Clock", 0)
+	state.unbindClock = ScreenBands.onTopChanged(function()
+		placeClock(state)
+	end)
+	placeClock(state)
 	if not instant then
 		TweenService:Create(label, TweenInfo.new(CLOCK_FADE_SECONDS), { TextTransparency = 0 }):Play()
 	end
@@ -517,6 +543,7 @@ local function onDayClock(event: Sequencer.Event, ctx: Sequencer.Context)
 		end
 		state.label = nil
 		state.scale = nil
+		releaseClock(state)
 		return
 	end
 	local changed = typeof(event.day) == "number" and event.day ~= state.day
@@ -535,10 +562,7 @@ local function onDayClock(event: Sequencer.Event, ctx: Sequencer.Context)
 	end
 	if typeof(event.drop) == "number" then
 		state.drop = event.drop
-		local current = state.label
-		if current and current.Parent then
-			current.Position = UDim2.new(0.5, 0, TOP_BAND, CLOCK_BASE_DROP + state.drop)
-		end
+		placeClock(state)
 	end
 	local label = state.label
 	local existed = label ~= nil and label.Parent ~= nil
@@ -590,6 +614,7 @@ function PlotActor.install(sequencer: typeof(Sequencer))
 					table.remove(hooks, index)
 				end
 			end
+			releaseClock(state)
 			if state.label then
 				state.label:Destroy()
 			end
