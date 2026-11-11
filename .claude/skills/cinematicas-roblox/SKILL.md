@@ -15,6 +15,7 @@ Si la orden puede referirse a varias cosas (qué cinemática, qué jefe, «rayos
 - Actores: `Actors.spawn(def, anchor, ctx)` y `Actors.cleanup(ctx)` (campos `copy`, `localPlayer`, `snap`, `weapon`, `role`, `armor`, `torch`, `ballGear`…). Se llaman `Cinematic_<rol>`. El avatar de escena es una copia (`copy = true`); el real se esconde (Dunas lo manda a la sala de espera a los ~0,5 s).
 - Monos reales: `hideEnemies` y `freeze` en toda escena con el avatar fuera del Basecamp; los monos de cinemática llevan `Config.Combat.CinematicActorTag` y los borra `CinematicService.onEnd`. Vegetación real en plano: evento `hideReal`.
 - Cada escena nueva necesita su orden en `DebugCommands` (`CineXxx`) y su id en la lista del servicio del place (Isla `DebugService`, Dunas `ArenaDebugService`, Lab `LabDebugService`, Lobby `CineShipwreck`). Textos con `T()` y `Data/Strings/Content.luau`.
+- Jefe de plató (G14d): nace enterrado (atributo `StageSpot`, que guarda `DebugService.runEndless`) y el evento `stageShow` lo sube; `stageHide` lo esconde. Sin el evento se ve desde el inicio del día, como en el Día 11 de `Endless`.
 - `require` de `Data/Cinematics` en modo edición se cuelga: las escenas se prueban en Play.
 
 ## 2. Suelo, terreno y avatar real
@@ -25,6 +26,8 @@ Si la orden puede referirse a varias cosas (qué cinemática, qué jefe, «rayos
 - `Actors` `snap` coloca con rayo contra Terrain. Rayos desde dentro de la roca no dan nada: usa `Terrain:ReadVoxels`.
 - Hierba (~3 studs): una cámara a menos de ~8 studs sobre césped queda tapada.
 - La cámara a menos de 9–12 studs de un actor o de un grito de guerra tapa la imagen.
+- Cámara a menos de 3 studs de altura: se llena de hierba (en `Endless`, a 1,5 st, tapaba al jefe). Usa ≥ 4,5 st salvo plano a propósito.
+- El cierre de escena no debe poner actores sobre estructuras: en `Endless`, el Cazador atravesaba Cofre III.LidTop. El arnés lo marca como «atraviesa».
 
 ## 3. Armas, animaciones y poses
 
@@ -38,6 +41,7 @@ Si la orden puede referirse a varias cosas (qué cinemática, qué jefe, «rayos
 
 - El `ScreenGui` «Cinematic» usa `ZIndexBehavior.Global`: la capa de página va a `ZIndex` 1 y manda el orden de creación; los paneles salen negros si no (G7).
 - Cartel en y=0,70 y subtítulo en y=0,80 (zona segura 9:16). Un texto dura 0,5 + `seconds` + 0,6 s. Bocadillos sobre la cara: `side`. Onomatopeyas: una guarda omite las de menos de 0,7 s. Banda reel: `Comic.reelBand`, sin medidas fijas.
+- Barra del jefe y reloj del día: `dayClock` acepta `drop` (px) para no pisarse (Día 12 de `Endless`, drop 52). El cartel de la parcela se apaga con `plotSign {show}` y `plotMarker {sign=false}`: el título del cierre no puede caer sobre él.
 - «Saltar» (`Skip`, 160×48 abajo a la derecha): el texto de esa esquina lo tapa. `noSkip` en el Naufragio. Solo se pulsa con clic real por `instance_path`.
 - Viñetas congeladas: tope `Config.Budgets.Comic.FrozenParts` = 1.500. Una viñeta grande de 14 studs deja un avatar pequeño sobre fondo vacío.
 - Línea que empieza por `(` se pega a la anterior como llamada; tildes o eñes en comentarios de código mandado por MCP rompen el parseo.
@@ -48,6 +52,7 @@ Si la orden puede referirse a varias cosas (qué cinemática, qué jefe, «rayos
 - Armaduras con `PointLight` y el `Bloom` global queman el plano cercano; tres tintes naranja apilados amarillean: usa tinte frío (G4b). A 19,5 h los actores salen negros: luz fría que sigue a la cámara (`light` con `follow`) y `exposure` bajo solo en el choque (G14c).
 - Luna pegada a la cámara quema el casco a menos de 40 studs. Luna roja: atributos `CinematicRedMoon…`, manda el atributo sobre el evento.
 - `dimLights` a t=0 baja las luces de los maniquíes al 30 %; `torch lit=true` a t=0,05 se las devuelve. `noBlur` apaga DepthOfField y Blur.
+- `clock seconds` = segundos para recorrer 12 h, no la duración del cambio. Para pasar de `from` a `to` en `over` segundos usa una rampa seconds = 12·over/|Δhora| (`ramp` en `Endless`, G14d). Con el valor directo el reloj iba hacia atrás al empezar. El texto del reloj no baja dentro de un día (guarda A7 de `PlotActor`).
 - Topes medidos con `Rendimiento` (`informe({ filtro = "…", mallas = false })`; el informe completo agota la llamada).
 
 ## 6. Probar sin romper nada
@@ -79,7 +84,7 @@ Qué mira el revisor: los seis puntos de la lista de entrega de CLAUDE.md más l
 
 ## 8. Errores que más rondas costaron
 
-`waitTerrain` mal medido · armas descolocadas al colgar el maniquí · avatar copia invisible · monos reales que reaparecen (`clearArea` barre durante toda la escena) · cámara demasiado cerca · tintes naranja apilados · `dayClock` que salta atrás en `Endless` (A7, sin hacer) · `plotHide` mandado dos veces · módulos temporales olvidados en `src` · frases sin subir a Creator Hub (G7, G8, G9, G14b–G14d).
+`waitTerrain` mal medido · armas descolocadas al colgar el maniquí · avatar copia invisible · monos reales que reaparecen (`clearArea` barre durante toda la escena) · cámara demasiado cerca · tintes naranja apilados · `dayClock` que salta atrás en `Endless` (A7, arreglado en G14d; falta el vídeo) · `clock seconds` tomado como duración (G14d) · jefe de plató visible desde el inicio (G14d) · cámara a 1,5 st tapada por la hierba (G14d) · cierre con actores sobre el Cofre III (G14d) · `plotHide` mandado dos veces · módulos temporales olvidados en `src` · frases sin subir a Creator Hub (G7, G8, G9, G14b–G14d).
 
 ## 9. Órdenes de prueba
 

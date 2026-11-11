@@ -152,6 +152,31 @@ function IslandBossHooks:Init()
 			warn(`[IslandBossHooks] bossAct {action} falla: {err}`)
 		end
 	end)
+	-- stageHide / stageShow: esconde el jefe de plató bajo tierra (400 studs) y lo devuelve a su sitio. El sitio se guarda en el
+	-- atributo StageSpot del modelo (DebugService.runEndless ya lo deja puesto; si falta, se toma el pivote actual).
+	local STAGE_HIDE_DEPTH = 400
+	CinematicService.registerServerEvent("stageHide", function(_, run)
+		local model = run.context.bossModel
+		if not (typeof(model) == "Instance" and model:IsA("Model") and model.Parent) then
+			return
+		end
+		local spot = model:GetAttribute("StageSpot")
+		if typeof(spot) ~= "CFrame" then
+			spot = model:GetPivot()
+			model:SetAttribute("StageSpot", spot)
+		end
+		model:PivotTo((spot :: CFrame) - Vector3.new(0, STAGE_HIDE_DEPTH, 0))
+	end)
+	CinematicService.registerServerEvent("stageShow", function(_, run)
+		local model = run.context.bossModel
+		if not (typeof(model) == "Instance" and model:IsA("Model") and model.Parent) then
+			return
+		end
+		local spot = model:GetAttribute("StageSpot")
+		if typeof(spot) == "CFrame" then
+			model:PivotTo(spot)
+		end
+	end)
 	-- Una habilidad del jefe solo para enseñarla en la escena (sin daño): animación y efectos para la audiencia.
 	CinematicService.registerServerEvent("bossSkill", function(event, run)
 		local model = run.context.bossModel

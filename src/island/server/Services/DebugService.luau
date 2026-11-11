@@ -255,6 +255,7 @@ end
 -- Caudillo real vivo no monta nada, como runBossBattle. Los monos reales se limpian en 200 y el Caudillo se borra al acabar.
 local ENDLESS_BOSS = "ChimpanceCaudillo"
 local ENDLESS_BOSS_OFFSET = Vector3.new(0, 0, 100)
+local ENDLESS_BOSS_HIDE = 400 -- studs bajo tierra hasta el evento stageShow
 
 local function runEndless(player: Player)
 	local live = BossService.currentModel()
@@ -281,7 +282,10 @@ local function runEndless(player: Player)
 			-- El pivote del modelo está algo por encima de su pie: se conserva esa diferencia.
 			local lift = model:GetPivot().Position.Y - stageAnchor.Position.Y
 			local spot = Vector3.new(target.X, groundY + lift, target.Z)
-			model:PivotTo(CFrame.lookAt(spot, spot + Vector3.new(0, 0, -1)))
+			local placed = CFrame.lookAt(spot, spot + Vector3.new(0, 0, -1))
+			-- Su sitio queda en StageSpot y el jefe empieza enterrado: el evento stageShow de la escena lo sube (de día no se ve).
+			model:SetAttribute("StageSpot", placed)
+			model:PivotTo(placed - Vector3.new(0, ENDLESS_BOSS_HIDE, 0))
 			return anchor, model, function()
 				folder:Destroy()
 			end

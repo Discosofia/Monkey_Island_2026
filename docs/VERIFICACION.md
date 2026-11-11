@@ -7415,7 +7415,7 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 
 ## 187. Fase 25 G14d: parcela permanente y modo infinito (10-11-2026)
 
-La escena `Endless` (Parcela y modo infinito, en la Isla) está previsto que dure **30,6 s**, pero en Play midió **26,4 s** con la cámara Scriptable. La causa era la misma que en `Night` (§186): `waitTerrain` saltaba la apertura con un `seek`. Está arreglada (los puntos de espera usan el suelo medido bajo el helicóptero) y tras el arreglo midió **30,5 s**. La grabación anterior, con la apertura aún perdida, tiene defectos que están sin arreglar (§187.7). Solo tiene la versión normal. Usa `Shared/Cinematics/PlotActor` (eventos `plotHide`, `plotMarker`, `plotPiece`, `plotUpgrade` y `dayClock`) y `Data/CinematicKit`. La parcela aparece en el hueco 2 (135°, radio 62) con 7 estructuras en grado I y un cartel dorado; los días 8 a 11 suben las mejoras y el reloj; el Día 12 cae la noche con el Caudillo de plató; acaba con el título «Modo infinito». Orden: «🎬 Parcela y modo infinito (30 s)».
+La escena `Endless` (Parcela y modo infinito, en la Isla) está previsto que dure **32 s** (alargada 1,4 s el 11-11-2026 para que el título «Modo infinito» y su subtítulo se lean: 30,6 s antes), pero en Play midió **26,4 s** con la cámara Scriptable. La causa era la misma que en `Night` (§186): `waitTerrain` saltaba la apertura con un `seek`. Está arreglada (los puntos de espera usan el suelo medido bajo el helicóptero) y tras el arreglo midió **30,5 s**. La grabación anterior, con la apertura aún perdida, tiene defectos que están sin arreglar (§187.7). Solo tiene la versión normal. Usa `Shared/Cinematics/PlotActor` (eventos `plotHide`, `plotMarker`, `plotPiece`, `plotUpgrade` y `dayClock`) y `Data/CinematicKit`. La parcela aparece en el hueco 2 (135°, radio 62) con 7 estructuras en grado I y un cartel dorado; los días 8 a 11 suben las mejoras y el reloj; el Día 12 cae la noche con el Caudillo de plató; acaba con el título «Modo infinito». Orden: «🎬 Parcela y modo infinito (30 s)».
 
 Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la grabación, porque el MCP no captura Play. Las medidas de instancias y FPS son de Studio y no sirven de referencia para el juego publicado.
 
@@ -7449,7 +7449,7 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 ### 187.2 En el Studio de la Isla, en Play, con un jugador
 
 1. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final, y compárala con la de `Night`.
-   ✅ Dura unos 30,6 s. Antes del arreglo midió 26,4 s y `Night` 25,3 s de 29,6; tras el arreglo, en Play, 30,5 s y 29,4 s. Si vuelve a salir corta, anota la duración real y mira el paso 6.
+   ✅ Dura unos 32 s (30,6 s antes de alargar el cierre; el título se queda 2,6 s y el logo entra a 30,4 s: mídelo de nuevo). Antes del arreglo midió 26,4 s y `Night` 25,3 s de 29,6; tras el arreglo, en Play, 30,5 s y 29,4 s. Si vuelve a salir corta, anota la duración real y mira el paso 6.
 2. [ ] Muestra `ClockTime` cada 0,5 s durante la escena (cada 3 s fue demasiado grueso para verlo).
    ✅ Sube de 6,2 a 17,5 h en cada día y vuelve a 6,2 h al empezar el día siguiente, sin dar la vuelta a las 24 h. Si el reloj da la vuelta o se queda atascado, anota el segundo.
 3. [ ] Mide el pico de instancias de `Workspace` durante la escena.
@@ -7487,6 +7487,8 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 
 ### 187.7 Defectos de la grabación del 10-11-2026 (sin arreglar: confirmar tras arreglarlos y regrabar)
 
+Los defectos a a g están arreglados en código y probados con el arnés; falta confirmarlos en una grabación nueva. Los pasos de abajo son la lista original, y la confirmación está en §189.
+
 Vistos en la grabación de `Endless` (hojas de contacto en `build/videos/endless_hojas/`), con la apertura todavía perdida. Ninguno está arreglado. Cada paso se cierra cuando el arreglo esté hecho y se vea en una grabación nueva. Las letras (a) a (g) son los defectos de la grabación.
 
 1. [ ] Mira el Caudillo de plató en la puerta sur, de día, durante el Día 11, y la toma de vuelta al final del Día 11.
@@ -7523,8 +7525,51 @@ Informe en `docs/qa/Night/report.md`. Todo se mira en el vídeo grabado por el u
 4. [ ] Mira la marcha de 6 a 11 s (avatar con antorcha, Cazador y Mago).
    ✅ Caminan con la pista de andar, sin deslizarse. El arnés los marca «deslizando» (6,7 a 10,9 s), probable falso positivo.
 
-## Cuando termines
+## 189. Fase 25 G14d: revisión automática de Endless (11-11-2026)
 
-Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
+Informe en `docs/qa/Endless/report.md`. Los defectos a a g de §187.7 y un defecto nuevo (el Cazador del cierre atravesaba Cofre III.LidTop) están arreglados en código y probados con el arnés, pero no confirmados en vídeo: estos pasos son la regrabación. Las calidades, 2 jugadores y el juego publicado siguen en §187.4 a §187.6. El hueco de la copia del perfil (§10.0) está en 189.2, paso 4.
+
+### 189.1 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [ ] Mira el Caudillo de plató en la puerta sur durante el Día 11 y la toma de vuelta al final de ese día (§187.7, paso 1).
+   ✅ No asoma antes de 20,9 s, ni en la puerta sur ni en la toma de vuelta. Si asoma, anota el segundo.
+2. [ ] Mira la barra del jefe durante el Día 12, a la vez que el reloj grande «Day 12 · 19:30» (§187.7, paso 2).
+   ✅ La barra no pisa el texto del reloj, y los dos se leen (el Día 12 usa `drop` = 52 px).
+3. [ ] Mira el primer plano del Caudillo: contraplano de 21 a 22,6 s, contrapicado de 22,6 a 25,2 s y lateral con travelling de 25,2 a 27,6 s (§187.7, paso 3).
+   ✅ El plano se mueve, encuadra al jefe entero, sin cortarlo a la altura del pecho, y la hierba no lo tapa. Si el lateral vuelve a salir tapado, anota el segundo.
+4. [ ] Mira el rugido (Roar, a 23,0 s) y el pisotón (Stomp, a 25,5 s) con sus sacudidas (§187.7, paso 4).
+   ✅ Los dos salen en cuadro y la cámara los acompaña.
+5. [ ] Mira el Día 10: el avatar, con el Cazador en pl(−12,0,−13) y el Médico en pl(5,0,−13), de 15 a 18 s (§187.7, paso 5).
+   ✅ El avatar se ve sin quedar tapado por el Cazador ni por el Médico. Hasta ahora solo está comprobado por geometría, así que esta es la primera vista real.
+6. [ ] Mira el plano general del Día 11, con la grúa de pl(−22,8,−22) a pl(−16,16,−28) y FOV 55→58 (§187.7, paso 6).
+   ✅ Se distingue el grado III de las estructuras a primera vista.
+7. [ ] Mira el cierre, de 26 a 30,6 s: el título «Modo infinito», el logo y el cartel «🏡 Parcela de …» (§187.7, paso 7).
+   ✅ El cartel se apaga a 27,4 s y el título se lee sobre el cielo, con la empalizada al fondo, sin que el cartel ni las estructuras lo tapen. El logo sobre el Cazador (de 28,0 a 30,1 s) es decisión del usuario, como en `Night`: anota si le molesta.
+8. [ ] Mira que los tres del cierre (de 27,5 a 30,1 s) pasan junto al Cofre III sin atravesar la tapa.
+   ✅ Ninguno pisa la tapa del cofre. Si alguno la atraviesa, anota el segundo.
+9. [ ] Mira el reloj del Día 7 al empezar la escena y los cambios de día de los días 8 a 12 (§187.7, paso 8).
+   ✅ El reloj del Día 7 ya no da la vuelta (antes marcaba 07:29, 06:34, 06:18 y 07:30). Dentro de cada día sube sin bajar, y solo baja al cambiar de día. Si retrocede dentro de un día, anota el segundo.
+10. [ ] Mira las marcas del arnés que se dejaron para el vídeo: «suelo» de 0,5 a 0,67 st, «fuera» del Cazador desde 6,2 s y «gui» con el Caption sobre el Médico de 0,5 a 22,3 s.
+    ✅ Son falsos positivos probables o decisiones de plano (el «fuera» del Cazador puede ser a propósito). Si alguno molesta en el vídeo, anota el segundo.
+
+### 189.2 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Lanza `Endless` tres veces y mira `ClockTime` cada 0,5 s en el Día 12 (de 21 a 27,6 s).
+   ✅ Sube de 18,5 a 19,5 h en las tres pasadas. Una pasada anterior bajó de 18,4 a 17,3 h y dejó el texto en 18:28, sin reproducirse después. Si baja aunque sea una vez, anota el segundo y los valores antes y después.
+2. [ ] Lanza `Night` y mira `ClockTime` en su tramo final, con la guarda A7 de `PlotActor`.
+   ✅ La hora sube hasta el final de la escena y no se queda congelada. Si se queda, anota el segundo.
+3. [ ] Pasa el arnés `tools/cine_qa.luau` sobre `Endless` (dos vueltas).
+   ✅ No sale ninguna marca de «atraviesa» ni de terreno. Las marcas de «deslizando» en los cortes y de «luz» en el negro final (29,6 a 30,1 s) son normales.
+4. [ ] Cuando se pueda activar el acceso a las API de Studio, haz la copia de `PlayerData_v1` (§10.0) y lanza `Endless` con ella. Restaura la copia al acabar.
+   ✅ `Endless` aparece en `cinematicsSeen` durante la prueba, y la restauración deja el perfil como estaba. Hoy no se puede: el DataStore da 502 en Studio, así que la marca del perfil real sigue ahí (ver §187.2, paso 5).
+
+### 189.3 En el Studio de la Isla, en modo edición (sin jugar)
+
+1. [ ] Mide en edición la altura real del suelo en los puntos de espera de las cámaras de noche del Día 12 de `Endless` (a unos 20 studs de (0,0,81)) y compárala con el `waitTerrain` de cada punto.
+   ✅ Cada punto coincide con la altura medida. Si no coincide, anota la diferencia y el punto: el `waitTerrain` se agota sin aviso.
+2. [ ] Mira la cámara del cierre en edición: de pl(0,2.5,−24) a pl(0,7,4), mirando al cielo.
+   ✅ El cielo queda detrás del título y la empalizada, al fondo. Si algo entra en cuadro (un actor, una estructura o el cartel), anota cuál.
+
+## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

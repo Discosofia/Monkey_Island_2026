@@ -17,7 +17,7 @@ local actionWriters = Kit.actionWriters
 local yawBetween = Kit.yawBetween
 
 -- ============================================================================ Parcela y modo infinito (Fase 25, G14d)
--- «Endless» (30,6 s, solo la versión normal): el helicóptero del rescate se va sin ellos, la parcela permanente sube de grado
+-- «Endless» (32 s, solo la versión normal): el helicóptero del rescate se va sin ellos, la parcela permanente sube de grado
 -- día a día y de noche vuelve el Caudillo. La lanza «🎬 Parcela y modo infinito» del panel de la Isla con ArrivalService.play y
 -- un stage cuyo anchor es el suelo bajo el centro del Basecamp (la hoguera, en (0, 0)); el Caudillo es de servidor (StageBoss)
 -- y está fuera de la puerta sur, a (0, 100). La parcela de la escena es el hueco 2 de Config.Building.PlotAngles (135°, radio 62):
@@ -30,14 +30,14 @@ local yawBetween = Kit.yawBetween
 --    9 a 21    Días 8 a 11, unos 3 s por día (la hora vuelve al amanecer en cada corte): Forja II, Incubadora II, Forja III y
 --              Nido II, y por último todo a III (plano general en grúa)
 --   21 a 27,6  Día 12, de noche: el Caudillo ante la puerta sur con su barra, ruge y pisa; los tres lo miran desde dentro
---   27,6 a 30  título «Modo infinito», logo y negro (el plano se aleja de la parcela)
+--   27,6 a 31,4  título «Modo infinito» (2,6 s), logo y negro (el plano se aleja de la parcela)
 -- Efectos pesados (cada mejora de PlotActor y el rugido) separados al menos 0,4 s. Las cámaras, a 12 studs o más de los actores.
 -- Las alturas de cámara son sobre el suelo del anchor: PLOT_Y las corrige si el suelo de la parcela no está a su altura.
 -- Va dentro de una función por el límite de 200 locales del módulo.
 local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 	local out: { [string]: Scene? } = {}
 	local function build(): Scene
-		local ENDLESS_SECONDS = 30
+		local ENDLESS_SECONDS = 31.4
 		local FIRE = Vector3.zero
 		local PLOT_Y = 0 -- diferencia de altura entre el suelo de la parcela y el del anchor (a medir en el Basecamp)
 
@@ -66,6 +66,8 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		local INCUBATOR_AT = pl(layout.Incubator.x, 0, layout.Incubator.z)
 		local NEST_AT = pl(layout.Nest.x, 0, layout.Nest.z)
 		local PLOT_MID = pl(0, 0, 4)
+		local DAY10_HUNTER = pl(-12, 0, -13) -- el Día 10 se apartan de la línea cámara-avatar
+		local DAY10_MEDIC = pl(5, 0, -13)
 
 		-- ===== La plaza: dónde despiden al helicóptero (a la derecha de la hoguera) y su recorrido
 		local CREW_AVATAR = Vector3.new(3.5, 0, 9)
@@ -118,12 +120,19 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		local function upgrade(t: number, id: string, level: number)
 			add({ t = t, kind = "plotUpgrade", key = id, level = level })
 		end
+		-- Lleva el reloj de la escena a `to` en `over` segundos. LightingController lee `seconds` como los segundos que tardaría en
+		-- recorrer 12 h (no como la duración del cambio), así que se calcula con la distancia. `from` es la hora de la que parte
+		-- (la fijó antes un clock con seconds = 0, o un ramp anterior).
+		local function ramp(t: number, from: number, to: number, over: number)
+			add({ t = t, kind = "clock", hour = to, seconds = 12 * over / math.abs(to - from) })
+		end
 		local function startDay(day: number, hour: number?)
 			local t0 = DAY_START[day]
+			local from = hour or 6.2
 			add({ t = t0, kind = "dayClock", show = true, day = day })
-			-- Vuelve al amanecer y avanza hasta la tarde: la escena salta hacia atrás por el camino corto del reloj.
-			add({ t = t0, kind = "clock", hour = hour or 6.2, seconds = 0 })
-			add({ t = t0 + 0.1, kind = "clock", hour = 17.5, seconds = DAY_LENGTH - 0.3 })
+			-- Vuelve al amanecer (salto) y avanza hasta la tarde: la escena salta hacia atrás por el camino corto del reloj.
+			add({ t = t0, kind = "clock", hour = from, seconds = 0 })
+			ramp(t0 + 0.1, from, 17.5, DAY_LENGTH - 0.3)
 		end
 
 		-- ===== Rescate (0 a 6): el helicóptero despega y se aleja sin ellos
@@ -132,9 +141,10 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		-- por si el terreno de allí no estaba aún cargado al empezar.
 		add({ t = 0, kind = "plotHide", at = pl(0, 0, 0), radius = 30 })
 		add({ t = 5.5, kind = "plotHide", at = pl(0, 0, 0), radius = 30 })
-		add({ t = 0.3, kind = "dayClock", show = true, day = 7 })
-		add({ t = 0, kind = "clock", hour = 6.3, seconds = 6 })
-		add({ t = 6, kind = "clock", hour = 7.5, seconds = 3 })
+		add({ t = 0.4, kind = "dayClock", show = true, day = 7 })
+		add({ t = 0, kind = "clock", hour = 6.1, seconds = 0 })
+		ramp(0.05, 6.1, 7.0, 5.6)
+		ramp(6, 7.0, 7.5, 3)
 		add({ t = 0, kind = "move", actor = "heli", pos = HELI_START, yaw = HELI_YAW, seconds = 0 })
 		add({ t = 0.2, kind = "move", actor = "heli", pos = HELI_HOVER, yaw = HELI_YAW, seconds = 1.3 })
 		add({ t = 1.6, kind = "move", actor = "heli", pos = HELI_OUT, yaw = HELI_YAW, seconds = 4.6 })
@@ -193,6 +203,11 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		upgrade(12.9, "Incubator", 2)
 		-- Día 10: Forja II a III y Nido I a II
 		startDay(10)
+		-- Los dos amigos se apartan de la línea cámara-avatar (el Cazador tapaba al avatar) y vuelven a la entrada a 18,0.
+		face(15.0, "hunter", DAY10_HUNTER, PLOT_MID)
+		face(15.0, "medic", DAY10_MEDIC, PLOT_MID)
+		face(18.0, "hunter", HUNTER_AT, PLOT_MID)
+		face(18.0, "medic", MEDIC_AT, PLOT_MID)
 		put(15.0, "avatar", STAND_FORGE, yawBetween(STAND_FORGE, FORGE_AT))
 		anim(15.3, "avatar", "Hammer", 0.8)
 		upgrade(15.8, "Forge", 3)
@@ -215,9 +230,12 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		anim(20.2, "medic", "Cheer", 0.9)
 
 		-- ===== Noche, Día 12 (21 a 27,6): el Caudillo ante la puerta sur
-		add({ t = 21.0, kind = "dayClock", show = true, day = 12 })
+		-- El Caudillo sube de su escondite antes de la noche (empieza 400 studs bajo tierra: de día no se ve).
+		add({ t = 20.9, kind = "stageShow", server = true })
+		-- El reloj baja bajo la barra del jefe (BattleActor: alto NAME_HEIGHT 22 + 4 + BAR_HEIGHT 16 = 42 px desde +14 = 56; +8 de aire).
+		add({ t = 21.0, kind = "dayClock", show = true, day = 12, drop = 52 })
 		add({ t = 21.0, kind = "clock", hour = 18.5, seconds = 0 })
-		add({ t = 21.1, kind = "clock", hour = 19.5, seconds = 7 })
+		ramp(21.1, 18.5, 19.5, 6.4)
 		-- Luz fría y tenue que sigue a la cámara (la de Night): de noche cerrada, sin ella los tres salen negros.
 		add({
 			t = 21.0,
@@ -233,16 +251,18 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		put(21.0, "hunter", NIGHT_HUNTER, yawBetween(NIGHT_HUNTER, BOSS_AT))
 		put(21.0, "medic", NIGHT_MEDIC, yawBetween(NIGHT_MEDIC, BOSS_AT))
 		table.insert(events, BossChoreo.bar(21.2, Bosses.ChimpanceCaudillo.name, 1, 1))
-		table.insert(events, BossChoreo.bossAct(21.7, "Roar"))
-		table.insert(events, BossChoreo.bossRoar(21.8))
-		table.insert(events, BossChoreo.shake(21.8, 0.12, 0.8))
-		table.insert(events, BossChoreo.bossAct(24.8, "Stomp"))
-		table.insert(events, BossChoreo.shake(25.1, 0.1, 0.5))
+		-- El rugido cae en el contrapicado que se acerca (22,6 a 25,2) y el pisotón en el plano bajo lateral (desde 25,2).
+		table.insert(events, BossChoreo.bossAct(23.0, "Roar"))
+		table.insert(events, BossChoreo.bossRoar(23.0))
+		table.insert(events, BossChoreo.shake(23.1, 0.12, 0.8))
+		table.insert(events, BossChoreo.bossAct(25.5, "Stomp"))
+		table.insert(events, BossChoreo.shake(25.8, 0.1, 0.5))
 
-		-- ===== Final (27,6 a 30): de vuelta en la parcela, ya de noche; título, logo y negro
+		-- ===== Final (27,6 a 31,4): de vuelta en la parcela, ya de noche; título, logo y negro
+		add({ t = 27.4, kind = "plotSign", show = false }) -- el cartel de la parcela tapaba el título
 		add({ t = 27.5, kind = "dayClock", show = false })
-		local endAvatar, endHunter, endMedic = pl(-1, 0, -9), pl(-6, 0, -10), pl(4, 0, -10)
-		local endCamera = pl(0, 5, -24)
+		local endAvatar, endHunter, endMedic = pl(0, 0, -10), pl(-4, 0, -12), pl(4, 0, -12) -- fuera del Cofre (-8, -8,5) y la Incubadora (8, -8,5)
+		local endCamera = pl(0, 2.5, -24)
 		put(27.6, "avatar", endAvatar, yawBetween(endAvatar, endCamera))
 		put(27.6, "hunter", endHunter, yawBetween(endHunter, endCamera))
 		put(27.6, "medic", endMedic, yawBetween(endMedic, endCamera))
@@ -254,17 +274,17 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			kind = "title",
 			text = Strings.later("Modo infinito"),
 			sub = Strings.later("¿Cuántos días aguantas?"),
-			seconds = 1.4,
+			seconds = 2.6, -- el subtítulo «¿Cuántos días aguantas?» con 1,4 s se iba demasiado pronto
 		})
 		add({
-			t = 29.0,
+			t = 30.4,
 			kind = "logo",
 			text = Strings.later("Primal Banana Islands"),
 			sub = Strings.later("Monkey Survival"),
 			seconds = 0.5,
 		})
 		-- Negro hasta el final: tras acabar la escena, y antes de la pantalla de «Heading back», salía medio segundo de día.
-		add({ t = 29.2, kind = "fade", seconds = 0.6, toBlack = true })
+		add({ t = 30.6, kind = "fade", seconds = 0.6, toBlack = true })
 
 		-- ===== Cámara. Ninguna a menos de 12 studs de un actor; las alturas son sobre el suelo del anchor.
 		local shots: { CameraShot } = {
@@ -314,29 +334,37 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 18,
 				t1 = 21,
-				a = cameraKey(pl(-34, 10, -34), pl(0, 3, 2), 60),
-				b = cameraKey(pl(-22, 28, -46), pl(0, 3, 2), 62),
+				a = cameraKey(pl(-22, 8, -22), pl(0, 3, 2), 55),
+				b = cameraKey(pl(-16, 16, -28), pl(0, 3, 2), 58),
 			},
 			-- Contraplano desde detrás de los tres hacia el Caudillo, que espera fuera de la puerta.
 			{
 				t0 = 21,
-				t1 = 24.2,
+				t1 = 22.6,
 				a = cameraKey(Vector3.new(0, 3, 46), Vector3.new(0, 9, 100), 55),
 				b = cameraKey(Vector3.new(1, 3.2, 49), Vector3.new(0, 9, 100), 50),
 			},
-			-- Primer plano del Caudillo (fuera de la empalizada, a 15 studs o más).
+			-- Contrapicado que se acerca al Caudillo girando (el rugido): fuera de la empalizada, a 15 studs o más.
 			{
-				t0 = 24.2,
+				t0 = 22.6,
+				t1 = 25.2,
+				a = cameraKey(Vector3.new(16, 4, 84), Vector3.new(0, 7.5, 100), 55),
+				b = cameraKey(Vector3.new(8, 3, 86), Vector3.new(0, 7.5, 100), 58),
+			},
+			-- Plano bajo lateral con travelling (el pisotón).
+			{
+				t0 = 25.2,
 				t1 = 27.6,
-				a = cameraKey(Vector3.new(13, 6, 86), Vector3.new(0, 9, 100), 50),
-				b = cameraKey(Vector3.new(11, 6, 88), Vector3.new(0, 10, 100), 46),
+				-- A 4,5 de altura: con 1,5 la hierba tapaba al jefe (QA de Endless, ver docs/qa/Endless).
+				a = cameraKey(Vector3.new(-14, 4.5, 92), Vector3.new(0, 9, 100), 52),
+				b = cameraKey(Vector3.new(-10, 5, 90), Vector3.new(0, 9, 100), 52),
 			},
 			-- Cierre: el plano se aleja de la parcela de noche.
 			{
 				t0 = 27.6,
 				t1 = ENDLESS_SECONDS,
-				a = cameraKey(endCamera, pl(0, 5, 4), 52),
-				b = cameraKey(pl(3, 36, -70), pl(0, 2, 3), 60),
+				a = cameraKey(endCamera, pl(0, 7, 4), 52),
+				b = cameraKey(pl(3, 20, -60), pl(0, 4, 3), 60),
 			},
 		}
 

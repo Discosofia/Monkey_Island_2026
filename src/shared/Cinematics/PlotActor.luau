@@ -12,9 +12,12 @@
 --       color de una rareza (Rarities), como los pinta PlotService con el huevo del nido.
 --   plotUpgrade { key, level }             la estructura `key` cambia al grado `level` (1 a 3): destello, polvo y sonido Build
 --       (como buildRise de SurvivalActor) y rebote de escala del modelo nuevo.
---   dayClock { show?, day?, hour? }        el reloj del HUD de la Isla («Día {day} · {icono} {hora}», IslandHUDController) en
+--   plotSign { show }                      muestra u oculta el cartel del marcador (state.sign); plotMarker { sign = false } ni lo crea.
+--   dayClock { show?, day?, hour?, drop? } el reloj del HUD de la Isla («Día {day} · {icono} {hora}», IslandHUDController) en
 --       grande, arriba al centro, bajo la franja de arriba. `day` lo cambia (con un latido), `hour` fija la hora (si falta, se
---       lee de Lighting.ClockTime, que es la que dibuja la escena); show = false lo quita.
+--       lee de Lighting.ClockTime, que es la que dibuja la escena); show = false lo quita. `drop` son los px extra bajo la
+--       franja (por ejemplo, para dejar sitio a la barra de un jefe). Dentro de un mismo día el texto no baja la hora (la
+--       máxima mostrada se sostiene), salvo en los 0,25 s tras un cambio de día o con un `hour` explícito.
 -- Todo lo que crea (carpeta «CinematicPlotFx», reloj) lleva CinematicKeep y se borra al acabar la escena; lo escondido se
 -- devuelve. Los efectos con partículas no salen al saltar a un instante (seek); los cambios de estado, sí. Solo cliente.
 
@@ -55,6 +58,9 @@ local FLASH_SECONDS = 0.6
 local CLOCK_FADE_SECONDS = 0.4
 local CLOCK_POP_SECONDS = 0.35
 local CLOCK_POP_SCALE = 1.25
+local CLOCK_BASE_DROP = 12 -- px bajo la franja de arriba
+local CLOCK_DAY_GRACE = 0.25 -- s tras un cambio de día en que la hora puede bajar
+local CLOCK_WRAP_HOURS = 12 -- una bajada mayor es la vuelta de medianoche, no un retroceso
 -- Colores de rareza de los huevos de la incubadora, uno por hueco (el II lleva uno y el III dos).
 local EGG_RARITIES = { "Rare", "Legendary" }
 
@@ -69,6 +75,10 @@ type State = {
 	scale: UIScale?,
 	day: number,
 	hour: number?,
+	maxHour: number?, -- la hora más alta mostrada en el día actual (guarda contra el reloj que baja)
+	graceUntil: number, -- os.clock() hasta el que la hora puede bajar (cambio de día)
+	drop: number,
+	sign: BillboardGui?,
 	shownText: string,
 	hook: ((t: number) -> ())?,
 }
@@ -80,6 +90,13 @@ end
 -- La hora del reloj en grande: «Día 8 · ☀️ 14:30», con las mismas frases que el HUD de la Isla.
 local function clockText(state: State): string
 	local hour = state.hour or Lighting.ClockTime
+	-- Guarda: dentro del mismo día la hora mostrada no baja (salvo en la gracia de un cambio de día o con una hora explícita).
+	local top = state.maxHour
+	if top and hour < top and top - hour < CLOCK_WRAP_HOURS and os.clock() > state.graceUntil then
+		hour = top
+	else
+		state.maxHour = hour
+	end
 	local minutes = math.floor(hour * 60) % (24 * 60)
 	local icon = if hour % 24 >= 6 and hour % 24 < 18 then "☀️" else "🌙"
 	return T(
@@ -103,6 +120,10 @@ local function stateOf(ctx: Sequencer.Context): State
 		scale = nil,
 		day = 1,
 		hour = nil,
+		maxHour = nil,
+		graceUntil = 0,
+		drop = 0,
+		sign = nil,
 		shownText = "",
 		hook = nil,
 	}
@@ -306,6 +327,10 @@ local function onPlotMarker(event: Sequencer.Event, ctx: Sequencer.Context)
 		Enum.Material.Wood,
 		model
 	)
+	if event.sign == false then
+		model.Parent = fxFolder(state)
+		return
+	end
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(320, 56)
 	billboard.StudsOffset = Vector3.new(0, 3, 0)
@@ -321,7 +346,16 @@ local function onPlotMarker(event: Sequencer.Event, ctx: Sequencer.Context)
 	label.TextScaled = true
 	label.Parent = billboard
 	billboard.Parent = post
+	state.sign = billboard
 	model.Parent = fxFolder(state)
+end
+
+-- plotSign { show }: muestra u oculta el cartel del marcador.
+local function onPlotSign(event: Sequencer.Event, ctx: Sequencer.Context)
+	local sign = stateOf(ctx).sign
+	if sign and sign.Parent then
+		sign.Enabled = event.show ~= false
+	end
 end
 
 -- ===================================== plotPiece y plotUpgrade =====================================
@@ -440,7 +474,7 @@ local function createClock(state: State, instant: boolean): TextLabel?
 	local label = Instance.new("TextLabel")
 	label.Name = "DayClock"
 	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, TOP_BAND, 12)
+	label.Position = UDim2.new(0.5, 0, TOP_BAND, CLOCK_BASE_DROP + state.drop)
 	label.Size = UDim2.fromScale(0.42, 0.09)
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.new(1, 1, 1)
@@ -492,6 +526,20 @@ local function onDayClock(event: Sequencer.Event, ctx: Sequencer.Context)
 	if typeof(event.hour) == "number" then
 		state.hour = event.hour
 	end
+	-- La hora puede bajar con un día nuevo (0,25 s), con una hora explícita o al saltar a un instante.
+	if changed then
+		state.graceUntil = os.clock() + CLOCK_DAY_GRACE
+	end
+	if changed or instant or typeof(event.hour) == "number" then
+		state.maxHour = nil
+	end
+	if typeof(event.drop) == "number" then
+		state.drop = event.drop
+		local current = state.label
+		if current and current.Parent then
+			current.Position = UDim2.new(0.5, 0, TOP_BAND, CLOCK_BASE_DROP + state.drop)
+		end
+	end
 	local label = state.label
 	local existed = label ~= nil and label.Parent ~= nil
 	if not existed then
@@ -521,6 +569,7 @@ function PlotActor.install(sequencer: typeof(Sequencer))
 	sequencer.registerHandler("plotMarker", onPlotMarker)
 	sequencer.registerHandler("plotPiece", onPlotPiece)
 	sequencer.registerHandler("plotUpgrade", onPlotUpgrade)
+	sequencer.registerHandler("plotSign", onPlotSign)
 	sequencer.registerHandler("dayClock", onDayClock)
 
 	sequencer.addHooks({
