@@ -7240,6 +7240,117 @@ Las batallas normales del Gorila Albino (en su cueva cerrada, en penumbra) y del
 2. [ ] Tras las pruebas, comprueba el perfil de prueba: `cinematicsSeen` y la retención (Play escribió en el perfil real).
    ✅ `cinematicsSeen` queda igual que antes de las pruebas (en Play no cambió) y la retención no tiene valores raros. Como no hubo copia, anota cualquier cambio que no esperes.
 
+## 185. Fase 25 G14b: escena Survival (recolectar, hambre y sed, fabricar y construir) (10-11-2026)
+
+La escena `Survival` (supervivencia en la Isla) dura **unos 28,6 s** tras la segunda pasada de correcciones (antes 28,02 s medidos). Usa `SurvivalActor` (9 eventos) y la barra `SurvivalBar` compartida entre la escena y el HUD real (🍖 y 💧). `NodeModels` pasa de `ServerShared` a `Shared`, `ArrivalService` admite una `Stage` sin jefe (y limpia los monos reales en 175 studs con `Stage.clearRadius`), `Actors.holdWeapon` es público y `showLootLocal` enseña el botín en el cliente. Los árboles caen con `nodeHit` a 0,25 s del inicio del tajo (`Slash1` y `Slash2`), y los muros del círculo de la hoguera se colocan a radio 17 (antes 12, que caía sobre los bancos, a radio 11).
+
+**Pasada de correcciones (10-11-2026, tras ver la grabación; ya hecho y medido en Play, no son pasos):** la copia del avatar heredaba `Transparency = 1` del personaje real, que `ArrivalService` esconde; ahora `Actors.spawn` la restaura y todas las piezas R15 quedan a 0. `Consume`, `Craft` y `Hammer` pausan la pose del arma (`GESTURES_WITH_WEAPON_ARM` en `CinematicClient`). La escena queda en 28,02 s, sin errores y sin restos en Workspace. Cambios de disposición: la recolección ya no es dentro del Basecamp, sino que árbol, roca y mata son props de `NodeModels` fuera de la puerta norte (empalizada en z=-81, props en z mundial ≈ -95 a -134, x≈16-22, suelo Y≈12), porque los recursos reales más cercanos están a unos 70 studs de una puerta. Los muros siguen a radio 17 y el avatar trabaja a radio 21, y el travelling exterior va a radio 38. El anochecer acaba en la hora 18 (antes 18,8; la pasada de 17,5 ya parece noche cerrada). El cierre pone a los tres actores en fila de cara a la cámara. Las barras de hambre y sed van al doble (`UIScale` 2).
+
+**Segunda pasada de correcciones (10-11-2026, tras ver la segunda grabación; ya hecho y medido en Play, no son pasos):** durante la escena se esconde la vegetación real cercana al árbol: el evento `hideReal` esconde la de `Vegetacion`, `Recursos` y `Cultivos` a 36 studs o menos del árbol y la restaura al acabar (Yarumo 19/19, Frondoso 17/17 y Recursos 9/9). Un Yarumo real a unos 14 studs del árbol era el «poste blanco» de la tala, y su `PromptAnchor` era la «pieza gris» de la caída. El avatar queda a 3,81 studs del árbol. El arma se suelta al comer y al beber (`equip` con `weapon=false`), y el `holdProp` va a la mano derecha (`hand="Right"`, que usa `Consume`). El avatar, el Cazador y el Médico se colocan a 3,8 studs de su prop. Cámaras: la apertura es más baja; la tala cae en z=0 (antes 4) y la caída empieza en x=30; la roca y la mata se miran en diagonal; la mesa se encuadra desde el lado del avatar (-28; 6,5; 12); la antorcha se enciende antes, a 24 s, con `Fire.Size` 8 y `PointLight` 4/34. Cierre: título a 25,7 s, logo a 27,35 s, fundido a 27,5 s, y la escena dura 0,6 s más (28,6 s) para sostener el negro (antes salía medio segundo de día). Medido en Play: sin errores, sin restos en Workspace, +1.359 instancias de pico (antes +1.362) y los dos actores sueltan el arma al comer y beber. Lo visual de esta pasada lo juzga el usuario en la grabación; los pasos nuevos son el 21 a 31 de 185.1 y el 8 de 185.2.
+
+Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la grabación, porque el MCP no captura Play. Las medidas de instancias y FPS son de Studio y no sirven de referencia para el juego publicado.
+
+### 185.1 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [⏭] Graba la escena `Survival` entera y mira los planos de la tala: el personaje con el arma, el árbol y el tronco que cae. (Lo cubren los pasos 21 y 22.)
+   ✅ Se ve el golpe en el momento del tajo y el árbol cae hacia el lado previsto, sin atravesar al personaje ni a la cámara.
+2. [⏭] Mira el picado de la roca: el plano desde arriba sobre la piedra. (Lo cubre el paso 23.)
+   ✅ La roca se lee como una roca, el golpe cae sobre ella y no tapa el encuadre.
+3. [⏭] Comer y beber: mira el plátano y el coco en la mano izquierda. (Ahora van en la mano derecha: lo cubren los pasos 24 y 25.)
+   ✅ Se agarran a la mano izquierda. El offset se ajustó a ojo, así que si la mano los atraviesa o flotan, anota el segundo.
+4. [ ] Mira las barras 🍖 (hambre) y 💧 (sed) bajo la franja superior del HUD durante la escena.
+   ✅ Se ven completas, al doble de tamaño que antes (`UIScale` 2), sin tapar la franja superior, y bajan a la vista cuando toca.
+5. [ ] Mira el arma que sube y gira sobre la mesa de trabajo.
+   ✅ El arma sube y gira con suavidad, sin saltos bruscos ni atravesar la mesa.
+6. [ ] Mira los muros que suben, con su polvo, y el avatar mientras trabaja.
+   ✅ Suben desde el suelo con polvo, sin dejar huecos visibles. Van a radio 17 y el avatar trabaja a radio 21, sin entrar en ellos.
+7. [⏭] Mira la antorcha que se enciende. (Lo cubre el paso 27.)
+   ✅ La llama aparece en la mano del personaje y se ve en la escena.
+8. [ ] Mira el anochecer, de la hora 16 a la 18.
+   ✅ El cielo oscurece de forma gradual en ese tramo, sin saltos de luz, y a la hora 18 ya está de noche cerrada.
+9. [ ] Mira el tajo, el golpe sobre la roca, la fabricación y el consumo en el avatar con el arma en la mano derecha.
+   ✅ Se ven bien: el arma no atraviesa el cuerpo y no cambia de mano a mitad de la acción.
+10. [ ] Regraba la escena entera y mira que el avatar se ve en todas las tomas, y que talar, comer y martillear se ven con el arma en la mano.
+   ✅ El avatar aparece en todos los planos, sin hueco de piezas invisibles, y en los tres gestos el arma va en la mano sin que la pose se corte.
+11. [ ] Mira que no entre en plano ningún Capuchino ladrón real (había uno a unos 23 studs del árbol, en ≈(11,-155); `clearArea` lo esconde, pero no se midió durante la escena).
+   ✅ Ningún Capuchino real aparece en plano. Si uno se ve, anota el segundo.
+12. [ ] Mira el suelo bajo el árbol, la roca y la mata: que estén a ras y no floten ni se hundan. El pivote se midió a Y≈15 y un raycast dio 17-25, así que pudo tocar otro modelo.
+   ✅ Los tres props se apoyan en el suelo a la altura del terreno. Si flotan o se hunden, anota cuál.
+13. [ ] Mira las distancias de la cámara: tala a ~18 studs, roca y mata a ~17, comer a ~9,6 y el arma que rodea la mesa a ~15. La distancia mínima medida fue 4,85 studs a un actor, y 7,3-7,7 studs en comer.
+   ✅ Ningún actor ni ningún prop llena la pantalla en un plano. Si uno lo hace, anota el segundo.
+14. [ ] Mira el golpe del pico del Cazador contra la roca. Ahora el arma es visible.
+   ✅ El pico conecta con la roca, la roca se rompe a 8,3 s y el botín sale a 8,4 s.
+15. [⏭] Mira el coco del Cazador y el gesto de beber entre 11,9 y 13,5 s. (Lo cubre el paso 25.)
+   ✅ Ambos se ven con claridad en el plano.
+16. [ ] Mira si sigue la empalizada blanquecina del plano de beber (12 a 14,5 s de la grabación vieja).
+   ✅ Ya no sale, o si sigue, anota el segundo y si es la empalizada o el terreno.
+17. [ ] Mira el final de la escena: el personaje real vuelve unos 0,25 s después de que desaparezca la copia del avatar.
+   ✅ No hay parpadeo visible al acabar. Si lo hay, anota el segundo.
+18. [ ] Mira el arma en la mano: su `Handle` tiene `Transparency` 1 en los dos actores.
+   ✅ Se ve el arma por sus otras piezas, sin huecos raros. Es lo esperado.
+19. [ ] Mira el travelling exterior alrededor del campamento (radio 38) y el plano de cierre con los tres actores en fila, de cara a la cámara.
+   ✅ El travelling rodea el campamento sin entrar en el suelo ni en las empalizadas, sin cortes. En el cierre quedan en fila, mirando a cámara, sin superponerse.
+20. [ ] (Opcional) Al montar el tráiler, mira si los marcadores amarillos de «Free plot» molestan en plano. Salían en la grabación, aunque no se vieron como problema.
+   ✅ Si no molestan, no hace falta tocarlos. Si molestan, anótalo para ocultarlos en la escena.
+21. [ ] Tala con el hacha, en la grabación nueva: el golpe contra el tronco y lo que hay alrededor del árbol.
+   ✅ El hacha conecta con el tronco y no aparece ningún poste blanco junto al árbol. El Yarumo real se esconde durante la escena, así que no debe verse.
+22. [ ] Caída del árbol, en plano desde x=30: el árbol cae y el avatar sigue en cuadro.
+   ✅ El avatar sale entero en el plano, sin pieza gris ni tronco que lo tape. Si aparece una pieza gris, anota el segundo.
+23. [ ] Roca y mata, en el plano en diagonal: el pico contra la roca y el botín.
+   ✅ Se ve el pico contra la roca y aparece «+3 STONE» en pantalla.
+24. [ ] Comer, de frente: el plátano en la mano del avatar.
+   ✅ El plátano va en la mano derecha, el hacha no aparece en la mano y el plátano se ve con claridad.
+25. [ ] Beber: el coco en la mano del avatar durante el gesto.
+   ✅ El coco se ve entero en la mano derecha del avatar durante el gesto de beber.
+26. [ ] Mesa: el arma entra en el encuadre al rodear la mesa.
+   ✅ El arma entra en cuadro y la cabeza del avatar no tapa la mesa de trabajo.
+27. [ ] Antorcha encendida: el plano de la antorcha.
+   ✅ La llama se ve en la escena (`Fire.Size` 8) y la luz ilumina el entorno. Si la llama no se ve, anota el segundo.
+28. [ ] Cierre: el título, el logo y el fundido al negro.
+   ✅ El título y el logo no se pisan, y tras el fundido no sale ningún plano de día: el negro se sostiene hasta el final.
+29. [ ] Triángulo de luz de la grúa de la apertura, en los primeros planos.
+   ✅ No aparece ningún triángulo de luz. Si aparece, anota el segundo y su forma: sigue sin explicarse y no está confirmado como fallo.
+30. [ ] Manos del avatar, en primer plano.
+   ✅ Las manos tienen el color que corresponde al avatar. Si salen amarillo-verdosas, anota el plano: hay que decidir si es su aspecto real o un fallo del material.
+31. [ ] Al empezar la escena, la cámara queda a unos 5,8 studs de la armadura del Cazador (se movió en la segunda pasada).
+   ✅ Ni la armadura ni el Cazador llenan la pantalla al empezar. Si la armadura ocupa el cuadro, anota la distancia que ves: contradice el paso 2 de 185.2, que pide 8 studs como mínimo.
+
+### 185.2 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Mira el golpe de madera contra el árbol en la escena de la tala (`Slash1` y `Slash2`).
+   ✅ `nodeHit` sale unos 0,25 s después del inicio del tajo. Si se adelanta o se retrasa, anota el segundo.
+2. [ ] Lanza la escena `Survival` y comprueba los muros del círculo de la hoguera en 100°, 140° y 180°, a radio 17.
+   ✅ No atraviesan los bancos de la hoguera (radio 11) ni el Spawn de (-15,6; 15,6). Ninguna cámara queda a menos de 8 studs de un actor o de un muro (la medida dio 4,85 studs a un actor en un plano; ver 185.1, paso 13).
+3. [ ] Mira los props de recolección fuera de la puerta norte: árbol, roca y mata, con la empalizada en z=-81 y los props en z ≈ -95 a -134, x ≈ 16-22.
+   ✅ Quedan fuera del Basecamp, no tapan la cámara de la escena ni se pegan a un Spawn.
+4. [ ] Mira las barras 🍖 y 💧 del HUD real, antes y después de la escena.
+   ✅ Se ven al doble de tamaño que antes de la corrección (`UIScale` 2), en la misma posición con `SurvivalBar`, sin tapar la franja superior. Quedan iguales antes y después de la escena.
+5. [ ] Lanza la escena y mira que no quedan monos reales a la vista del campamento (`ArrivalService` limpia a 175 studs).
+   ✅ Ningún mono ni Capuchino real aparece en la escena. Si queda alguno a la vista, anota su posición.
+6. [ ] Mide el pico de instancias de `Workspace` durante la escena.
+   ✅ Sube unas +1.359 instancias (aprox.; medido en Play tras la segunda pasada). Si se dispara mucho más, anótalo.
+7. [ ] Tras la escena, cuenta los descendientes nuevos de `Workspace` que quedan sin identificar.
+   ✅ Quedan +4 sin identificar. Anota su nombre y su clase: si son restos de la escena hay que limpiarlos, y si son del mapa no.
+8. [ ] Lanza la escena y mira el Helecho (pieza suelta de 63 studs de ancho) cerca del árbol y del campamento.
+   ✅ Si la vegetación de la zona se esconde durante la escena, el Helecho también. Si sigue a la vista, anota su nombre y su clase en el Explorer: puede no ser una `BasePart` suelta de la carpeta `Vegetacion`, y entonces `hideReal` no lo esconde.
+
+### 185.3 En el juego normal (publicado o Play)
+
+1. [ ] Acércate a un árbol, pulsa **E** y mira qué pasa.
+   ✅ El árbol cae y da madera. Es la primera prueba de `NodeModels` tras pasar a `Shared`, que no se ha probado.
+
+### 185.4 Calidades y FPS (en el Studio de la Isla o en un teléfono)
+
+1. [ ] Lanza la escena `Survival` con la calidad Baja y mira los FPS.
+   ✅ Se entiende la escena sin tirones gordos y sin que falte la barra de hambre o sed.
+2. [ ] Lanza la escena con la calidad Media y mira los FPS.
+   ✅ Se mantiene una fluidez parecida a la de Baja, con los mismos planos y el mismo orden de la escena.
+
+### 185.5 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Con 2 jugadores, lanza la escena `Survival` en los dos clientes.
+   ✅ Corre en los dos sin errores de script, y cada jugador ve su propia recolección, sus barras y su construcción.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

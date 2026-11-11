@@ -226,6 +226,35 @@ local function alignWeapon(rig: Model)
 	end
 end
 
+-- Cambia el arma de la mano derecha de un actor que ya está en el mundo (evento equip de SurvivalActor): quita la que
+-- llevaba (Tool y su agarre), pone la nueva y la alinea con la mano.
+function Actors.holdWeapon(rig: Model, weaponId: string, skinId: string?)
+	local hand = rig:FindFirstChild("RightHand")
+	local oldGrip = if hand then hand:FindFirstChild("RightGrip") else nil
+	if oldGrip then
+		oldGrip:Destroy()
+	end
+	local oldTool = rig:FindFirstChildOfClass("Tool")
+	if oldTool then
+		oldTool:Destroy()
+	end
+	holdWeapon(rig, weaponId, skinId)
+	alignWeapon(rig)
+end
+
+-- Suelta el arma de la mano derecha (equip weapon = false de SurvivalActor): para comer o beber con esa mano.
+function Actors.dropWeapon(rig: Model)
+	local hand = rig:FindFirstChild("RightHand")
+	local oldGrip = if hand then hand:FindFirstChild("RightGrip") else nil
+	if oldGrip then
+		oldGrip:Destroy()
+	end
+	local oldTool = rig:FindFirstChildOfClass("Tool")
+	if oldTool then
+		oldTool:Destroy()
+	end
+end
+
 local function created(ctx: Sequencer.Context): { Instance }
 	local list = ctx._created
 	if not list then
@@ -459,6 +488,21 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 			table.insert(created(ctx), rig)
 			rig.Name = "Cinematic_Avatar"
 			stripCosmetics(rig)
+			-- El servidor puede tener escondido el personaje real (ArrivalService pone Transparency = 1 a todas sus piezas) y
+			-- la copia hereda ese 1: nace invisible y solo se ve lo que se le suelda después (el arma). Se devuelve la
+			-- visibilidad al cuerpo y a los accesorios antes de vestirla (el traje decide después lo que oculta).
+			for _, descendant in rig:GetDescendants() do
+				if descendant:IsA("BasePart") then
+					local isBody = R15_PARTS[descendant.Name] and descendant.Name ~= "HumanoidRootPart"
+					local isHandle = descendant.Name == "Handle"
+						and descendant:FindFirstAncestorOfClass("Accessory") ~= nil
+					if isBody or isHandle then
+						descendant.Transparency = 0
+					end
+				elseif descendant:IsA("Decal") and descendant.Name == "face" then
+					descendant.Transparency = 0
+				end
+			end
 			local weaponId: string? = nil
 			if def.ballGear then
 				BallgameGear.build(def.ballGear, rig)
@@ -472,7 +516,13 @@ function Actors.spawn(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context): Mo
 			if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
 				Instance.new("Animator").Parent = humanoid
 			end
-			place(rig, anchor, def.pos or Vector3.zero, def.yaw or 0)
+			local ground = def.pos or Vector3.zero
+			if def.snap then
+				-- snap = true también en la copia: los `move` apoyan sus pies en el Terrain (Basecamp, Survival).
+				rig:SetAttribute("CinematicSnap", true)
+				ground = snapToTerrain(anchor, ground)
+			end
+			place(rig, anchor, ground, def.yaw or 0)
 			if weaponId then
 				alignWeapon(rig)
 			end

@@ -25,6 +25,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -439,6 +440,30 @@ function CombatTextController.showLocal(entry: { [string]: any })
 	local copy = table.clone(entry)
 	copy.cinematic = true
 	show(copy)
+end
+
+-- Lo recogido en una cinemática (SurvivalActor): la misma línea que showLoot («+2 🌲 Madera», con el color de su rareza),
+-- pero sobre la cabeza del actor, porque la columna propia queda escondida mientras suena la escena. Un arma
+-- fabricada (id de Data/Weapons, sin icono) sale solo con su nombre.
+function CombatTextController.showLootLocal(itemId: string, amount: number, target: Instance)
+	if not Settings.get().showLoot then
+		return
+	end
+	local item = Items[itemId]
+	local weapon = if item then nil else Weapons[itemId]
+	if not (item or weapon) or amount <= 0 then
+		return
+	end
+	local rarity = Rarities[(if item then item.rarity else nil) or "Common"] or Rarities.Common
+	local text = if item
+		then `+{amount} {item.icon} {Strings.t(item.name)}`
+		else `+{amount} {Strings.t((weapon :: any).name)}`
+	keepVisible = true
+	local column = worldColumn(target)
+	keepVisible = false
+	if column then
+		column:push(text, { color = rarity.color })
+	end
 end
 
 function CombatTextController:Start()

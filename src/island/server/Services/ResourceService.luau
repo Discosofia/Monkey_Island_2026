@@ -21,7 +21,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
-local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
+local NodeModels = require(ReplicatedStorage.Shared.NodeModels)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local InventoryService = require(script.Parent.InventoryService)
 

@@ -873,6 +873,12 @@ return {
 	["¡ROAAAR!"] = "ROAAAR!",
 	-- Variante cómic de la batalla «Tripulación contra la manada» (G5a).
 	["Una manada baja de la selva…"] = "A pack comes down from the jungle…",
+	-- Supervivencia (Fase 25, G14b; Data/Cinematics «Survival»).
+	["Sobrevive en la isla"] = "Survive on the island",
+	["El hambre y la sed no esperan"] = "Hunger and thirst don't wait",
+	["Fabrica tu propio equipo"] = "Craft your own gear",
+	["Levanta tus defensas"] = "Raise your defenses",
+	["Recolecta, fabrica, construye"] = "Gather, craft, build",
 	["¡Que vengan!"] = "Bring them on!",
 	["¡Fuego!"] = "Fire!",
 	["¡Aguanten!"] = "Hold on!",

@@ -14,11 +14,10 @@
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local NodeModels = require(ServerScriptService:WaitForChild("ServerShared"):WaitForChild("NodeModels")) :: any
+local NodeModels = require(Shared:WaitForChild("NodeModels")) :: any
 local EggModel = require(Shared:WaitForChild("EggModel")) :: any
 local PetModels = require(Shared:WaitForChild("PetModels")) :: any
 local MountModels = require(Shared:WaitForChild("MountModels")) :: any

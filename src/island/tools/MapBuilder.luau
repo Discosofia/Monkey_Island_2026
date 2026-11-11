@@ -20,7 +20,6 @@
 -- antes de generar. Si ya retocaste el terreno a mano, esos cambios se pierden.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -35,7 +34,7 @@ local function freshRequire(module: ModuleScript): any
 	return result
 end
 
-local NodeModels = freshRequire(ServerScriptService.ServerShared.NodeModels)
+local NodeModels = freshRequire(ReplicatedStorage.Shared.NodeModels)
 
 export type Options = {
 	seed: number?,

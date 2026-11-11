@@ -45,6 +45,7 @@ local SceneLight = require(script.Parent.SceneLight)
 local Remotes = require(script.Parent.Parent.Remotes)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
+local SurvivalActor = require(script.Parent.SurvivalActor)
 local Settings = require(script.Parent.Parent.Settings)
 local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -69,6 +70,10 @@ local GESTURES_WITH_WEAPON_ARM = {
 	Whirlwind = true,
 	CastForward = true,
 	CastArea = true,
+	-- Supervivencia (G14b): comer, fabricar y martillear usan la mano del arma.
+	Consume = true,
+	Craft = true,
+	Hammer = true,
 }
 local END_DELAY = 0.4 -- espera antes de devolver el HUD, para que un fundido final no se corte de golpe
 local TEMPLATE_NAME = "CinematicDummy"
@@ -579,6 +584,7 @@ function CinematicClient.start(place: string)
 	FlagActor.install(Sequencer)
 	LabActor.install(Sequencer)
 	BattleActor.install(Sequencer)
+	SurvivalActor.install(Sequencer)
 	CameraShake.install(Sequencer)
 
 	local shared = ReplicatedStorage:FindFirstChild("Shared")

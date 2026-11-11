@@ -208,6 +208,32 @@ local function runBossBattle(player: Player, variant: string)
 	end
 end
 
+-- «🎬 Supervivencia» (Fase 25, G14b): la escena «Survival» en el Basecamp real, solo para grabar. ArrivalService aparta al
+-- personaje real, esconde a los monos de alrededor y lo devuelve al acabar. El anchor es el suelo bajo el centro del Basecamp
+-- (la hoguera, en (0, 0); los demás sitios de la escena están en su marco). No monta ningún jefe.
+local SURVIVAL_WAIT_OFFSET = Vector3.new(-8, 0, -8) -- dónde espera el personaje real (oculto), en el marco del anchor
+
+local function runSurvival(player: Player)
+	local ok = ArrivalService.play(player, "Survival", nil, {
+		bossId = nil,
+		waitOffset = SURVIVAL_WAIT_OFFSET,
+		clearRadius = 175, -- la recolección se rueda fuera de la puerta norte, a unos 150 del centro
+		create = function()
+			local center = BasecampService.getCenter()
+			local terrainOnly = RaycastParams.new()
+			terrainOnly.FilterType = Enum.RaycastFilterType.Include
+			terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
+			local hit =
+				Workspace:Raycast(Vector3.new(center.X, center.Y + 60, center.Z), Vector3.new(0, -300, 0), terrainOnly)
+			local ground = if hit then hit.Position else Vector3.new(center.X, 0, center.Z)
+			return CFrame.new(ground), nil, function() end
+		end,
+	})
+	if not ok then
+		Remotes.Notify:FireClient(player, "🎬 La escena de supervivencia ya está en marcha")
+	end
+end
+
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
 local SHOWCASE_ORDER = {
 	"Machete",
@@ -956,6 +982,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	CineMountsComic = function(player)
 		runMounts(player, "Mounts_Comic")
+	end,
+	-- «🎬 Supervivencia» (Fase 25, G14b): recolectar, hambre y sed, fabricar y construir en el Basecamp (ver runSurvival).
+	CineSurvival = function(player)
+		runSurvival(player)
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

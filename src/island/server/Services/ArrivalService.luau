@@ -83,7 +83,8 @@ local CLEAR_RADIUS_STUDS = 130
 
 local CLEAR_SWEEP_SECONDS = 0.4 -- cada cuánto se vuelve a barrer: los monos reales aparecen después de colocar al jugador
 
-local function clearArea(center: Vector3, keep: Instance): () -> ()
+local function clearArea(center: Vector3, keep: Instance?, radius: number?): () -> ()
+	local clearRadius = radius or CLEAR_RADIUS_STUDS
 	local saved: { { instance: Instance, transparency: number?, enabled: boolean?, anchored: boolean? } } = {}
 	local done: { [Instance]: boolean } = {}
 	local active = true
@@ -112,9 +113,9 @@ local function clearArea(center: Vector3, keep: Instance): () -> ()
 			if
 				root
 				and not done[tagged]
-				and not tagged:IsDescendantOf(keep)
+				and not (keep and tagged:IsDescendantOf(keep))
 				and not tagged:GetAttribute("CinematicActor")
-				and (root.Position - center).Magnitude <= CLEAR_RADIUS_STUDS
+				and (root.Position - center).Magnitude <= clearRadius
 			then
 				done[tagged] = true
 				hide(tagged)
@@ -238,11 +239,13 @@ end
 -- Con "stage" (batalla contra un jefe, G5b) la escena no es la de la playa: "create" monta al jefe y devuelve el anchor
 -- de la escena, el modelo del jefe y la función que lo borra; el personaje espera en "waitOffset" (marco del anchor) y
 -- la escena sale con ese anchor, "bossId" y context = { bossModel }. El jefe se monta antes de la espera para que el
--- terreno y el modelo carguen, y se borra al acabar.
+-- terreno y el modelo carguen, y se borra al acabar. Una escena sin jefe (la Supervivencia, G14b, en el Basecamp) pone
+-- `bossId` a nil y devuelve nil como modelo: "create" solo da el anchor (y la función que limpia lo que monte, si algo).
 export type Stage = {
-	bossId: string,
+	bossId: string?,
 	waitOffset: Vector3,
-	create: () -> (CFrame, Model, () -> ()),
+	create: () -> (CFrame, Model?, () -> ()),
+	clearRadius: number?, -- studs a limpiar de monos reales (130 por defecto); la Supervivencia ruedan fuera de la empalizada
 }
 
 function ArrivalService.play(player: Player, sceneId: string, beforeId: string?, stage: Stage?): boolean
@@ -265,7 +268,11 @@ function ArrivalService.play(player: Player, sceneId: string, beforeId: string?,
 		sceneAnchor, bossModel, removeBoss = stage.create()
 		waitPoint = sceneAnchor:PointToWorldSpace(stage.waitOffset)
 		-- Sin monos reales alrededor y con el personaje oculto protegido (si no, lo mordían: «-20» en pantalla).
-		local restoreArea = clearArea(sceneAnchor.Position, bossModel.Parent or bossModel)
+		local restoreArea = clearArea(
+			sceneAnchor.Position,
+			if bossModel then bossModel.Parent or bossModel else nil,
+			if stage then stage.clearRadius else nil
+		)
 		local scene = Cinematics[sceneId]
 		protectedUntil = Workspace:GetServerTimeNow() + SETTLE_SECONDS + (if scene then scene.duration else 20) + 15
 		player:SetAttribute("InvulnerableUntil", protectedUntil)

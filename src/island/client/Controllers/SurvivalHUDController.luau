@@ -12,51 +12,24 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Survival = require(ReplicatedStorage.Shared.Survival)
+local SurvivalBar = require(ReplicatedStorage.Shared.UI.SurvivalBar)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local EvasiveIcon = require(ReplicatedStorage.CombatClient.EvasiveIcon)
 local GuardBar = require(ReplicatedStorage.CombatClient.GuardBar)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 
-local BAR_WIDTH = 170
-local BAR_HEIGHT = 16
-local ROW_HEIGHT = 24
-local LOW_COLOR = Color3.fromRGB(235, 70, 60)
+local BAR_WIDTH = SurvivalBar.BAR_WIDTH
+local BAR_HEIGHT = SurvivalBar.BAR_HEIGHT
+local ROW_HEIGHT = SurvivalBar.ROW_HEIGHT
+local LOW_COLOR = SurvivalBar.LOW_COLOR
 
 type Bar = { row: Frame, fill: Frame, color: Color3, read: () -> number, inverted: boolean? }
 
 local SurvivalHUDController = {}
 
 local function newBar(parent: Instance, order: number, icon: string, color: Color3, read: () -> number): Bar
-	local row = Instance.new("Frame")
-	row.Name = `Row{order}`
-	row.LayoutOrder = order
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.fromOffset(BAR_WIDTH + 30, ROW_HEIGHT)
-	row.Parent = parent
-
-	local label = Widgets.label(icon, row)
-	label.Size = UDim2.fromOffset(24, ROW_HEIGHT)
-
-	local back = Instance.new("Frame")
-	back.AnchorPoint = Vector2.new(0, 0.5)
-	back.Position = UDim2.new(0, 30, 0.5, 0)
-	back.Size = UDim2.fromOffset(BAR_WIDTH, BAR_HEIGHT)
-	back.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	back.BackgroundTransparency = 0.35
-	back.Parent = row
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = back
-
-	local fill = Instance.new("Frame")
-	fill.BackgroundColor3 = color
-	fill.Size = UDim2.fromScale(1, 1)
-	fill.Parent = back
-	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = UDim.new(0, 6)
-	fillCorner.Parent = fill
-
-	return { row = row, fill = fill, color = color, read = read }
+	local base = SurvivalBar.new(parent, order, icon, color)
+	return { row = base.row, fill = base.fill, color = color, read = read }
 end
 
 function SurvivalHUDController:Start()
@@ -75,10 +48,10 @@ function SurvivalHUDController:Start()
 	layout.Parent = column
 
 	local bars = {
-		newBar(column, 1, "🍖", Color3.fromRGB(230, 150, 70), function()
+		newBar(column, 1, "🍖", SurvivalBar.HUNGER_COLOR, function()
 			return Survival.get(player, Survival.HUNGER) / Survival.MAX
 		end),
-		newBar(column, 2, "💧", Color3.fromRGB(80, 170, 240), function()
+		newBar(column, 2, "💧", SurvivalBar.THIRST_COLOR, function()
 			return Survival.get(player, Survival.THIRST) / Survival.MAX
 		end),
 		newBar(column, 3, "⚡", Color3.fromRGB(240, 220, 80), function()
