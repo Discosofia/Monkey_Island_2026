@@ -18,6 +18,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local StageBosses = require(ReplicatedStorage.Shared.Data.StageBosses)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local BossService = require(ServerScriptService.Combat.Services.BossService)
 local MonkeyAnimator = require(ServerScriptService.Combat.Monkeys.MonkeyAnimator)
@@ -152,9 +153,8 @@ function IslandBossHooks:Init()
 			warn(`[IslandBossHooks] bossAct {action} falla: {err}`)
 		end
 	end)
-	-- stageHide / stageShow: esconde el jefe de plató bajo tierra (400 studs) y lo devuelve a su sitio. El sitio se guarda en el
-	-- atributo StageSpot del modelo (DebugService.runEndless ya lo deja puesto; si falta, se toma el pivote actual).
-	local STAGE_HIDE_DEPTH = 400
+	-- stageHide / stageShow: esconde el jefe de plató bajo tierra (StageBosses.HIDE_DEPTH) y lo devuelve a su sitio.
+	-- El sitio se guarda en el atributo StageSpot del modelo (StageBoss.mount ya lo deja puesto; si falta, se toma el pivote actual).
 	CinematicService.registerServerEvent("stageHide", function(_, run)
 		local model = run.context.bossModel
 		if not (typeof(model) == "Instance" and model:IsA("Model") and model.Parent) then
@@ -165,7 +165,7 @@ function IslandBossHooks:Init()
 			spot = model:GetPivot()
 			model:SetAttribute("StageSpot", spot)
 		end
-		model:PivotTo((spot :: CFrame) - Vector3.new(0, STAGE_HIDE_DEPTH, 0))
+		model:PivotTo((spot :: CFrame) - Vector3.new(0, StageBosses.HIDE_DEPTH, 0))
 	end)
 	CinematicService.registerServerEvent("stageShow", function(_, run)
 		local model = run.context.bossModel
@@ -190,6 +190,32 @@ function IslandBossHooks:Init()
 			audience
 		)
 	end)
+end
+
+-- Comprueba una vez que Data/StageBosses y las escenas cuadran (solo avisos de desarrollo): un jefe enterrado sin stageShow
+-- no saldría nunca, un stageShow/stageHide sin entrada no hace nada y una entrada sin escena sobra.
+function IslandBossHooks:Start()
+	for sceneId, scene in Cinematics do
+		local hasShow, hasHide = false, false
+		for _, event in scene.events do
+			if event.kind == "stageShow" then
+				hasShow = true
+			elseif event.kind == "stageHide" then
+				hasHide = true
+			end
+		end
+		local entry = StageBosses.get(sceneId)
+		if entry and entry.hidden and not hasShow then
+			warn(`[StageBosses] {sceneId}: jefe enterrado sin stageShow`)
+		elseif not entry and (hasShow or hasHide) then
+			warn(`[StageBosses] {sceneId}: stageShow/stageHide sin jefe de plató`)
+		end
+	end
+	for sceneId in StageBosses.all() do
+		if not Cinematics[sceneId] then
+			warn(`[StageBosses] {sceneId}: la escena no existe en Cinematics`)
+		end
+	end
 end
 
 return IslandBossHooks

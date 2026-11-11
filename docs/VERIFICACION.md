@@ -7599,6 +7599,39 @@ Durante las pruebas de Play salieron tres avisos que no son de A3 pero conviene 
 1. [ ] Busca en la Salida los dos avisos de ContentId y la frase «sin inglés» tras lanzar `Arrival` y una batalla de jefe, y comprueba si salen de nuevo.
    ✅ Si salen, se anota el id y la escena. El aviso de «sin inglés» se queda en español porque es una herramienta de desarrollo.
 
+## 191. Fase 25 A5: tabla de jefes de plató (11-11-2026)
+
+A5 pasa los jefes de plató a una tabla: `Shared/Data/StageBosses` (por id de escena: jefe, carpeta, place `map` o `basecamp`, offset, facing y hidden; `HIDE_DEPTH` 400; 17 entradas: `Endless`, los 4 `Boss_*` con su `_Comic`, los 4 `Battle_Boss_*` y las variantes `_Comic` y `_Reel` del Orangután y del Caudillo). `StageBoss.mount(sceneId, basecampAnchor?)` monta el jefe de cada escena, `DebugService` (`runEndless`, `runStage`, `runBossBattle`) la usa, y `IslandBossHooks` avisa con `[StageBosses]` si no cuadra con los eventos. Nada cambia visualmente. Ya probado en el Studio de la Isla (probador-studio): sin avisos al arrancar; en `Endless` el Caudillo nace a -400 de StageSpot y sube a 0 de golpe, mirando a -Z, y la carpeta ParcelaJefe se borra al acabar; `CineBossBattle` (Orangután) y `CineStage` montan en BatallaJefe y Plato con diferencia 0 y se borran; las 17 ids existen en `Cinematics`. Lo que queda sin probar es esto.
+
+### 191.1 Avisos si la tabla no cuadra (en Play de prueba, sin guardar el place)
+
+1. [ ] En un Play de la Isla, quita la entrada de `Endless` de `StageBosses` (o cambia su escena por una que no exista), arranca, y mira la Salida. Es un cambio temporal: no guardes el place.
+   ✅ Sale un aviso con prefijo `[StageBosses]` que nombra la escena o el jefe. Si no sale, anota qué se rompió.
+2. [ ] Repite en otro Play de prueba, sin guardar, con la entrada de `Endless` renombrada a una escena que no existe en `Cinematics` (por ejemplo `Endless_Prueba`). La escena `Endless` queda sin entrada y con `stageShow`.
+   ✅ Salen dos avisos de `[StageBosses]`: uno por la entrada sin escena y otro por la escena con `stageShow` sin entrada. Si sale solo uno, anota cuál.
+
+### 191.2 Variantes de cada jefe de plató
+
+1. [ ] En el Studio de la Isla, en Play, lanza las variantes `_Comic` y `_Reel` del Caudillo y del Orangután (las filas de `StageBosses` con esos sufijos), una a una.
+   ✅ Cada variante monta el jefe en su carpeta (BatallaJefe o Plato) con diferencia 0 y lo borra al acabar; no sale ningún aviso `[StageBosses]`.
+2. [ ] Lanza `CineBossBattle` hasta ver el Caudillo, el Gorila de Ceniza y el Gorila Albino (la rotación es aleatoria) y mira cada jefe al empezar y al acabar.
+   ✅ Los tres salen a la altura del suelo, sin hundirse ni flotar, y se borran al acabar la escena.
+
+### 191.3 Subida del Caudillo en `Endless` frente a los 20,9 s
+
+1. [ ] Lanza `Endless` en Play y anota el segundo de la escena en el que el Caudillo empieza a subir. Mídelo con el reloj de la escena, no desde la orden: en Play, la escena empezó unos 4-5 s después de lanzarla, por la espera de ArrivalService. Repite dos veces.
+   ✅ La subida ocurre en el segundo 20,9 de la escena (±0,5 s) y el jefe llega a 0 de golpe. Si no coincide, anota los dos tiempos.
+
+### 191.4 Grabación en vídeo de `Endless`
+
+1. [ ] Graba `Endless` completa en vídeo, sin pausar, y mira la subida del Caudillo y su encuadre en el plano.
+   ✅ El jefe aparece en el segundo 20,9 sin hundirse, y no lo tapa el título ni la barra. La carpeta ParcelaJefe se borra al acabar.
+
+### 191.5 Perfil real
+
+1. [ ] Cuando Studio pueda usar el DataStore (hoy da 502), haz la copia de `PlayerData_v1` (§10.0) antes de lanzar una escena de plató, y restaura la copia al acabar.
+   ✅ La restauración deja el perfil como estaba. Hoy Play pudo marcar `cinematicsSeen` en el perfil real, sin restaurar (mismo caso que §190.1, paso 5).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -2,7 +2,7 @@
 
 <!-- Fuente: .claude/skills/cinematicas-roblox/SKILL.md, 11-11-2026. Detalles: docs/PLAN.md (Fase 25, trampas de cada Handoff) y tools/cine_qa.luau. -->
 
-Las escenas viven en `Shared/Data/Scenes/<Nombre>.luau`, con `CinematicKit`, y se registran con una línea en `Data/Cinematics`. Toda escena lleva `hour` (`DUSK_HOUR` 18,8) y no se escribe `Lighting` a mano. **No quites el `seek`**: alinea los eventos de servidor (`bossAct`, monos…). Jefe de plató: `stageShow` lo sube y `stageHide` lo esconde (nace enterrado, atributo `StageSpot`).
+Las escenas viven en `Shared/Data/Scenes/<Nombre>.luau`, con `CinematicKit`, y se registran con una línea en `Data/Cinematics`. Toda escena lleva `hour` (`DUSK_HOUR` 18,8) y no se escribe `Lighting` a mano. **No quites el `seek`**: alinea los eventos de servidor (`bossAct`, monos…). Jefe de plató: `stageShow` lo sube y `stageHide` lo esconde (nace enterrado, atributo `StageSpot`). Cada jefe de plató tiene su entrada en `Shared/Data/StageBosses` y se monta con `StageBoss.mount`; `IslandBossHooks` avisa con `[StageBosses]` si la tabla no cuadra con los eventos.
 
 1. Antes de pedir que grabe: el avatar y las monturas apoyados en el suelo con raycast; ningún terreno, árbol o prop los atraviesa; el avatar de escena lleva el vestuario de la escena, no el equipo del jugador; títulos y rótulos no tapan al sujeto (cámara a menos de 9–12 studs tapa la imagen; con la cámara a menos de 3 studs de altura la hierba tapa al sujeto, así que usa 4,5 st o más); cada jefe tiene su coreografía; el cierre no pone actores sobre estructuras.
 2. `waitTerrain` compara `anchor.Y + point.Y`: mide la altura real o se pierde la apertura sin aviso.

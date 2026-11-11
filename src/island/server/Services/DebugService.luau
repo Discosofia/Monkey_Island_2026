@@ -22,6 +22,7 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Sounds = require(ReplicatedStorage.Shared.Data.Sounds)
+local StageBosses = require(ReplicatedStorage.Shared.Data.StageBosses)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
@@ -95,7 +96,7 @@ local function runStage(player: Player, comic: boolean)
 		return
 	end
 	clearStage()
-	local model, anchor, folder = StageBoss.create(bossId, "Plato")
+	local model, anchor, folder = StageBoss.mount(sceneId)
 	local mine = { folder = folder }
 	stage = mine
 
@@ -197,7 +198,7 @@ local function runBossBattle(player: Player, variant: string)
 		bossId = bossId,
 		waitOffset = BATTLE_WAIT_OFFSET,
 		create = function()
-			local model, anchor, folder = StageBoss.create(bossId, "BatallaJefe")
+			local model, anchor, folder = StageBoss.mount(`Battle_Boss_{bossId}{suffix}`)
 			return anchor, model, function()
 				folder:Destroy()
 			end
@@ -253,39 +254,23 @@ end
 -- «🎬 Parcela y modo infinito» (Fase 25, G14d): la escena «Endless» en el Basecamp, con el Caudillo de plató ante la puerta sur
 -- (a (0, 100) del centro, por fuera de la empalizada, mirando al norte). La parcela la dibuja el cliente (PlotActor). Con el
 -- Caudillo real vivo no monta nada, como runBossBattle. Los monos reales se limpian en 200 y el Caudillo se borra al acabar.
-local ENDLESS_BOSS = "ChimpanceCaudillo"
-local ENDLESS_BOSS_OFFSET = Vector3.new(0, 0, 100)
-local ENDLESS_BOSS_HIDE = 400 -- studs bajo tierra hasta el evento stageShow
-
+-- El jefe, su sitio y si empieza enterrado salen de Data/StageBosses (StageBoss.mount); el evento stageShow de la escena lo sube.
 local function runEndless(player: Player)
+	local bossId = StageBosses.bossFor("Endless") :: string
 	local live = BossService.currentModel()
-	if live and live:GetAttribute("Boss") == ENDLESS_BOSS then
+	if live and live:GetAttribute("Boss") == bossId then
 		Remotes.Notify:FireClient(player, "🎬 {boss} está vivo en la isla: no se monta la escena", {
-			boss = { Bosses[ENDLESS_BOSS].name },
+			boss = { Bosses[bossId].name },
 		})
 		return
 	end
 	local ok = ArrivalService.play(player, "Endless", nil, {
-		bossId = ENDLESS_BOSS,
+		bossId = bossId,
 		waitOffset = SURVIVAL_WAIT_OFFSET,
 		clearRadius = 200,
 		create = function()
 			local anchor = basecampStage()
-			local model, stageAnchor, folder = StageBoss.create(ENDLESS_BOSS, "ParcelaJefe")
-			-- Del sitio de plató del jefe a la puerta sur, con el suelo medido por rayo.
-			local target = anchor:PointToWorldSpace(ENDLESS_BOSS_OFFSET)
-			local terrainOnly = RaycastParams.new()
-			terrainOnly.FilterType = Enum.RaycastFilterType.Include
-			terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
-			local hit = Workspace:Raycast(target + Vector3.new(0, 80, 0), Vector3.new(0, -300, 0), terrainOnly)
-			local groundY = if hit then hit.Position.Y else anchor.Position.Y
-			-- El pivote del modelo está algo por encima de su pie: se conserva esa diferencia.
-			local lift = model:GetPivot().Position.Y - stageAnchor.Position.Y
-			local spot = Vector3.new(target.X, groundY + lift, target.Z)
-			local placed = CFrame.lookAt(spot, spot + Vector3.new(0, 0, -1))
-			-- Su sitio queda en StageSpot y el jefe empieza enterrado: el evento stageShow de la escena lo sube (de día no se ve).
-			model:SetAttribute("StageSpot", placed)
-			model:PivotTo(placed - Vector3.new(0, ENDLESS_BOSS_HIDE, 0))
+			local model, _, folder = StageBoss.mount("Endless", anchor)
 			return anchor, model, function()
 				folder:Destroy()
 			end
