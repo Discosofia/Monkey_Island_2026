@@ -123,6 +123,8 @@ Si una orden corta puede referirse a varias cosas (qué cinemática, qué jefe o
 | `combate-roblox` | Combate: habilidades, mecánicas, estados, combos, estilos y su equilibrio, con `Equilibrio` |
 | `economia-retencion` | Economía y pase, con `Economia` |
 | `video-capcut` | Shorts 9:16 en borradores de CapCut con `tools/video/short.py` |
+| `cinematicas-roblox` | Cinemáticas y su revisión automática antes de grabar, con `tools/cine_qa.luau` |
+| `ship` | Cierra un grupo tras el aprobado: commit de los archivos de la tarea, push, PLAN.md, strings y Handoff |
 
 `docs/llm-local/` tiene resúmenes de estas skills y de este archivo para el modelo local (gpt-oss-20b en LM Studio y CodeGPT). Si cambias una skill o este archivo, actualiza su resumen y ejecuta `python docs/llm-local/generar_presets.py`.
 
