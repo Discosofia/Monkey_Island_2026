@@ -1234,11 +1234,11 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 (Handoff de G14d y la subsección «Refinado de escenas») y el plan `C:\Users\jose\.claude\plans\structured-growing-rainbow.md`. G14d está subida (`d584ec0`); `Night` y `Endless` ya pasaron la revisión automática (`docs/qa/Night/report.md`, `docs/qa/Endless/report.md`; VERIFICACION §188 y §189). A1 y A2 están hechas (la causa de los 4 s perdidos era `waitTerrain` con alturas mal diseñadas); A7 y B1 están hechas en código y A5 va a medias (falta confirmarlas en vídeo). Según la decisión del usuario, sigue por: regrabar `Night` y `Endless` (el usuario graba y tú sacas hojas con el script de hojas de contacto), luego A3 (revisar `waitTerrain` en las demás escenas), A5 a A8 y B2. Reglas: modo plan por bloque, commit solo con «aprobado», lo no probado a VERIFICACION.md.»
 
 **Handoff de A6 (11-11-2026)**
-- **Estado:** A5 hecha (hash pendiente, se pone al subir): la tabla `Shared/Data/StageBosses` dice el jefe, la carpeta, el place, el offset, el facing y el hidden de cada escena de plató (17 entradas). Siguiente número libre de VERIFICACION: §192. Lo no probado de A5 está en §191 (avisos de la tabla, variantes, subida de `Endless` a los 20,9 s, vídeo y perfil).
+- **Estado:** A5 hecha y subida (a003fa1): la tabla `Shared/Data/StageBosses` dice el jefe, la carpeta, el place, el offset, el facing y el hidden de cada escena de plató (17 entradas). Siguiente número libre de VERIFICACION: §192. Lo no probado de A5 está en §191 (avisos de la tabla, variantes, subida de `Endless` a los 20,9 s, vídeo y perfil).
 - **Siguiente:** A6 (tabla de bandas de pantalla en `Presentation`: barra del jefe, reloj, título y caption), luego A8 (chequeo de cámara en edición), regrabar `Night` y `Endless`.
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 (Handoff de A6 y «Refinado de escenas») y la skill `cinematicas-roblox`. A5 está hecha (hash pendiente). Haz A6: la tabla de bandas de pantalla en `Presentation` (barra del jefe, reloj, título y caption). Reglas: modo plan por bloque, commit solo con «aprobado», lo no probado a VERIFICACION.md.»
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 (Handoff de A6 y «Refinado de escenas») y la skill `cinematicas-roblox`. A5 está hecha (`a003fa1`). Haz A6: la tabla de bandas de pantalla en `Presentation` (barra del jefe, reloj, título y caption). Reglas: modo plan por bloque, commit solo con «aprobado», lo no probado a VERIFICACION.md.»
 
-**Handoff de A5 (11-11-2026) — cerrado, hash pendiente**
+**Handoff de A5 (11-11-2026) — cerrado en a003fa1**
 - **Qué es:** `StageBoss.mount(sceneId, basecampAnchor?)` monta el jefe de plató de cada escena según `Shared/Data/StageBosses` (`HIDE_DEPTH` 400). `DebugService` (`runEndless`, `runStage`, `runBossBattle`) la usa y se borraron sus constantes ENDLESS_BOSS*. `IslandBossHooks` usa `StageBosses.HIDE_DEPTH` y avisa con `[StageBosses]` si un jefe enterrado no tiene `stageShow`, si una escena con `stageShow`/`stageHide` no tiene entrada, o si una entrada no tiene escena. Nada cambia visualmente.
 - **Probado:** sin avisos al arrancar; `Endless` sube al Caudillo de -400 a 0 de golpe; batallas del Orangután y `CineStage` montan y se borran con diferencia 0; las 17 ids existen en `Cinematics`. Sin probar: VERIFICACION §191.
 
@@ -1261,13 +1261,13 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
 
 **Refinado de escenas (propuestas del 10-11-2026)**
 
-Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se hace y se prueba; lo no probado va a VERIFICACION.md. Hechas A1, A2, A3, A5 y A7, y B1 en código (en G14d, sin commit); A5 con hash pendiente.
+Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se hace y se prueba; lo no probado va a VERIFICACION.md. Hechas A1, A2, A3, A5 y A7, y B1 en código (en G14d, sin commit).
 
 - **A. Motor y consola**
   - **A1.** Diagnóstico de `waitTerrain` en `CinematicClient`: si tarda más de 0,3 s, imprime «[CinematicClient] <id>: waitTerrain X s, listo|agotado (punto N a D studs del diseño), retraso respecto al servidor Y s». **Hecha** (G14d, sin commit).
   - **A2.** Puntos de `waitTerrain` corregidos en `Night` (`gc(f, y, s)` con la altura medida) y `Endless` (suelo bajo el helicóptero). **Hecha** (G14d, sin commit).
   - **A3.** Revisar y reducir los puntos de `waitTerrain` de las demás escenas (Arrival, ArrivalShort, Battle_Pack y sus cómic y reel, los 4 Battle_Boss, Pets, Mounts y sus cómic y reel): mirar la consola «[CinematicClient]» al grabarlas y medir en edición la altura real de cada punto. **Hecha** (188d789, 11-11-2026): playa y los 4 jefes ya coincidían (≤ 0,16 st); corregidos Pets (avatar y Beagle, sin el Labrador) y Mounts (ladera de la montaña, y 30 → 32,4). Sin probar: VERIFICACION §190.
-  - **A5.** Evento `stageShow`/`stageHide` (o jefe de plató enterrado) para los jefes de escena. **Hecha** (hash pendiente, 11-11-2026): tabla `Shared/Data/StageBosses` (17 entradas por id de escena), `StageBoss.mount` y avisos `[StageBosses]` en `IslandBossHooks`; `DebugService` usa la tabla y ya no tiene constantes ENDLESS_BOSS*. Nada cambia visualmente. Sin probar: VERIFICACION §191.
+  - **A5.** Evento `stageShow`/`stageHide` (o jefe de plató enterrado) para los jefes de escena. **Hecha** (a003fa1, 11-11-2026): tabla `Shared/Data/StageBosses` (17 entradas por id de escena), `StageBoss.mount` y avisos `[StageBosses]` en `IslandBossHooks`; `DebugService` usa la tabla y ya no tiene constantes ENDLESS_BOSS*. Nada cambia visualmente. Sin probar: VERIFICACION §191.
   - **A6.** Tabla de bandas de pantalla en `Presentation` (barra del jefe, reloj, título y caption). Pendiente.
   - **A7.** `dayClock` sin saltos hacia atrás (defecto g). Hecha (guarda en PlotActor y ramp en Endless); falta confirmar en vídeo (VERIFICACION §189).
   - **A8.** Script de chequeo de cámara en edición (distancia a actores y altura sobre el suelo). Pendiente.
