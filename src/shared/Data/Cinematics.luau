@@ -33,6 +33,9 @@
 --   Flag y Flag_Comic .................... 16,5  (idem)
 --   Survival ............................. 16,0  (tarde; los eventos clock llevan la hora a 18,8, el anochecer, al construir)
 --   Night ................................ 18,3  (anochecer; los clock la llevan a 19,5, con la luna baja a 20,5° de elevación; redMoonOff)
+--
+-- Las escenas nuevas van en su propio archivo en Data/Scenes/<Nombre>.luau, con require de CinematicKit y registro de una
+-- línea aquí (límite de locales del módulo).
 
 local BallHit = require(script.Parent.Parent.BallHit)
 local BallSim = require(script.Parent.Parent.BallSim)
@@ -50,23 +53,15 @@ local MountedRider = require(script.Parent.Parent.Cinematics.MountedRider)
 local Mounts = require(script.Parent.Mounts)
 local PetActor = require(script.Parent.Parent.Cinematics.PetActor)
 local Strings = require(script.Parent.Parent.Strings)
+local Kit = require(script.Parent.CinematicKit)
 
-export type Scene = {
-	duration: number,
-	audience: string,
-	freeze: boolean,
-	streamFollowsCamera: boolean?, -- el servidor carga el terreno donde estará la cámara (escenas que cruzan la isla)
-	waitTerrain: { Vector3 }?, -- puntos (relativos al anchor) cuyo terreno debe estar cargado antes de empezar (streaming)
-	skippable: boolean?, -- se puede saltar aunque no se haya visto entera (sin él, solo si ya está vista)
-	noSkip: boolean?, -- nunca se puede saltar, ni siquiera vista (el Naufragio)
-	prepare: (() -> { { t: number, pos: Vector3, look: Vector3, fov: number? } })?, -- calcula la cámara justo antes de empezar (el Naufragio)
-	anchor: string?,
-	hour: number?, -- hora del día de la escena (0-24); ver la cabecera
-	redMoonOff: boolean?, -- luna normal aunque el evento en vivo de la luna roja esté en marcha (SceneLight, evento redMoon)
-	actors: { [string]: { [string]: any } },
-	camera: { { t: number, pos: Vector3, look: Vector3, fov: number? } },
-	events: { { t: number, kind: string, [string]: any } },
-}
+export type Scene = Kit.Scene
+type CameraKey = Kit.CameraKey
+type CameraShot = Kit.CameraShot
+type EventList = Kit.EventList
+local cameraKey = Kit.cameraKey
+local cutShots = Kit.cutShots
+local yawBetween = Kit.yawBetween
 
 -- Ajustes de cámara de la aparición de un jefe; todo se mide en alturas del jefe (h).
 type BossShot = {
@@ -79,11 +74,8 @@ type BossShot = {
 	lit: (boolean | number)?, -- luz de relleno (jefes de noche o al amanecer): true = 1, o un número que multiplica su fuerza (0,35 para el Albino, que es casi blanco)
 	skill: string?, -- habilidad que enseña (evento bossSkill): "stomp" | "rockRain" | "extinguish" | "eruption"
 	skillAt: number?, -- segundo en que la lanza (por defecto, 0,6 s después de frontT)
-	hour: number?, -- hora del día de la toma (por defecto, DUSK_HOUR)
+	hour: number?, -- hora del día de la toma (por defecto, Kit.DUSK_HOUR)
 }
-
--- Anochecer ya oscuro (cielo morado con estrellas, sin sol): la hora con la que se calibraron las luces de las escenas.
-local DUSK_HOUR = 18.8
 
 -- Cámara de la aparición de un jefe (G2): plano abierto desde atrás y giro hasta un contrapicado de frente. El
 -- anchor es el pie del jefe y mira hacia -Z; la cámara de frente está en z negativo. Devuelve los puntos y frontT.
@@ -182,7 +174,7 @@ local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Sce
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
-		hour = (shot and shot.hour) or DUSK_HOUR,
+		hour = (shot and shot.hour) or Kit.DUSK_HOUR,
 		actors = {},
 		camera = camera,
 		events = {
@@ -225,7 +217,7 @@ local function bossComicScene(
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
-		hour = (shot and shot.hour) or DUSK_HOUR,
+		hour = (shot and shot.hour) or Kit.DUSK_HOUR,
 		actors = {},
 		camera = camera,
 		events = {
@@ -502,34 +494,6 @@ local BATTLE_MONKEYS = {
 	{ name = "aullador", species = "AulladorRojo", x = 8, z = -10, startX = 10, startZ = -46 },
 }
 local BATTLE_FLEE = { macaco = Vector3.new(-17, 0, -52), aullador = Vector3.new(10, 0, -52) }
-
-type CameraKey = { pos: Vector3, look: Vector3, fov: number }
-type CameraShot = { t0: number, t1: number, a: CameraKey, b: CameraKey }
-type EventList = { { t: number, kind: string, [string]: any } }
-
-local function cameraKey(pos: Vector3, look: Vector3, fov: number): CameraKey
-	return { pos = pos, look = look, fov = fov }
-end
-
--- Puntos de cámara de una lista de planos seguidos: cada plano va de "a" a "b" y entre uno y otro hay un corte. Se
--- repite el primer y el último punto de cada plano (con 0,01 s de diferencia) para que la spline Catmull-Rom del
--- plano no se curve hacia el siguiente (ver el corte del Rescate).
-local function cutShots(shots: { CameraShot }): { { t: number, pos: Vector3, look: Vector3, fov: number? } }
-	local points: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {}
-	local function add(t: number, point: CameraKey)
-		table.insert(points, { t = t, pos = point.pos, look = point.look, fov = point.fov })
-	end
-	for index, shot in shots do
-		local last = index == #shots
-		add(shot.t0, shot.a)
-		add(shot.t0 + 0.01, shot.a)
-		add(if last then shot.t1 else shot.t1 - 0.03, shot.b)
-		if not last then
-			add(shot.t1 - 0.01, shot.b)
-		end
-	end
-	return points
-end
 
 local function battleShots(): { CameraShot }
 	-- Reglas: ninguna cámara a menos de 9 studs de un maniquí o mono; el eje de la acción (tripulación en z = 1 a 6,
@@ -1017,24 +981,10 @@ local function battleActors(): { [string]: { [string]: any } }
 end
 
 -- Los eventos de la batalla que son iguales en la versión normal y en la cómic: monos, gestos y efectos.
--- Escritores de los eventos de acción de una batalla: add(evento), anim(t, actor, acción, segundos?) y
--- skill(t, efecto, de, a, args?) (evento abilityFx; el campo es «fx», no «kind»).
-local function actionWriters(events: EventList)
-	local function add(event: { t: number, kind: string, [string]: any })
-		table.insert(events, event)
-	end
-	local function anim(t: number, actor: string, action: string, seconds: number?)
-		add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds })
-	end
-	local function skill(t: number, name: string, from: string, to: any, args: { [string]: any }?)
-		add({ t = t, kind = "abilityFx", fx = name, from = from, to = to, args = args })
-	end
-	return add, anim, skill
-end
 
 local function battleAction(): EventList
 	local events: EventList = {}
-	local add, anim, skill = actionWriters(events)
+	local add, anim, skill = Kit.actionWriters(events)
 	local function monkey(t: number, name: string, fields: { [string]: any })
 		local event: { [string]: any } = { t = t, kind = "monkey", server = true, name = name }
 		for field, value in fields do
@@ -1239,7 +1189,7 @@ local function battleScene(variant: string): Scene
 		audience = "Self",
 		freeze = false,
 		skippable = true,
-		hour = DUSK_HOUR,
+		hour = Kit.DUSK_HOUR,
 		waitTerrain = { beach(-5, 1), beach(9, 4), ground(0, 0, -18) },
 		actors = battleActors(),
 		camera = camera,
@@ -1398,7 +1348,7 @@ type BossBattle = {
 	choreo: string?, -- "orangutan" | "caudillo" | "albino" | "ceniza": la coreografía propia de la versión normal (BossChoreo); sin ella, la común
 	torches: { string }?, -- maniquíes que llevan antorcha encendida (Actors: torch = true); el guion los apaga y enciende
 	reel: { ReelPlan }?, -- cortes del reel; sin ellos el jefe solo tiene la versión normal
-	hour: number?, -- hora del día de la escena (por defecto, DUSK_HOUR)
+	hour: number?, -- hora del día de la escena (por defecto, Kit.DUSK_HOUR)
 	exposure: number?, -- exposición de la cámara (por defecto, 0,42)
 	brightness: number?, -- brillo de la luz de la escena (por defecto, 1,8)
 }
@@ -1744,7 +1694,7 @@ end
 -- Los eventos de la batalla contra el jefe, iguales en las tres versiones (ver la línea de tiempo más arriba).
 local function bossBattleAction(battle: BossBattle): EventList
 	local events: EventList = {}
-	local add, anim, skill = actionWriters(events)
+	local add, anim, skill = Kit.actionWriters(events)
 	local function bossAct(t: number, action: string)
 		add({ t = t, kind = "bossAct", server = true, action = action })
 	end
@@ -1925,7 +1875,7 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 		audience = "Self",
 		freeze = false,
 		skippable = true,
-		hour = battle.hour or DUSK_HOUR,
+		hour = battle.hour or Kit.DUSK_HOUR,
 		waitTerrain = battle.wait,
 		actors = bossBattleActors(bossId, battle),
 		camera = camera,
@@ -2533,11 +2483,6 @@ end
 local jungle = surface(13) -- el llano sube a 13 como mucho
 local mangrove = surface(14) -- 12 a 14
 local mountain = surface(22) -- el banco ronda los 21 (a medir)
-
--- Giro (grados, como el yaw de los actores: 0 mira a -Z) para ir de un punto a otro.
-local function yawBetween(from: Vector3, to: Vector3): number
-	return math.deg(math.atan2(-(to.X - from.X), -(to.Z - from.Z)))
-end
 
 local JUNGLE_AVATAR = Vector3.new(-25, 12.5, 272)
 local JUNGLE_RING = 2.4 -- radio de la vuelta de los gatos alrededor del avatar
@@ -7460,753 +7405,14 @@ local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 	return out
 end)()
 
--- ============================================================================ Supervivencia (Fase 25, G14b)
--- «Survival» (28 s, solo la versión normal): recolectar, hambre y sed, fabricar y construir en el Basecamp real. La lanza
--- «🎬 Supervivencia» del panel de la Isla con ArrivalService.play y un stage cuyo anchor es el suelo bajo el centro del Basecamp
--- (la hoguera, en (0, 0); la mesa de trabajo, en Config.Crafting.DefaultWorkbenchOffset = (-35, 0, 0), de cara a la hoguera).
--- El avatar (copia del jugador, con el hacha de piedra) y dos amigos: un Cazador (pico de piedra) y un Médico. El árbol, la roca y
--- la mata de plátanos son props de Shared/NodeModels; los muros y la antorcha, de Shared/BuildModels (eventos de SurvivalActor).
---    0 a  2,5  la tripulación llega corriendo a la hoguera (grúa que baja); caption «Sobrevive en la isla»
---  2,5 a  9    el avatar tala (3 tajos, el árbol cae: +4 Madera); el Cazador pica la roca (+3 Piedra); el Médico coge un racimo (+2 Banano)
---    9 a 14,5  las barras 🍖 y 💧 bajan y parpadean; el avatar come un plátano y el Cazador bebe un coco
--- 14,5 a 20    el avatar martillea en la mesa, sube y gira un Hacha de hueso (+1) y pasa a su mano
---   20 a 26    tres muros (fantasma verde, golpe, suben del suelo) y una antorcha que se enciende; la hora avanza hasta 18,8
---   26 a 28    los tres en la hoguera, ya de noche; título, logo y fundido (plano que se aleja)
--- Efectos pesados (caída del árbol, roca, polvo de cada pieza) separados al menos 0,4 s. Los textos llevan Strings.later; el nombre de
--- los objetos sale de Data/Items y Data/Weapons. Va dentro de una función por el límite de 200 locales del módulo.
-local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
-	local out: { [string]: Scene? } = {}
-	local function build(): Scene
-		local Actors = require(script.Parent.Parent.Cinematics.Actors)
-		local NodeModels = require(script.Parent.Parent.NodeModels)
-
-		local SURVIVAL_SECONDS = 28
-		local FIRE = Vector3.zero
-		local TABLE_AT = Config.Crafting.DefaultWorkbenchOffset
-		-- La recolección se rueda FUERA de la empalizada (dentro del Basecamp no hay árboles ni rocas): en el claro llano al norte
-		-- de la puerta N (empalizada en z = -81; suelo a Y ≈ 12 con menos de 1 stud de variación, medido). Lo de abajo está
-		-- escrito alrededor de (0, 0) y GATHER lo traslada allí. Los recursos reales más cercanos están a casi 70 studs, así que
-		-- son props de NodeModels.
-		local GATHER = Vector3.new(0, 0, -120)
-		local function g(x: number, y: number, z: number): Vector3
-			return Vector3.new(x + GATHER.X, y + GATHER.Y, z + GATHER.Z)
-		end
-		local TREE_AT = g(22, 0, -14)
-		local ROCK_AT = g(22, 0, 11)
-		local PLANT_AT = g(22, 0, 25)
-		-- Dónde trabaja cada uno: a 3,8 studs de su prop y mirándolo (a 5,5 el hacha daba al aire, al lado del tronco).
-		local AVATAR_TREE = g(18.2, 0, -13.7)
-		local HUNTER_ROCK = g(18.2, 0, 11)
-		local MEDIC_PLANT = g(18.2, 0, 25)
-		local AVATAR_TABLE = Vector3.new(-30, 0, 0)
-		-- Alrededor de la hoguera (llegada y cierre) y dónde esperan el Cazador y el Médico mientras se construye.
-		local CAMP_AVATAR = Vector3.new(3.5, 0, 5)
-		local CAMP_HUNTER = Vector3.new(-3.5, 0, 5)
-		local CAMP_MEDIC = Vector3.new(6.5, 0, -1)
-		local WAIT_HUNTER = Vector3.new(7, 0, 7)
-		local WAIT_MEDIC = Vector3.new(10, 0, 2)
-		-- Cierre: los tres en fila perpendicular al eje de la cámara de salida (que mira desde (15, -4)), para que no se solapen
-		-- en pantalla, y de cara a la cámara.
-		local END_CAMERA = Vector3.new(15, 0, -4)
-		local END_AVATAR = Vector3.new(-2, 0, 2)
-		local END_HUNTER = Vector3.new(-3.7, 0, -2.2)
-		local END_MEDIC = Vector3.new(-0.3, 0, 6.2)
-		-- Los muros, en un arco a 17 studs de la hoguera (grados desde +X hacia +Z), y la antorcha junto al último. El avatar trabaja
-		-- por fuera, a 21 studs: así el muro que sube no lo tapa a la cámara de fuera.
-		local WALL_RADIUS = 17 -- los bancos de la hoguera están a radio 11 (medido en el Basecamp), así que el arco queda fuera
-		local WORK_RADIUS = 21
-		local WALL_ANGLES = { 100, 140, 180 }
-		local TORCH_ANGLE = 205
-		local function arc(degrees: number, radius: number): Vector3
-			local a = math.rad(degrees)
-			return Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
-		end
-		local TORCH_AT = arc(TORCH_ANGLE, WALL_RADIUS)
-
-		local events: EventList = {}
-		local function add(event: { t: number, kind: string, [string]: any })
-			table.insert(events, event)
-		end
-		local function put(t: number, actor: string, pos: Vector3, yaw: number)
-			add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
-		end
-		-- Corre de un punto a otro con el giro de la marcha; la velocidad de la animación sale de lo que recorre.
-		local function run(t: number, actor: string, from: Vector3, to: Vector3, seconds: number)
-			add({
-				t = t,
-				kind = "anim",
-				actor = actor,
-				action = "Run",
-				seconds = seconds + 0.1,
-				speed = math.clamp((to - from).Magnitude / seconds / 16, 0.4, 1.2),
-			})
-			add({
-				t = t,
-				kind = "move",
-				actor = actor,
-				pos = to,
-				yaw = yawBetween(from, to),
-				seconds = seconds,
-				easing = Enum.EasingStyle.Linear,
-			})
-		end
-		local function face(t: number, actor: string, pos: Vector3, target: Vector3)
-			put(t, actor, pos, yawBetween(pos, target))
-		end
-		local function anim(t: number, actor: string, action: string, seconds: number)
-			add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds })
-		end
-		local function loot(t: number, actor: string, item: string, n: number)
-			add({ t = t, kind = "loot", actor = actor, item = item, n = n })
-		end
-		local function hit(t: number, actor: string, node: string, material: string)
-			add({ t = t, kind = "nodeHit", actor = actor, node = node, material = material })
-		end
-
-		-- ===== Apertura (0 a 2,5): llegan corriendo desde el sur
-		add({ t = 0, kind = "letterbox" })
-		-- Un Yarumo real a unos 14 studs de la tala (tronco blanco, y su pieza gris) salía en plano: se esconde en este cliente.
-		add({ t = 0, kind = "hideReal", at = TREE_AT, radius = 36 })
-		add({ t = 0.3, kind = "caption", text = Strings.later("Sobrevive en la isla"), seconds = 1.8 })
-		run(0, "avatar", Vector3.new(5, 0, 38), CAMP_AVATAR, 2.2)
-		run(0, "hunter", Vector3.new(-5, 0, 41), CAMP_HUNTER, 2.3)
-		run(0, "medic", Vector3.new(9, 0, 34), CAMP_MEDIC, 2.3)
-		face(2.25, "avatar", CAMP_AVATAR, FIRE)
-		face(2.35, "hunter", CAMP_HUNTER, FIRE)
-		face(2.4, "medic", CAMP_MEDIC, FIRE)
-
-		-- ===== Recolectar (2,5 a 9): al cortar, el Cazador y el Médico ya están en su sitio (fuera de plano)
-		local treeStart = g(10, 0, -12.5)
-		put(2.5, "avatar", treeStart, yawBetween(treeStart, AVATAR_TREE))
-		run(2.5, "avatar", treeStart, AVATAR_TREE, 0.7)
-		face(3.2, "avatar", AVATAR_TREE, TREE_AT)
-		face(2.5, "hunter", HUNTER_ROCK, ROCK_AT)
-		face(2.5, "medic", MEDIC_PLANT, PLANT_AT)
-		-- Tres tajos al árbol (el golpe llega a ~0,25 s del inicio del tajo) y la caída hacia el este: 1,2 s después toca el suelo.
-		for _, swing in
-			{ { t = 3.4, action = "Slash1" }, { t = 4.2, action = "Slash2" }, { t = 5.0, action = "Slash1" } }
-		do
-			anim(swing.t, "avatar", swing.action, 0.7)
-			hit(swing.t + 0.25, "avatar", "tree", "wood")
-		end
-		add({ t = 5.7, kind = "nodeFall", node = "tree", dir = Vector3.xAxis })
-		add({ t = 6.9, kind = "shake", amp = 0.15, seconds = 0.4 })
-		-- El botín sale sobre la cabeza del avatar: tiene que ser mientras la cámara lo ve (la lateral acaba en 5,6).
-		loot(5.3, "avatar", "Wood", 4)
-		-- El Cazador pica la roca (2 golpes y se rompe) y el Médico coge un racimo. Todo con tiempo de verse: la roca cae a 8,3
-		-- y el botín sale a 8,4, antes de que el plano acabe (9,0).
-		anim(7.3, "hunter", "Slash1", 0.7)
-		hit(7.55, "hunter", "rock", "stone")
-		anim(7.4, "medic", "Craft", 1.2)
-		add({ t = 7.85, kind = "nodeFall", node = "plant" })
-		loot(7.95, "medic", "Banana", 2)
-		anim(7.85, "hunter", "Slash2", 0.7)
-		hit(8.1, "hunter", "rock", "stone")
-		add({ t = 8.3, kind = "nodeFall", node = "rock" })
-		loot(8.4, "hunter", "Stone", 3)
-
-		-- ===== Hambre y sed (9 a 14,5): las barras bajan al umbral bajo y parpadean; comer y beber las sube
-		add({ t = 9.0, kind = "survivalBars", hunger = 1, thirst = 1, seconds = 0 })
-		add({ t = 9.3, kind = "caption", text = Strings.later("El hambre y la sed no esperan"), seconds = 2.2 })
-		add({ t = 9.4, kind = "survivalBars", hunger = 0.16, thirst = 0.2, seconds = 1.6 })
-		-- Comer y beber de cara a la cámara (en la grabación el avatar comía de espaldas) y con la mano derecha, la de Consume:
-		-- sueltan el arma antes y la recogen al acabar.
-		face(10.3, "avatar", AVATAR_TREE, g(13, 0, -5))
-		add({ t = 10.3, kind = "equip", actor = "avatar", weapon = false })
-		add({
-			t = 10.6,
-			kind = "holdProp",
-			actor = "avatar",
-			item = "Banana",
-			hand = "Right",
-			sound = "Eat",
-			delay = 0.7,
-		})
-		anim(10.7, "avatar", "Consume", 1.5)
-		add({ t = 11.4, kind = "survivalBars", hunger = 0.8, seconds = 0.7 })
-		face(11.8, "hunter", HUNTER_ROCK, g(5, 0, 4))
-		add({ t = 11.8, kind = "equip", actor = "hunter", weapon = false })
-		add({
-			t = 11.9,
-			kind = "holdProp",
-			actor = "hunter",
-			item = "Coconut",
-			hand = "Right",
-			sound = "Drink",
-			delay = 0.7,
-		})
-		add({ t = 12.3, kind = "holdProp", actor = "avatar", item = false })
-		add({ t = 12.4, kind = "equip", actor = "avatar", weapon = "StoneAxe" })
-		anim(12.0, "hunter", "Consume", 1.5)
-		add({ t = 12.7, kind = "survivalBars", thirst = 0.85, seconds = 0.7 })
-		add({ t = 13.7, kind = "holdProp", actor = "hunter", item = false })
-		add({ t = 13.8, kind = "equip", actor = "hunter", weapon = "StonePick" })
-		add({ t = 14.2, kind = "survivalBars", show = false })
-
-		-- ===== Fabricar (14,5 a 20): dos golpes en la mesa, chispas, el hacha de hueso sube y gira y pasa a la mano
-		put(14.5, "avatar", AVATAR_TABLE, yawBetween(AVATAR_TABLE, TABLE_AT))
-		put(14.5, "hunter", WAIT_HUNTER, yawBetween(WAIT_HUNTER, FIRE))
-		put(14.5, "medic", WAIT_MEDIC, yawBetween(WAIT_MEDIC, FIRE))
-		add({ t = 14.8, kind = "caption", text = Strings.later("Fabrica tu propio equipo"), seconds = 2.2 })
-		anim(14.7, "avatar", "Hammer", 1.4)
-		add({ t = 16.2, kind = "craftFx", at = TABLE_AT + Vector3.new(0, 4.4, 0), weapon = "BoneAxe" })
-		loot(16.5, "avatar", "BoneAxe", 1)
-		add({ t = 18.4, kind = "equip", actor = "avatar", weapon = "BoneAxe" })
-		anim(18.5, "avatar", "Cheer", 1.4)
-
-		-- ===== Construir (20 a 26): fantasma verde, golpe y la pieza sube del suelo. La hora avanza hasta el anochecer.
-		add({ t = 20.2, kind = "caption", text = Strings.later("Levanta tus defensas"), seconds = 2.4 })
-		-- El anochecer se reparte en toda la escena: pasado 17,5 el mapa ya parece noche cerrada (se vio en la grabación),
-		-- así que acaba en 18 y la antorcha encendida es lo que marca el final.
-		add({ t = 9, kind = "clock", hour = 16.5, seconds = 5 })
-		add({ t = 14.5, kind = "clock", hour = 17, seconds = 5 })
-		add({ t = 19.5, kind = "clock", hour = 17.5, seconds = 4 })
-		add({ t = 23.5, kind = "clock", hour = 18, seconds = 3 })
-		local ghostAt = { 20.0, 21.2, 22.6 }
-		local hammerAt = { 20.1, 21.5, 22.9 }
-		local riseAt = { 20.6, 22.0, 23.4 }
-		local previousSpot: Vector3? = nil
-		for index, degrees in WALL_ANGLES do
-			local wall = arc(degrees, WALL_RADIUS)
-			local standAt = arc(degrees, WORK_RADIUS)
-			local toFire = yawBetween(wall, FIRE)
-			if previousSpot then
-				run(hammerAt[index] - 0.6, "avatar", previousSpot, standAt, 0.6)
-				face(hammerAt[index], "avatar", standAt, wall)
-			else
-				put(ghostAt[index], "avatar", standAt, yawBetween(standAt, wall))
-			end
-			previousSpot = standAt
-			add({ t = ghostAt[index], kind = "buildGhost", id = "WoodWall", at = wall, yaw = toFire })
-			anim(hammerAt[index], "avatar", "Hammer", 0.8)
-			add({ t = riseAt[index], kind = "buildRise", id = "WoodWall", at = wall, yaw = toFire, seconds = 0.6 })
-		end
-		local torchSpot = arc(TORCH_ANGLE, WORK_RADIUS)
-		run(23.7, "avatar", previousSpot :: Vector3, torchSpot, 0.5)
-		face(24.2, "avatar", torchSpot, TORCH_AT)
-		add({ t = 23.8, kind = "buildGhost", id = "StandingTorch", at = TORCH_AT })
-		anim(24.2, "avatar", "Hammer", 0.8)
-		add({ t = 24.4, kind = "buildRise", id = "StandingTorch", at = TORCH_AT, seconds = 0.6 }) -- antes de 24,7: más tiempo con llama
-
-		-- ===== Cierre (26 a 28): los tres en la hoguera, ya de noche
-		put(26.0, "avatar", END_AVATAR, yawBetween(END_AVATAR, END_CAMERA))
-		put(26.0, "hunter", END_HUNTER, yawBetween(END_HUNTER, END_CAMERA))
-		put(26.0, "medic", END_MEDIC, yawBetween(END_MEDIC, END_CAMERA))
-		anim(26.2, "avatar", "Cheer", 1.4)
-		anim(26.3, "hunter", "Cheer", 1.4)
-		anim(26.4, "medic", "Cheer", 1.4)
-		-- El título se va antes de que entre el logo (en la grabación se pisaban).
-		add({ t = 25.7, kind = "title", text = Strings.later("Recolecta, fabrica, construye"), seconds = 0.55 })
-		add({
-			t = 27.35,
-			kind = "logo",
-			text = Strings.later("Primal Banana Islands"),
-			sub = Strings.later("Monkey Survival"),
-			seconds = 0.5,
-		})
-		-- Negro hasta el final: tras acabar la escena, y antes de la pantalla de «Heading back», salía medio segundo de día.
-		add({ t = 27.5, kind = "fade", seconds = 0.6, toBlack = true })
-
-		-- ===== Cámara. Ninguna a menos de 8 studs de un actor ni de un muro; la grúa de entrada y la de salida van muy por
-		-- encima. Las alturas son sobre el suelo del anchor (el centro del Basecamp).
-		local function ring(degrees: number, y: number): Vector3
-			local at = arc(degrees, 38) -- a 30 un muro llenaba el plano
-			return Vector3.new(at.X, y, at.Z)
-		end
-		local function ringLook(degrees: number): Vector3
-			local at = arc(degrees, WALL_RADIUS + 1)
-			return Vector3.new(at.X, 3.2, at.Z)
-		end
-		local shots: { CameraShot } = {
-			-- Grúa sobre el Basecamp que baja hacia la hoguera.
-			{
-				t0 = 0,
-				t1 = 2.5,
-				a = cameraKey(Vector3.new(-22, 28, 32), Vector3.new(0, 2, 2), 60), -- más baja: arriba, los actores salían diminutos
-				b = cameraKey(Vector3.new(-16, 13, 24), Vector3.new(0, 2, 2), 60),
-			},
-			-- Lateral del hacha: el avatar a la izquierda y el árbol a la derecha.
-			{
-				t0 = 2.5,
-				t1 = 5.6,
-				-- (a 18 studs del avatar: a 10 el tronco ocupaba media pantalla)
-				a = cameraKey(g(14, 3.5, 0), g(20, 3.3, -13.5), 55), -- z = 0, no 4: a 5,8 de la armadura del Cazador
-				b = cameraKey(g(15, 3.4, -1), g(20, 3.3, -13.5), 52),
-			},
-			-- Contrapicado de la caída del árbol (hacia el este, de izquierda a derecha).
-			{
-				t0 = 5.6,
-				t1 = 7.3,
-				-- Desde x = 30 (a 22 el avatar quedaba cortado en el borde derecho).
-				a = cameraKey(g(30, 1.4, -29), g(26, 7, -14), 62),
-				b = cameraKey(g(30, 1.2, -28), g(32, 5, -14), 62),
-			},
-			-- Medio cruzado: el Cazador con la roca (izquierda) y el Médico con la mata (derecha).
-			{
-				t0 = 7.3,
-				t1 = 9.0,
-				-- En diagonal (a 12-24 studs): de lado se ve el pico contra la roca y las dos parejas quedan a distinta profundidad.
-				a = cameraKey(g(8, 3.6, 2), g(19.5, 2.8, 18), 58),
-				b = cameraKey(g(10, 3.4, 3), g(19.5, 2.8, 18), 55),
-			},
-			-- El avatar come.
-			{
-				t0 = 9.0,
-				t1 = 11.8,
-				a = cameraKey(g(13, 3, -5), g(18.2, 3.6, -13.7), 55),
-				b = cameraKey(g(12.5, 3.1, -5.6), g(18.2, 3.6, -13.7), 50),
-			},
-			-- El Cazador bebe.
-			{
-				t0 = 11.8,
-				t1 = 14.5,
-				-- Empuje lento: la escena dura 2,7 s y beber, 1,5 (antes el plano casi no se movía y parecía congelado).
-				a = cameraKey(g(2, 3.4, 2), g(18.2, 3.6, 11), 55),
-				b = cameraKey(g(8, 3.1, 6), g(18.2, 3.6, 11), 48),
-			},
-			-- Picado sobre la mesa.
-			{
-				t0 = 14.5,
-				t1 = 17.0,
-				a = cameraKey(Vector3.new(-22, 11, 7), Vector3.new(-33, 3, 0), 52),
-				b = cameraKey(Vector3.new(-24, 9.5, 6), Vector3.new(-34, 3.5, 0), 48),
-			},
-			-- Primer plano del arma que sube y gira.
-			{
-				t0 = 17.0,
-				t1 = 20.0,
-				-- Rodea la mesa mientras el arma sube y pasa a la mano: así no hay plano vacío cuando el arma ya no está.
-				-- Desde el lado del avatar, no por detrás: su cabeza tapaba la mesa. El arma sube a ~6,4 de altura y entra en cuadro.
-				a = cameraKey(Vector3.new(-28, 6.5, 12), Vector3.new(-34, 5.2, 0), 42),
-				b = cameraKey(Vector3.new(-18, 5.5, -9), Vector3.new(-31, 3.5, 0), 46), -- a 15 del avatar (a 5 le pegaba en la cara)
-			},
-			-- Travelling lateral por fuera del arco de muros (tres tramos seguidos, sin corte entre ellos).
-			{
-				t0 = 20.0,
-				t1 = 21.17,
-				a = cameraKey(ring(70, 4.5), ringLook(85), 58),
-				b = cameraKey(ring(100, 4.6), ringLook(115), 58),
-			},
-			{
-				t0 = 21.17,
-				t1 = 22.33,
-				a = cameraKey(ring(100, 4.6), ringLook(115), 58),
-				b = cameraKey(ring(130, 4.8), ringLook(145), 58),
-			},
-			{
-				t0 = 22.33,
-				t1 = 23.5,
-				a = cameraKey(ring(130, 4.8), ringLook(145), 58),
-				b = cameraKey(ring(160, 5), ringLook(175), 58),
-			},
-			-- Contraplano desde dentro del arco: la antorcha que se enciende, con el avatar al otro lado.
-			{
-				t0 = 23.5,
-				t1 = 26.0,
-				a = cameraKey(Vector3.new(-1, 3.6, -10), TORCH_AT + Vector3.new(0, 3, 0), 55),
-				b = cameraKey(Vector3.new(-3, 3.8, -11), TORCH_AT + Vector3.new(0, 3, 0), 55),
-			},
-			-- Cierre: plano abierto que se aleja de la hoguera.
-			{
-				t0 = 26.0,
-				t1 = SURVIVAL_SECONDS,
-				a = cameraKey(Vector3.new(15, 6.5, -4), Vector3.new(0, 2.5, 2), 55),
-				b = cameraKey(Vector3.new(36, 24, -16), Vector3.new(0, 2.5, 2), 60),
-			},
-		}
-
-		-- ===== Actores. Los tres con snap (el suelo del Basecamp no es llano). Los props nacen en el mundo, sobre el terreno.
-		local function nodeProp(at: Vector3, make: (base: Vector3) -> Model)
-			return {
-				kind = "prop",
-				build = function(anchor: CFrame): Model
-					local node = make(anchor:PointToWorldSpace(Actors.snapToTerrain(anchor, at)))
-					node:SetAttribute("CinematicKeep", true)
-					return node
-				end,
-			}
-		end
-		local actors: { [string]: { [string]: any } } = {
-			avatar = {
-				kind = "localPlayer",
-				copy = true,
-				role = "Guerrero",
-				weapon = "StoneAxe",
-				snap = true,
-				pos = Vector3.new(5, 0, 38),
-				yaw = 0,
-			},
-			hunter = {
-				kind = "dummy",
-				role = "Cazador",
-				armor = "VolcanicArmor",
-				weapon = "StonePick",
-				snap = true,
-				pos = Vector3.new(-5, 0, 41),
-				yaw = 0,
-			},
-			medic = {
-				kind = "dummy",
-				role = "Medico",
-				outfit = "CeibaOfLifeOutfit",
-				weapon = false,
-				snap = true,
-				pos = Vector3.new(9, 0, 34),
-				yaw = 0,
-			},
-			tree = nodeProp(TREE_AT, function(base)
-				return NodeModels.buildTree(base, Random.new(14), 0.9, "Frondoso")
-			end),
-			rock = nodeProp(ROCK_AT, function(base)
-				return NodeModels.buildRock(base, Random.new(14), 1.2)
-			end),
-			plant = nodeProp(PLANT_AT, function(base)
-				return NodeModels.buildMusa("BananaPlant", base, Random.new(14))
-			end),
-		}
-
-		return {
-			duration = SURVIVAL_SECONDS + 0.6, -- el negro final se sostiene hasta que acaba la escena
-			audience = "Self",
-			freeze = false,
-			skippable = true,
-			hour = 16,
-			-- El suelo del Basecamp cargado donde se pisa: la hoguera, los tres props, la mesa y el arco de muros.
-			waitTerrain = { FIRE, TREE_AT, ROCK_AT, PLANT_AT, AVATAR_TABLE, arc(100, WALL_RADIUS), TORCH_AT },
-			actors = actors,
-			camera = cutShots(shots),
-			events = events,
-		}
-	end
-
-	local ok, built = pcall(build)
-	if ok then
-		out.Survival = built :: Scene
-	else
-		warn(`Cinematics: no se pudo construir la escena Survival: {built}`)
-	end
-	return out
-end)()
-
--- ============================================================================ Noche y Luna roja (Fase 25, G14c)
--- «Night» (29 s, solo la versión normal): cae la noche en la Isla, el fuego mantiene a raya a las Martejas y sale la Luna roja con
--- una horda más grande. La lanza «🎬 Noche y Luna roja» del panel de la Isla con ArrivalService.play y un stage cuyo anchor es el
--- suelo bajo el centro del Basecamp (la hoguera, en (0, 0)). Se rueda ante la PUERTA ESTE: hueco de 22 studs centrado en
--- (81, 0) que mira hacia fuera por +X; el terreno hacia fuera es llano 30 studs y luego sube suave (+2,7 a los 70). La selva
--- empieza a unos 70-100 studs. Las posiciones se escriben con gt(f, s): f hacia fuera de la puerta, s lateral (Z).
--- La luna a ClockTime 19,5 está a 20,5° de elevación y a ~25° del lado -Z de la dirección +X (medido): la escena acaba en 19,5 y
--- la cámara mira hacia +X y un poco a -Z. La hora no pasa de 19,5 (si no, la luna sube y sale de cuadro).
---    0 a  5    grúa que baja sobre la puerta; los tres encienden su antorcha (2,5, 3 y 3,5); «Cae la noche»
---    5 a 11    dos Martejas salen de la selva; el avatar avanza con la antorcha y ellas rugen y se retiran
---   11 a 16    plano bajo detrás de los tres que sube hacia la luna; sale roja (redMoon + tinte); aúllan las Martejas
---   16 a 22    la horda (3 Macacos, 3 Babuinos y 1 Gorila) sale de la selva corriendo; cámara detrás de ella y contraplano
---   22 a 26    choque: Grito de guerra, Disparo múltiple sobre un Macaco y Bola de fuego sobre un Babuino
---   26 a 29    el Gorila salta sobre el avatar; título «Luna roja», logo y fundido a negro (final en suspense)
--- Efectos pesados separados al menos 0,4 s (22,25 / 23,16 / 23,72). Los monos son de servidor (evento monkey, solo la
--- variante normal, sin alfas) y el stage pide clearRadius = 200 porque salen a unos 170 studs del centro.
-local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
-	local out: { [string]: Scene? } = {}
-	local function build(): Scene
-		local NIGHT_SECONDS = 29
-		local GATE_X = 81 -- la puerta este, en el marco del anchor
-		local function gt(f: number, s: number): Vector3
-			return Vector3.new(GATE_X + f, 0, s)
-		end
-		-- Igual, con la altura (y) en medio, para la cámara.
-		local function gc(f: number, y: number, s: number): Vector3
-			return Vector3.new(GATE_X + f, y, s)
-		end
-		-- Giro de quien mira hacia fuera de la puerta (+X) y de quien mira hacia dentro (-X).
-		local OUT = -90
-		local IN = 90
-		-- Dónde están los tres: al principio por dentro de la puerta; desde 11 s, ya fuera de la empalizada (más cerca de la horda).
-		local AVATAR_START = gt(-6, 0)
-		local HUNTER_START = gt(-9, 5)
-		local MAGE_START = gt(-9, -5)
-		local AVATAR_FIRE = gt(15, 0) -- hasta dónde avanza con la antorcha
-		local AVATAR_NOW = gt(2, 0)
-		local HUNTER_NOW = gt(-1, 7)
-		local MAGE_NOW = gt(-1, -7)
-		-- Horda: (f, s) donde frena, y de dónde sale (72 studs más lejos: a 17 studs/s en 4,3 s, la velocidad pasa de Run).
-		local HORDE = {
-			{ name = "macaco1", species = "Macaco", f = 22, s = -12, near = gt(11, -9) },
-			{ name = "macaco2", species = "Macaco", f = 22, s = -3, near = gt(11, -2) },
-			{ name = "macaco3", species = "Macaco", f = 23, s = 9, near = gt(11, 6) },
-			{ name = "babuino1", species = "Babuino", f = 27, s = -8, near = gt(14, -5) },
-			{ name = "babuino2", species = "Babuino", f = 28, s = 4, near = gt(14, 3) },
-			{ name = "babuino3", species = "Babuino", f = 26, s = 13, near = gt(14, 10) },
-			{ name = "gorila", species = "Gorila", f = 34, s = 0, near = gt(5, 0) },
-		}
-		local HORDE_BACK = 72
-		local HORDE_GO = 17.0 -- cuando echan a correr (están quietos en la linde desde 16)
-		local HORDE_RUN_SECONDS = 4.3
-		-- Rumbo de la luna a ClockTime 19,5 (medido): elevación 20,5° y 25° del lado -Z de +X.
-		local function aim(cam: Vector3, bearing: number, pitch: number): Vector3
-			local b, p = math.rad(bearing), math.rad(pitch)
-			return cam + Vector3.new(math.cos(p) * math.cos(b), math.sin(p), -math.cos(p) * math.sin(b)) * 60
-		end
-
-		local events: EventList = {}
-		local add, anim, skill = actionWriters(events)
-		local function put(t: number, actor: string, pos: Vector3, yaw: number)
-			add({ t = t, kind = "move", actor = actor, pos = pos, yaw = yaw, seconds = 0 })
-		end
-		-- Camina o corre de un punto a otro con el giro de la marcha; la velocidad de la animación sale de lo que recorre.
-		local function go(t: number, actor: string, action: string, from: Vector3, to: Vector3, seconds: number)
-			local reference = if action == "Run" then 16 else 6
-			add({
-				t = t,
-				kind = "anim",
-				actor = actor,
-				action = action,
-				seconds = seconds + 0.1,
-				speed = math.clamp((to - from).Magnitude / seconds / reference, 0.4, 1.2),
-			})
-			add({
-				t = t,
-				kind = "move",
-				actor = actor,
-				pos = to,
-				yaw = yawBetween(from, to),
-				seconds = seconds,
-				easing = Enum.EasingStyle.Linear,
-			})
-		end
-		-- Evento de un mono de servidor (CinematicMonkeyService).
-		local function monkey(t: number, name: string, fields: { [string]: any })
-			local event: { [string]: any } = { t = t, kind = "monkey", server = true, name = name }
-			for field, value in fields do
-				event[field] = value
-			end
-			add(event :: any)
-		end
-
-		-- ===== Apertura (0 a 5): cae la noche, las antorchas se encienden una a una
-		add({ t = 0, kind = "letterbox" })
-		-- Luz fría y tenue que sigue a la cámara: de noche cerrada, sin ella los tres salen negros fuera del círculo de las antorchas.
-		add({
-			t = 0,
-			kind = "light",
-			follow = true,
-			offset = Vector3.new(0, 3, 0),
-			color = Color3.fromRGB(150, 170, 230),
-			brightness = 0.6,
-			range = 50,
-		})
-		add({ t = 0.4, kind = "caption", text = Strings.later("Cae la noche"), seconds = 2.8 })
-		add({ t = 0, kind = "clock", hour = 18.6, seconds = 4 })
-		add({ t = 5, kind = "clock", hour = 19, seconds = 5 })
-		add({ t = 11, kind = "clock", hour = 19.5, seconds = 4 })
-		for _, name in { "avatar", "hunter", "mage" } do
-			table.insert(events, BossChoreo.torch(0, name, false))
-		end
-		table.insert(events, BossChoreo.torch(2.5, "avatar", true, 3))
-		table.insert(events, BossChoreo.torch(3, "hunter", true, 3))
-		table.insert(events, BossChoreo.torch(3.5, "mage", true, 3))
-
-		-- ===== Miedo al fuego (5 a 11): las Martejas se acercan, el avatar avanza con la antorcha y ellas se retiran
-		add({ t = 5.3, kind = "caption", text = Strings.later("El fuego los mantiene a raya"), seconds = 3.2 })
-		local marteja1_start, marteja1_near = gt(66, 7), gt(31, 4)
-		local marteja2_start, marteja2_near = gt(70, -8), gt(33, -5)
-		monkey(4.6, "marteja1", { species = "Marteja", at = marteja1_start, yaw = IN, action = "Idle" })
-		monkey(4.6, "marteja2", { species = "Marteja", at = marteja2_start, yaw = IN, action = "Idle" })
-		monkey(5.0, "marteja1", { move = { pos = marteja1_near, seconds = 3.0, yaw = IN } })
-		monkey(5.0, "marteja2", { move = { pos = marteja2_near, seconds = 3.2, yaw = IN } })
-		go(6.0, "avatar", "Walk", AVATAR_START, AVATAR_FIRE, 2.6)
-		go(6.6, "hunter", "Walk", HUNTER_START, gt(-2, 5), 2.0)
-		go(6.6, "mage", "Walk", MAGE_START, gt(-2, -5), 2.0)
-		monkey(8.4, "marteja1", { action = "Roar" })
-		monkey(8.6, "marteja2", { action = "Roar" })
-		monkey(9.2, "marteja1", { move = { pos = gt(70, 8), seconds = 2.4 } })
-		monkey(9.3, "marteja2", { move = { pos = gt(74, -9), seconds = 2.4 } })
-		-- Aullido de las Martejas ya lejos, mientras sale la luna.
-		monkey(12.8, "marteja1", { action = "Howl" })
-		monkey(13.4, "marteja2", { action = "Howl" })
-
-		-- ===== La luna sale roja (11 a 16): los tres ya fuera de la puerta; plano bajo que sube hacia la luna
-		put(11.0, "avatar", AVATAR_NOW, OUT)
-		put(11.0, "hunter", HUNTER_NOW, OUT)
-		put(11.0, "mage", MAGE_NOW, OUT)
-		add({ t = 11.4, kind = "caption", text = Strings.later("La luna sale roja"), seconds = 3.0 })
-		add({ t = 11.5, kind = "redMoon", amount = 1, seconds = 3, size = 18 })
-		add({ t = 12.0, kind = "exposure", value = -0.35, tint = Color3.fromRGB(255, 170, 160) })
-		add({ t = 12.0, kind = "shake", amp = 0.1, seconds = 1.6 })
-
-		-- ===== La horda (16 a 22): sale de la selva; quieta en la linde de 16 a 17 y echa a correr
-		for _, member in HORDE do
-			local start = gt(member.f + HORDE_BACK, member.s)
-			local stop = gt(member.f, member.s)
-			monkey(15.9, member.name, { species = member.species, at = start, yaw = IN, action = "Idle" })
-			monkey(HORDE_GO, member.name, { move = { pos = stop, seconds = HORDE_RUN_SECONDS, yaw = IN } })
-		end
-		add({
-			t = 16.3,
-			kind = "caption",
-			text = Strings.later("Hordas más grandes. Monos más fuertes."),
-			seconds = 3.4,
-		})
-		monkey(HORDE_GO + HORDE_RUN_SECONDS + 0.1, "gorila", { action = "Roar" })
-
-		-- ===== El choque (22 a 26): grito, flechas y bola de fuego
-		anim(22.2, "avatar", "WarCry", 1.4)
-		skill(22.25, "WarCry", "avatar", nil, { seconds = 1.4 })
-		anim(22.5, "hunter", "AimBow", 1.3)
-		anim(23.0, "hunter", "Arrow", 0.7)
-		skill(23.16, "MultiShot", "hunter", "macaco2", nil)
-		monkey(23.32, "macaco2", { action = "Hurt" })
-		anim(23.05, "mage", "AimSpell", 1.0)
-		anim(23.4, "mage", "Spell", 0.6)
-		skill(23.72, "Fireball", "mage", "babuino2", nil)
-		monkey(23.95, "babuino2", { action = "Hurt" })
-		monkey(24.3, "macaco2", { action = "Die" })
-		monkey(24.9, "babuino2", { action = "Die" })
-
-		-- ===== Final en suspense (26 a 29): el resto carga y el Gorila salta sobre el avatar
-		for _, member in HORDE do
-			if member.name ~= "gorila" and member.name ~= "macaco2" and member.name ~= "babuino2" then
-				monkey(25.9, member.name, { move = { pos = member.near, seconds = 1.3, yaw = IN } })
-			end
-		end
-		monkey(26.0, "gorila", { action = "Pounce", move = { pos = gt(5, 0), seconds = 1.1, yaw = IN } })
-		anim(26.9, "avatar", "Slash1", 0.7)
-		add({ t = 26.3, kind = "title", text = Strings.later("Luna roja"), seconds = 1.4 })
-		add({
-			t = 27.85,
-			kind = "logo",
-			text = Strings.later("Primal Banana Islands"),
-			sub = Strings.later("Monkey Survival"),
-			seconds = 0.5,
-		})
-		add({ t = 28.3, kind = "fade", seconds = 0.5, toBlack = true })
-
-		-- ===== Cámara. Ninguna a menos de 12 studs de un actor; las alturas son sobre el suelo del anchor.
-		local shots: { CameraShot } = {
-			-- Grúa sobre la puerta que baja, mirando hacia fuera por encima de los tres.
-			{
-				t0 = 0,
-				t1 = 5,
-				a = cameraKey(gc(-30, 18, 6), gc(8, 3, 0), 58),
-				b = cameraKey(gc(-21, 5.5, 7), gc(8, 3, 0), 55),
-			},
-			-- Lateral del fuego: el avatar con la antorcha en medio y las Martejas a la derecha, de lado.
-			{
-				t0 = 5,
-				t1 = 11,
-				a = cameraKey(gc(10, 4, -24), gc(20, 3, 0), 55),
-				b = cameraKey(gc(24, 4, -24), gc(22, 3, 0), 55),
-			},
-			-- Plano bajo detrás de los tres que sube hacia la luna (20,5° de elevación, 25° a -Z).
-			{
-				t0 = 11,
-				t1 = 16,
-				a = cameraKey(gc(-16, 1.3, 0), aim(gc(-16, 1.3, 0), 6, 4), 60),
-				b = cameraKey(gc(-16, 1.3, 0), aim(gc(-16, 1.3, 0), 14, 13), 60),
-			},
-			-- Detrás de la horda, por encima de la linde de la selva: la ven quieta y echar a correr.
-			{
-				t0 = 16,
-				t1 = 19,
-				a = cameraKey(gc(114, 9, -18), gc(70, 3, 0), 58),
-				b = cameraKey(gc(98, 7, -14), gc(52, 3, 0), 58),
-			},
-			-- Contraplano: la horda llega de frente, por encima del hombro de los tres.
-			{
-				t0 = 19,
-				t1 = 22,
-				a = cameraKey(gc(-16, 2.5, 0), gc(40, 3, 0), 58),
-				b = cameraKey(gc(-12, 2.5, 0), gc(34, 4, 0), 52),
-			},
-			-- Choque de lado: la tripulación a la izquierda y la horda a la derecha.
-			{
-				t0 = 22,
-				t1 = 26,
-				a = cameraKey(gc(12, 4.5, -30), gc(14, 3, 0), 60),
-				b = cameraKey(gc(16, 4, -29), gc(17, 3.5, 0), 56),
-			},
-			-- Cierre: bajo, detrás del avatar; el Gorila salta hacia la cámara.
-			{
-				t0 = 26,
-				t1 = NIGHT_SECONDS,
-				a = cameraKey(gc(-15, 2.2, -3), gc(12, 6, 0), 48),
-				b = cameraKey(gc(-13, 2.2, -3), gc(8, 6, 0), 44),
-			},
-		}
-
-		-- ===== Actores. Los tres con snap (el suelo de fuera de la puerta no es llano). Empiezan con la antorcha apagada.
-		local actors: { [string]: { [string]: any } } = {
-			avatar = {
-				kind = "localPlayer",
-				copy = true,
-				role = "Guerrero",
-				weapon = "StoneAxe",
-				torch = true,
-				snap = true,
-				pos = AVATAR_START,
-				yaw = OUT,
-			},
-			hunter = {
-				kind = "dummy",
-				role = "Cazador",
-				armor = "VolcanicArmor",
-				torch = true,
-				snap = true,
-				pos = HUNTER_START,
-				yaw = OUT,
-			},
-			mage = {
-				kind = "dummy",
-				role = "Mago",
-				outfit = "BlueFireInvokerOutfit",
-				skin = "SulfurStaff",
-				torch = true,
-				snap = true,
-				pos = MAGE_START,
-				yaw = OUT,
-			},
-		}
-
-		return {
-			duration = NIGHT_SECONDS + 0.6, -- el negro final se sostiene hasta que acaba la escena
-			audience = "Self",
-			freeze = false,
-			skippable = true,
-			hour = 18.3,
-			redMoonOff = true,
-			-- El suelo cargado donde se pisa y se filma: dentro de la puerta, el claro, la subida y la linde de la selva.
-			waitTerrain = {
-				gt(-9, 0),
-				gt(0, 0),
-				gt(30, 0),
-				gt(30, -24),
-				gt(60, 10),
-				gt(60, -10),
-				gt(100, 0),
-				gt(100, -16),
-				gt(120, -18),
-			},
-			actors = actors,
-			camera = cutShots(shots),
-			events = events,
-		}
-	end
-
-	local ok, built = pcall(build)
-	if ok then
-		out.Night = built :: Scene
-	else
-		warn(`Cinematics: no se pudo construir la escena Night: {built}`)
-	end
-	return out
-end)()
-
 local Cinematics: { [string]: Scene } = {
 	-- Supervivencia (G14b): recolectar, hambre y sed, fabricar y construir en el Basecamp, solo para grabar; la lanza
 	-- «🎬 Supervivencia» del panel de la Isla con ArrivalService.play y un stage anclado al centro del Basecamp.
-	Survival = survivalScenes.Survival,
+	Survival = require(script.Parent.Scenes.Survival).Survival,
 
 	-- Noche y Luna roja (G14c): la noche, el fuego contra las Martejas y la horda de la Luna roja ante la puerta este del
 	-- Basecamp, solo para grabar; la lanza «🎬 Noche y Luna roja» del panel de la Isla con ArrivalService.play.
-	Night = nightScenes.Night,
+	Night = require(script.Parent.Scenes.Night).Night,
 
 	-- Motor en el Laboratorio (G12): escena de prueba; la lanza «🎬 Motor del Laboratorio» del panel del Laboratorio
 	-- (LabCineController).
@@ -8485,7 +7691,7 @@ local Cinematics: { [string]: Scene } = {
 			audience = "Self",
 			freeze = false,
 			skippable = false,
-			hour = DUSK_HOUR,
+			hour = Kit.DUSK_HOUR,
 			waitTerrain = { beach(-8, 3), beach(0, -6), beach(9, -3.5), ground(0, 0, -18) },
 			actors = crewActors(false),
 			camera = {
@@ -8511,7 +7717,7 @@ local Cinematics: { [string]: Scene } = {
 		audience = "Self",
 		freeze = false,
 		skippable = true,
-		hour = DUSK_HOUR,
+		hour = Kit.DUSK_HOUR,
 		waitTerrain = { beach(-8, -4), beach(0, -8), beach(9, -3.5) },
 		actors = crewActors(true),
 		camera = {
