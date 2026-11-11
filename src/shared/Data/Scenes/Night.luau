@@ -49,7 +49,7 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		local MAGE_START = gt(-9, -5)
 		local AVATAR_FIRE = gt(15, 0) -- hasta dónde avanza con la antorcha
 		local AVATAR_NOW = gt(2, 0)
-		local HUNTER_NOW = gt(-1, 7)
+		local HUNTER_NOW = gt(-1, 5.5) -- (antes 7: el Cazador salía cortado por el borde derecho del plano bajo de 11 a 16)
 		local MAGE_NOW = gt(-1, -7)
 		-- Horda: (f, s) donde frena, y de dónde sale (72 studs más lejos: a 17 studs/s en 4,3 s, la velocidad pasa de Run).
 		local HORDE = {
@@ -170,6 +170,17 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			seconds = 3.4,
 		})
 		monkey(HORDE_GO + HORDE_RUN_SECONDS + 0.1, "gorila", { action = "Roar" })
+		-- La horda sale a 8-20 studs de la cámara y la luz de 0,6 no la alcanzaba (plano casi negro): luz propia de 15,2 a 19,6 s (la antelación es para que ya esté puesta en el corte de 16 s).
+		add({
+			t = 15.2,
+			kind = "light",
+			follow = true,
+			offset = Vector3.new(0, 5, 0),
+			color = Color3.fromRGB(200, 150, 170),
+			brightness = 1.3,
+			range = 60,
+			seconds = 4.4,
+		})
 
 		-- ===== El choque (22 a 26): grito, flechas y bola de fuego
 		anim(22.2, "avatar", "WarCry", 1.4)
@@ -191,7 +202,8 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				monkey(25.9, member.name, { move = { pos = member.near, seconds = 1.3, yaw = IN } })
 			end
 		end
-		monkey(26.0, "gorila", { action = "Pounce", move = { pos = gt(5, 0), seconds = 1.1, yaw = IN } })
+		-- Aterriza a 8 studs del avatar (antes a 3: se solapaban); el resto de la horda frena en f 11 a 14.
+		monkey(26.0, "gorila", { action = "Pounce", move = { pos = gt(10, 0), seconds = 1.1, yaw = IN } })
 		anim(26.9, "avatar", "Slash1", 0.7)
 		add({ t = 26.3, kind = "title", text = Strings.later("Luna roja"), seconds = 1.4 })
 		add({
@@ -212,12 +224,14 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				a = cameraKey(gc(-30, 18, 6), gc(8, 3, 0), 58),
 				b = cameraKey(gc(-21, 5.5, 7), gc(8, 3, 0), 55),
 			},
-			-- Lateral del fuego: el avatar con la antorcha en medio y las Martejas a la derecha, de lado.
+			-- Lateral del fuego: de lado y más atrás (z -26), mirando a +Z: lo de fuera de la puerta (+X) cae a la izquierda. Empieza
+			-- con los tres a la derecha y se desplaza hacia la selva siguiendo al avatar con la antorcha. La cámara se queda
+			-- fuera de la valla (x > 87): más cerca, la valla tapa el plano.
 			{
 				t0 = 5,
 				t1 = 11,
-				a = cameraKey(gc(10, 4, -24), gc(20, 3, 0), 55),
-				b = cameraKey(gc(24, 4, -24), gc(22, 3, 0), 55),
+				a = cameraKey(gc(9, 5, -26), gc(-1, 3, 0), 62),
+				b = cameraKey(gc(18, 5, -26), gc(12, 3, 0), 62),
 			},
 			-- Plano bajo detrás de los tres que sube hacia la luna (20,5° de elevación, 25° a -Z).
 			{
@@ -251,8 +265,8 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 26,
 				t1 = NIGHT_SECONDS,
-				a = cameraKey(gc(-15, 2.2, -3), gc(12, 6, 0), 48),
-				b = cameraKey(gc(-13, 2.2, -3), gc(8, 6, 0), 44),
+				a = cameraKey(gc(-15, 1.2, -3), gc(12, 3.5, 0), 48),
+				b = cameraKey(gc(-13, 1.2, -3), gc(8, 3.5, 0), 44),
 			},
 		}
 
@@ -297,16 +311,18 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			hour = 18.3,
 			redMoonOff = true,
 			-- El suelo cargado donde se pisa y se filma: dentro de la puerta, el claro, la subida y la linde de la selva.
+			-- (la y de cada punto es la altura del suelo sobre el anchor, medida en edición: fuera de la puerta el terreno sube
+			-- hasta 2,3 studs; con y = 0 la espera nunca se cumplía, agotaba los 4 s y la escena saltaba la apertura)
 			waitTerrain = {
 				gt(-9, 0),
 				gt(0, 0),
 				gt(30, 0),
 				gt(30, -24),
-				gt(60, 10),
-				gt(60, -10),
-				gt(100, 0),
-				gt(100, -16),
-				gt(120, -18),
+				gc(60, 2.3, 10),
+				gc(60, 2.03, -10),
+				gc(100, 1.14, 0),
+				gc(100, 0.68, -16),
+				gc(120, 0.94, -18),
 			},
 			actors = actors,
 			camera = cutShots(shots),

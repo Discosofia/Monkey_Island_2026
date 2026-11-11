@@ -250,6 +250,48 @@ local function runNight(player: Player)
 	end
 end
 
+-- «🎬 Parcela y modo infinito» (Fase 25, G14d): la escena «Endless» en el Basecamp, con el Caudillo de plató ante la puerta sur
+-- (a (0, 100) del centro, por fuera de la empalizada, mirando al norte). La parcela la dibuja el cliente (PlotActor). Con el
+-- Caudillo real vivo no monta nada, como runBossBattle. Los monos reales se limpian en 200 y el Caudillo se borra al acabar.
+local ENDLESS_BOSS = "ChimpanceCaudillo"
+local ENDLESS_BOSS_OFFSET = Vector3.new(0, 0, 100)
+
+local function runEndless(player: Player)
+	local live = BossService.currentModel()
+	if live and live:GetAttribute("Boss") == ENDLESS_BOSS then
+		Remotes.Notify:FireClient(player, "🎬 {boss} está vivo en la isla: no se monta la escena", {
+			boss = { Bosses[ENDLESS_BOSS].name },
+		})
+		return
+	end
+	local ok = ArrivalService.play(player, "Endless", nil, {
+		bossId = ENDLESS_BOSS,
+		waitOffset = SURVIVAL_WAIT_OFFSET,
+		clearRadius = 200,
+		create = function()
+			local anchor = basecampStage()
+			local model, stageAnchor, folder = StageBoss.create(ENDLESS_BOSS, "ParcelaJefe")
+			-- Del sitio de plató del jefe a la puerta sur, con el suelo medido por rayo.
+			local target = anchor:PointToWorldSpace(ENDLESS_BOSS_OFFSET)
+			local terrainOnly = RaycastParams.new()
+			terrainOnly.FilterType = Enum.RaycastFilterType.Include
+			terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
+			local hit = Workspace:Raycast(target + Vector3.new(0, 80, 0), Vector3.new(0, -300, 0), terrainOnly)
+			local groundY = if hit then hit.Position.Y else anchor.Position.Y
+			-- El pivote del modelo está algo por encima de su pie: se conserva esa diferencia.
+			local lift = model:GetPivot().Position.Y - stageAnchor.Position.Y
+			local spot = Vector3.new(target.X, groundY + lift, target.Z)
+			model:PivotTo(CFrame.lookAt(spot, spot + Vector3.new(0, 0, -1)))
+			return anchor, model, function()
+				folder:Destroy()
+			end
+		end,
+	})
+	if not ok then
+		Remotes.Notify:FireClient(player, "🎬 La escena del modo infinito ya está en marcha")
+	end
+end
+
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
 local SHOWCASE_ORDER = {
 	"Machete",
@@ -1006,6 +1048,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	-- «🎬 Noche y Luna roja» (Fase 25, G14c): la noche, el fuego contra las Martejas y la horda de la Luna roja (ver runNight).
 	CineNight = function(player)
 		runNight(player)
+	end,
+	-- «🎬 Parcela y modo infinito» (Fase 25, G14d): el rescate, la parcela que sube de grado y el Caudillo de noche (ver runEndless).
+	CineEndless = function(player)
+		runEndless(player)
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

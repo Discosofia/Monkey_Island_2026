@@ -7353,14 +7353,14 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 
 ## 186. Fase 25 G14c: escena Night (noche y Luna roja) (10-11-2026)
 
-La escena `Night` (Noche y Luna roja, en la Isla) dura **29,6 s** y solo tiene la versión normal. Usa el motor de la luna roja: los atributos de Lighting `CinematicRedMoon`, `CinematicRedMoonSeconds` y `CinematicMoonSize`, el evento `redMoon` de `SceneLight` (que manda sobre el evento en vivo de Luna roja) y una luz fría tenue que sigue a la cámara, porque a 19,5 h los actores salen negros fuera del círculo de las antorchas. La escena empieza con la puerta este de la empalizada, cae la noche de 18,3 a 19,5 h, la luna sale roja a 11,5 s, llega la horda y acaba con el Gorila saltando y el título «Luna roja». Se limpia todo al acabar. Orden: «🎬 Noche y Luna roja (29 s)».
+La escena `Night` (Noche y Luna roja, en la Isla) dura **29,6 s** y solo tiene la versión normal. En Play midió **25,3 s**: la causa estaba en el motor, no en la escena. `CinematicClient.run` esperaba `waitTerrain` 4 s y después `handle.seek(late)` saltaba esos segundos, así que se perdía la apertura. Los puntos de espera tenían alturas mal diseñadas (en `Night`, y=0 en puntos exteriores cuyo suelo sube hasta +2,30). Está arreglado (`Night` usa la altura medida) y tras el arreglo midió **29,4 s**. Hay que reconfirmarlo en vídeo nuevo (§186.1, paso 1, y §186.2, paso 1). Usa el motor de la luna roja: los atributos de Lighting `CinematicRedMoon`, `CinematicRedMoonSeconds` y `CinematicMoonSize`, el evento `redMoon` de `SceneLight` (que manda sobre el evento en vivo de Luna roja) y una luz fría tenue que sigue a la cámara, porque a 19,5 h los actores salen negros fuera del círculo de las antorchas. La escena empieza con la puerta este de la empalizada, cae la noche de 18,3 a 19,5 h, la luna sale roja a 11,5 s, llega la horda y acaba con el Gorila saltando y el título «Luna roja». Se limpia todo al acabar. Orden: «🎬 Noche y Luna roja (29 s)».
 
 Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la grabación, porque el MCP no captura Play. Las medidas de instancias y FPS son de Studio y no sirven de referencia para el juego publicado.
 
 ### 186.1 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
 
 1. [ ] Graba la escena `Night` entera y mira la caída de la noche, de 0 a 5 s: la grúa, las antorchas de los avatares y el Cazador y el Mago encendiéndolas a 2,5, 3 y 3,5 s.
-   ✅ El cielo oscurece de forma gradual, sin saltos de luz, y cada antorcha se enciende en su momento.
+   ✅ El cielo oscurece de forma gradual, sin saltos de luz, y cada antorcha se enciende en su momento. La apertura sale entera desde el primer fotograma: el salto de 4 s del `seek` la hacía perder.
 2. [ ] Mira la luna a 19,5 h en el plano donde sale.
    ✅ La luna se ve en el cuadro, con la elevación y el rumbo previstos, y no queda fuera de la toma.
 3. [ ] Mira la oscuridad de la noche y la luz fría de relleno que sigue a la cámara.
@@ -7388,13 +7388,15 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 
 ### 186.2 En el Studio de la Isla, en Play, con un jugador
 
-1. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final.
-   ✅ Dura unos 29,6 s. Si se aleja más de medio segundo, anota la duración real.
-2. [ ] A unos 8 s de la escena, mira el atributo `CinematicRedMoon` del Lighting.
+1. [ ] Abre la consola de Studio y lanza `Night` mirando las líneas «[CinematicClient]».
+   ✅ No sale ninguna línea «[CinematicClient] Night: waitTerrain…». Si sale, debe tardar 0,3 s o menos. Si dice «agotado» o tarda más, copia la línea entera: es un punto de espera mal situado.
+2. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final.
+   ✅ Dura unos 29,6 s (en Play, tras el arreglo, midió 29,4 s). Si se aleja más de medio segundo, anota la duración real.
+3. [ ] A unos 8 s de la escena, mira el atributo `CinematicRedMoon` del Lighting.
    ✅ Vale 0: la luna todavía no es roja. Si no, anota el valor y el segundo.
-3. [ ] Con el evento en vivo de Luna roja encendido desde el panel de administración, lanza `Night`.
+4. [ ] Con el evento en vivo de Luna roja encendido desde el panel de administración, lanza `Night`.
    ✅ La parte de noche (0 a 11 s) no sale roja, porque manda el atributo de la escena. Al acabar, vuelve el rojo del evento. Si sale roja antes de 11 s, anota el segundo.
-4. [ ] Tras la escena, mira la marca de `cinematicsSeen` en el perfil. Antes haz una copia del perfil (§10.0).
+5. [ ] Tras la escena, mira la marca de `cinematicsSeen` en el perfil. Antes haz una copia del perfil (§10.0).
    ✅ `Night` aparece en `cinematicsSeen`. Ya quedó marcada en la prueba de G14c, así que para ver la marca de nuevo hay que borrarla antes con la copia.
 
 ### 186.3 Calidades y FPS (en el Studio de la Isla o en un teléfono)
@@ -7410,6 +7412,116 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
    ✅ Corre en los dos sin errores de script y acaba igual en los dos.
 2. [ ] En el juego publicado, con la luna roja de un evento en vivo, mira que el cielo y la luna se ven como antes de G14c.
    ✅ El tinte y la textura de la luna son los de siempre: `RedMoonSkyController` y `LightingController` no cambian el evento en vivo. Si se ve distinto, anota la diferencia.
+
+## 187. Fase 25 G14d: parcela permanente y modo infinito (10-11-2026)
+
+La escena `Endless` (Parcela y modo infinito, en la Isla) está previsto que dure **30,6 s**, pero en Play midió **26,4 s** con la cámara Scriptable. La causa era la misma que en `Night` (§186): `waitTerrain` saltaba la apertura con un `seek`. Está arreglada (los puntos de espera usan el suelo medido bajo el helicóptero) y tras el arreglo midió **30,5 s**. La grabación anterior, con la apertura aún perdida, tiene defectos que están sin arreglar (§187.7). Solo tiene la versión normal. Usa `Shared/Cinematics/PlotActor` (eventos `plotHide`, `plotMarker`, `plotPiece`, `plotUpgrade` y `dayClock`) y `Data/CinematicKit`. La parcela aparece en el hueco 2 (135°, radio 62) con 7 estructuras en grado I y un cartel dorado; los días 8 a 11 suben las mejoras y el reloj; el Día 12 cae la noche con el Caudillo de plató; acaba con el título «Modo infinito». Orden: «🎬 Parcela y modo infinito (30 s)».
+
+Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la grabación, porque el MCP no captura Play. Las medidas de instancias y FPS son de Studio y no sirven de referencia para el juego publicado.
+
+### 187.1 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [ ] Graba la escena `Endless` entera y mira el amanecer del Día 7 (de 0 a 6 s) y el helicóptero que se va.
+   ✅ El cielo se aclara sin saltos de luz, y el helicóptero y los captions de la apertura salen desde el principio (en la grabación anterior faltaban). El helicóptero sale del cuadro por donde se previó. Su altura y su rumbo al mar no se han medido: si vuela bajo, en otra dirección o se corta, anota el segundo.
+2. [ ] Mira la aparición de la parcela del hueco 2, de 6 a 9 s, con el cartel dorado.
+   ✅ Las 7 estructuras de grado I aparecen en su sitio, sin piezas que floten ni se hundan, y el cartel se lee sin tapar las estructuras. Si el cartel no se ve, anota el segundo: su `BillboardGui` usa `HudHider`.
+3. [ ] Mira la orientación de las 7 estructuras del Layout (yaw 180), de 6 a 9 s.
+   ✅ Todas miran hacia la entrada de la parcela, de cara a la empalizada, y ninguna da la espalda a la cámara de la toma. Si alguna mira al revés, anota cuál.
+4. [ ] Mira que los planos de la parcela queden a 12 studs o más de una estructura o de un actor.
+   ✅ Ningún plano llena la pantalla con una pieza. Si uno lo hace, anota el segundo.
+5. [ ] Mira el reloj de los días 8 a 11 (`dayClock`, en grande): cada día empieza a las 6,2 h y llega a las 17,5 h.
+   ✅ El salto al amanecer de cada día es limpio, sin parpadeo de luz. Si el reloj da la vuelta o se queda en 17,5 h, anota el día y el segundo.
+6. [ ] Mira las mejoras de los días 8 a 10: Forja a 9,9 s, Incubadora a 12,9 s, Forja a 15,8 s y Nido a 17,4 s.
+   ✅ Cada estructura cambia a su grado siguiente con su destello (`plotUpgrade`), y el rebote de `ScaleTo` sobre la pieza fusionada no la deforma. Si se deforma, anota cuál.
+7. [ ] Mira que cada golpe y cada mejora tengan un solo efecto. `PlotActor` duplica los efectos `burst` y `animate` pequeños, y `plotHide` se repite a 5,5 s.
+   ✅ Se ve un solo efecto por golpe o mejora, y la parcela no parpadea ni se mueve al repetirse `plotHide`. Si se ve doble o parpadea, anota el segundo.
+8. [ ] Mira los huevos de la Incubadora en los días 9 a 11.
+   ✅ Los huevos se distinguen por rareza a primera vista (Rare y Legendary, con colores distintos). Si salen del mismo color, anota cuál.
+9. [ ] Mira el Día 11: todas las estructuras pasan a grado III, de 18,6 a 20,6 s.
+   ✅ La subida se ve escalonada, con 0,4 s entre una estructura y la siguiente. Si dos cambian a la vez o la separación no se nota, anota los segundos.
+10. [ ] Mira las estructuras reales de tu propia parcela 1, al fondo de la plaza.
+    ✅ Se ven como fondo y no entran en la parcela de la escena ni en su cartel. Si una tapa la escena, anota el segundo.
+11. [ ] Mira la noche del Día 12 (de 21 a 27,6 s) con el Caudillo de plató en (0,100), la barra de jefe, el rugido (Roar) y el pisotón (Stomp).
+    ✅ La noche cae de forma gradual. El Caudillo se ve entero, a un tamaño de unos 15 studs, y el rugido y el pisotón coinciden con la cámara. Si sale muy grande o muy pequeño, anota el tamaño que ves.
+12. [ ] Mira el título «Modo infinito», el logo y el fundido final, de 27,6 a 30,6 s.
+    ✅ El título y el logo no se pisan, y tras el fundido el negro se sostiene hasta el final. Si la escena acaba antes o después, anota el segundo (ver 187.2, paso 1).
+
+### 187.2 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final, y compárala con la de `Night`.
+   ✅ Dura unos 30,6 s. Antes del arreglo midió 26,4 s y `Night` 25,3 s de 29,6; tras el arreglo, en Play, 30,5 s y 29,4 s. Si vuelve a salir corta, anota la duración real y mira el paso 6.
+2. [ ] Muestra `ClockTime` cada 0,5 s durante la escena (cada 3 s fue demasiado grueso para verlo).
+   ✅ Sube de 6,2 a 17,5 h en cada día y vuelve a 6,2 h al empezar el día siguiente, sin dar la vuelta a las 24 h. Si el reloj da la vuelta o se queda atascado, anota el segundo.
+3. [ ] Mide el pico de instancias de `Workspace` durante la escena.
+   ✅ Sube unas +1.816 instancias (de 41.672 a 43.488). Si se dispara mucho más, anótalo.
+4. [ ] Tras la escena, cuenta los descendientes nuevos de `Workspace` y busca restos (`Cinematic_*`, `ParcelaJefe`, `CinematicPlotFx`).
+   ✅ No queda ningún resto de la escena. Al acabar se midieron 41.738 instancias frente a 41.672 al empezar, es decir, +66 sin identificar: anota su nombre y su clase. Si son restos, hay que limpiarlos; si son del mapa, no.
+5. [ ] Tras la escena, mira la marca de `cinematicsSeen` en el perfil. Antes haz una copia del perfil (§10.0).
+   ✅ `Endless` aparece en `cinematicsSeen`. Ya quedó marcada en la prueba de G14d sobre el perfil real, así que para verla de nuevo hay que borrarla antes con la copia.
+6. [ ] Abre la consola de Studio y lanza `Endless` mirando las líneas «[CinematicClient]» (y repite con `Night`, §186.2, paso 1).
+   ✅ No sale ninguna línea «[CinematicClient] Endless: waitTerrain…». Si sale, debe tardar 0,3 s o menos. Si dice «agotado» o tarda más, copia la línea entera.
+
+### 187.3 En el Studio de la Isla, en modo edición (sin jugar)
+
+1. [ ] Ejecuta la calculadora `Rendimiento` sobre las estructuras de la parcela en sus tres grados (las piezas las da `PlotModels.build`).
+   ✅ Las piezas salen como en la prueba: en grados I/II/III, Forge 6/19/25, Healer 21/31/38, Garden 20/43/60, Bed 9/20/31, Chest 6/17/22, Incubator 14/26/33 y Nest 11/30/44. Si alguna supera el tope de `Config.Budgets`, anótala.
+
+### 187.4 Calidades y FPS (en el Studio de la Isla o en un teléfono)
+
+1. [ ] Lanza la escena `Endless` con la calidad Baja y mira los FPS por tramos (amanecer, parcela, días 8 a 11 y noche).
+   ✅ Se entiende la escena sin tirones gordos, y se leen el reloj y las mejoras.
+2. [ ] Lanza la escena con la calidad Media y mira los FPS por tramos.
+   ✅ Se mantiene una fluidez parecida a la de Baja, con los mismos planos y el mismo orden de la escena.
+
+### 187.5 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Con 2 jugadores, lanza la escena `Endless` en los dos clientes.
+   ✅ Corre en los dos sin errores de script y acaba igual en los dos. Si aparece en plano la parcela o alguna estructura de otro jugador, anota su posición.
+
+### 187.6 En el juego publicado y en el teléfono
+
+1. [ ] Lanza la escena `Endless` en el juego publicado y mira que corre entera en PC.
+   ✅ Corre entera y sin errores. Si no hay manera de lanzarla fuera de Studio, anótalo: falta decidir cuándo se dispara en el juego real.
+2. [ ] En el teléfono, lanza `Endless` y mira la parcela y el cartel dorado.
+   ✅ El cartel se lee sin tapar la franja superior del HUD, y las estructuras se ven con claridad en pantalla pequeña.
+
+### 187.7 Defectos de la grabación del 10-11-2026 (sin arreglar: confirmar tras arreglarlos y regrabar)
+
+Vistos en la grabación de `Endless` (hojas de contacto en `build/videos/endless_hojas/`), con la apertura todavía perdida. Ninguno está arreglado. Cada paso se cierra cuando el arreglo esté hecho y se vea en una grabación nueva. Las letras (a) a (g) son los defectos de la grabación.
+
+1. [ ] Mira el Caudillo de plató en la puerta sur, de día, durante el Día 11, y la toma de vuelta al final del Día 11.
+   ✅ No se ve durante el Día 11: está escondido o enterrado hasta el Día 12, y la toma de vuelta no lo enseña. Hoy se ve pequeño en la puerta sur (defecto a).
+2. [ ] Mira la barra del jefe (`bossBar`) durante el Día 12, a la vez que el reloj grande «Day 12 · 19:30» (`dayClock`), arriba al centro.
+   ✅ La barra no pisa el texto del reloj: los dos se leen (defecto b).
+3. [ ] Mira el primer plano del Caudillo (en la grabación anterior, a 31-34,4 s del vídeo).
+   ✅ El plano se mueve y no está casi estático. Encuadra al jefe entero, sin cortarlo a la altura del pecho (defecto c).
+4. [ ] Mira el rugido (Roar) y el pisotón (Stomp) del Día 12 (en la grabación anterior caían a 21,7 y 24,8 s, fuera de ese plano).
+   ✅ Los dos salen en cuadro y la cámara los acompaña (defecto c).
+5. [ ] Mira el Día 10: el avatar y los actores que lo rodean.
+   ✅ El avatar se ve sin quedar tapado por el Cazador ni por el Médico (defecto d).
+6. [ ] Mira el plano general del Día 11.
+   ✅ Se distingue el grado III de las estructuras a primera vista. Hoy el plano queda demasiado lejos (defecto e).
+7. [ ] Mira el título «Modo infinito» al final de la escena, con el cartel «🏡 Parcela de …» y las estructuras cerca.
+   ✅ El título se lee sin que el cartel ni las estructuras lo tapen (defecto f).
+8. [ ] Mira el reloj del Día 7 al empezar la escena, con `ClockTime` cada 0,5 s.
+   ✅ Sube sin saltos hacia atrás. Hoy marca 07:29, luego 06:34, 06:18 y 07:30 (defecto g).
+
+## 188. Fase 25 G14d: revisión automática de Night (11-11-2026)
+
+Informe en `docs/qa/Night/report.md`. Todo se mira en el vídeo grabado por el usuario: los fotogramas de edición no tienen avatar, monos ni luna.
+
+1. [ ] Mira el plano bajo de 11 a 16 s (los tres de espaldas, la luna roja).
+   ✅ El Cazador, a la derecha, sale entero (el cambio lo mueve de z=7 a z=5,5; antes lo cortaba el borde) y la luna roja se ve.
+2. [ ] Mira el plano lateral de 5 a 11 s (cámara nueva, fuera de la valla, a x≈90 y z=-26).
+   ✅ Se ven los tres por el hueco de la puerta, el avatar con la antorcha avanza por el centro y la cámara no queda tapada por la valla (el usuario ya dio por buena la hierba de primer plano).
+3. [ ] Mira el final, de 26 a 29 s: «Luna roja» y el logo sobre el Gorila saltando (cámara bajada a y=1,2).
+   ✅ El título cae por debajo del torso del avatar. El logo, centrado, aún cubre su torso mientras sale; si molesta, decide el usuario. El Gorila entra en cuadro al saltar.
+5. [ ] Mira el plano de la horda de 16 a 19,6 s (la luz entra a 15,2 s) («Hordas más grandes»).
+   ✅ Se ve la horda saliendo de la selva, sin quedar negra ni con la luz quemada (luz propia nueva de brillo 1,3; el vídeo anterior salía casi negro). Si sigue oscura o se quema, se ajusta el brillo.
+6. [ ] Mira el salto del Gorila de 26 a 27,1 s.
+   ✅ Aterriza a 8 studs del avatar, sin solaparse con él (antes a 3). El Gorila no tapa al avatar en el plano bajo del cierre.
+4. [ ] Mira la marcha de 6 a 11 s (avatar con antorcha, Cazador y Mago).
+   ✅ Caminan con la pista de andar, sin deslizarse. El arnés los marca «deslizando» (6,7 a 10,9 s), probable falso positivo.
 
 ## Cuando termines
 

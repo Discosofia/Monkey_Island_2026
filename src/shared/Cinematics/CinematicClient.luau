@@ -45,6 +45,7 @@ local SceneLight = require(script.Parent.SceneLight)
 local Remotes = require(script.Parent.Parent.Remotes)
 local RescueCrew = require(script.Parent.RescueCrew)
 local Sequencer = require(script.Parent.Sequencer)
+local PlotActor = require(script.Parent.PlotActor)
 local SurvivalActor = require(script.Parent.SurvivalActor)
 local Settings = require(script.Parent.Parent.Settings)
 local Strings = require(script.Parent.Parent.Strings)
@@ -327,21 +328,44 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 		local terrainOnly = RaycastParams.new()
 		terrainOnly.FilterType = Enum.RaycastFilterType.Include
 		terrainOnly.FilterDescendantsInstances = { workspace.Terrain }
-		local deadline = os.clock() + TERRAIN_WAIT_SECONDS
+		local waitStart = os.clock()
+		local deadline = waitStart + TERRAIN_WAIT_SECONDS
+		-- Diagnóstico (Fase 25, A1): qué punto no llega y por cuánto, para saber si la espera se agota y la escena salta.
+		local blocker = ""
+		local allReady = false
 		while os.clock() < deadline do
 			local ready = true
-			for _, point in waitPoints do
+			for index, point in waitPoints do
 				local world = anchor:PointToWorldSpace(Vector3.new(point.X, 0, point.Z))
 				local hit = workspace:Raycast(world + Vector3.new(0, 60, 0), Vector3.new(0, -120, 0), terrainOnly)
-				if not hit or math.abs(hit.Position.Y - (anchor.Position.Y + point.Y)) > TERRAIN_TOLERANCE then
+				if not hit then
 					ready = false
+					blocker = `punto {index} sin suelo`
+					break
+				end
+				local off = hit.Position.Y - (anchor.Position.Y + point.Y)
+				if math.abs(off) > TERRAIN_TOLERANCE then
+					ready = false
+					blocker = `punto {index} a {string.format("%.2f", off)} studs del diseño`
 					break
 				end
 			end
 			if ready then
+				allReady = true
 				break
 			end
 			task.wait(0.15)
+		end
+		local waited = os.clock() - waitStart
+		if waited > 0.3 then
+			print(
+				`[CinematicClient] {id}: waitTerrain {string.format("%.2f", waited)} s, `
+					.. `{if allReady then "listo" else `agotado ({blocker})`}, `
+					.. `retraso respecto al servidor {string.format(
+						"%.2f",
+						workspace:GetServerTimeNow() - startServerTime
+					)} s`
+			)
 		end
 	end
 
@@ -585,6 +609,7 @@ function CinematicClient.start(place: string)
 	LabActor.install(Sequencer)
 	BattleActor.install(Sequencer)
 	SurvivalActor.install(Sequencer)
+	PlotActor.install(Sequencer)
 	CameraShake.install(Sequencer)
 
 	local shared = ReplicatedStorage:FindFirstChild("Shared")

@@ -77,6 +77,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "CineMountsComic", label = "🐎 Monturas cómic" },
 		{ id = "CineSurvival", label = "🎬 Supervivencia (28 s)" },
 		{ id = "CineNight", label = "🎬 Noche y Luna roja (29 s)" },
+		{ id = "CineEndless", label = "🎬 Parcela y modo infinito (30 s)" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

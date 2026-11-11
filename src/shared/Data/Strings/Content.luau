@@ -888,6 +888,13 @@ return {
 	["¡Fuego!"] = "Fire!",
 	["¡Aguanten!"] = "Hold on!",
 	["¡Lo logramos!"] = "We did it!",
+	-- Parcela y modo infinito (Fase 25, G14d; Data/Scenes/Endless).
+	["Rescatados… ¿y si te quedas?"] = "Rescued… what if you stay?",
+	["Tu parcela viaja contigo"] = "Your plot travels with you",
+	["Mejórala día a día"] = "Upgrade it day by day",
+	["Los jefes vuelven más fuertes"] = "The bosses come back stronger",
+	["Modo infinito"] = "Endless mode",
+	["¿Cuántos días aguantas?"] = "How many days can you last?",
 	-- Subtítulos de la versión normal de la batalla de la manada.
 	["El mandril ruge y el guerrero responde."] = "The mandrill roars and the warrior answers.",
 	["Flechas y bolas de fuego abren el combate."] = "Arrows and fireballs open the fight.",

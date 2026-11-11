@@ -7414,6 +7414,10 @@ local Cinematics: { [string]: Scene } = {
 	-- Basecamp, solo para grabar; la lanza «🎬 Noche y Luna roja» del panel de la Isla con ArrivalService.play.
 	Night = require(script.Parent.Scenes.Night).Night,
 
+	-- Parcela y modo infinito (G14d): el rescate, la parcela que sube de grado día a día y el Caudillo de noche; la lanza
+	-- «🎬 Parcela y modo infinito» del panel de la Isla con ArrivalService.play.
+	Endless = require(script.Parent.Scenes.Endless).Endless,
+
 	-- Motor en el Laboratorio (G12): escena de prueba; la lanza «🎬 Motor del Laboratorio» del panel del Laboratorio
 	-- (LabCineController).
 	LabEngine = labScenes.LabEngine,
