@@ -7351,6 +7351,66 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
 1. [ ] Con 2 jugadores, lanza la escena `Survival` en los dos clientes.
    ✅ Corre en los dos sin errores de script, y cada jugador ve su propia recolección, sus barras y su construcción.
 
+## 186. Fase 25 G14c: escena Night (noche y Luna roja) (10-11-2026)
+
+La escena `Night` (Noche y Luna roja, en la Isla) dura **29,6 s** y solo tiene la versión normal. Usa el motor de la luna roja: los atributos de Lighting `CinematicRedMoon`, `CinematicRedMoonSeconds` y `CinematicMoonSize`, el evento `redMoon` de `SceneLight` (que manda sobre el evento en vivo de Luna roja) y una luz fría tenue que sigue a la cámara, porque a 19,5 h los actores salen negros fuera del círculo de las antorchas. La escena empieza con la puerta este de la empalizada, cae la noche de 18,3 a 19,5 h, la luna sale roja a 11,5 s, llega la horda y acaba con el Gorila saltando y el título «Luna roja». Se limpia todo al acabar. Orden: «🎬 Noche y Luna roja (29 s)».
+
+Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la grabación, porque el MCP no captura Play. Las medidas de instancias y FPS son de Studio y no sirven de referencia para el juego publicado.
+
+### 186.1 Grabación con OBS (en el Studio de la Isla, en Play, a 1080p60)
+
+1. [ ] Graba la escena `Night` entera y mira la caída de la noche, de 0 a 5 s: la grúa, las antorchas de los avatares y el Cazador y el Mago encendiéndolas a 2,5, 3 y 3,5 s.
+   ✅ El cielo oscurece de forma gradual, sin saltos de luz, y cada antorcha se enciende en su momento.
+2. [ ] Mira la luna a 19,5 h en el plano donde sale.
+   ✅ La luna se ve en el cuadro, con la elevación y el rumbo previstos, y no queda fuera de la toma.
+3. [ ] Mira la oscuridad de la noche y la luz fría de relleno que sigue a la cámara.
+   ✅ Los actores se ven también fuera del círculo de las antorchas, y la luz fría no se nota como un foco.
+4. [ ] Mira a los dos Martejas, de 5 a 11 s: se acercan al fuego y huyen.
+   ✅ Se acercan y huyen sin atravesar las antorchas ni salir del plano.
+5. [ ] Mira la luna que sale roja a 11,5 s, con el tinte del cielo, el `exposure` -0,35 y la sacudida.
+   ✅ La luna cambia a rojo con el fundido del evento, sin salto. El tinte y la sacudida se ven, y la sacudida no se hace molesta.
+6. [ ] Mira la horda de 3 Macacos, 3 Babuinos y 1 Gorila, de 16 a 22 s, corriendo desde unos 100 studs.
+   ✅ Corre de verdad hacia la cámara, a unos 17 studs/s, y los pies de los monos siguen el relieve sin hundirse ni flotar.
+7. [ ] Mira los árboles que quedan delante del plano «detrás de la horda» (de 100 a 114 studs).
+   ✅ No tapan la horda más de lo previsto y no llenan el cuadro.
+8. [ ] Mira el choque, de 22 a 26 s: WarCry, MultiShot, Fireball, Hurt y Die.
+   ✅ Los efectos se leen con claridad. El rojo y el `exposure` -0,35 dan el golpe, y la muerte no atraviesa el terreno.
+9. [ ] Mira el Gorila saltando sobre el avatar (`Pounce`), de 26 a 29 s.
+   ✅ El salto cae sobre el avatar sin que el Gorila flote o lo atraviese.
+10. [ ] Mira la antorcha del avatar al empezar la escena (0 s).
+    ✅ Está apagada al empezar.
+11. [ ] Mira el avatar haciendo `Slash1` a 26,9 s.
+    ✅ El golpe cae en el momento del choque y el arma se ve en la mano.
+12. [ ] Mira que ningún actor ni muro llena la pantalla en un plano (las cámaras están a 12 studs o más).
+    ✅ Ningún actor ocupa la pantalla. Si uno lo hace, anota el segundo.
+13. [ ] Mira el título «Luna roja», el logo y el fundido final.
+    ✅ El título y el logo no se pisan, y tras el fundido el negro se sostiene hasta el final.
+
+### 186.2 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final.
+   ✅ Dura unos 29,6 s. Si se aleja más de medio segundo, anota la duración real.
+2. [ ] A unos 8 s de la escena, mira el atributo `CinematicRedMoon` del Lighting.
+   ✅ Vale 0: la luna todavía no es roja. Si no, anota el valor y el segundo.
+3. [ ] Con el evento en vivo de Luna roja encendido desde el panel de administración, lanza `Night`.
+   ✅ La parte de noche (0 a 11 s) no sale roja, porque manda el atributo de la escena. Al acabar, vuelve el rojo del evento. Si sale roja antes de 11 s, anota el segundo.
+4. [ ] Tras la escena, mira la marca de `cinematicsSeen` en el perfil. Antes haz una copia del perfil (§10.0).
+   ✅ `Night` aparece en `cinematicsSeen`. Ya quedó marcada en la prueba de G14c, así que para ver la marca de nuevo hay que borrarla antes con la copia.
+
+### 186.3 Calidades y FPS (en el Studio de la Isla o en un teléfono)
+
+1. [ ] Lanza la escena `Night` con la calidad Baja y mira los FPS por tramos (noche, luna roja y horda).
+   ✅ Se entiende la escena sin tirones gordos, y la luna roja y la horda se ven.
+2. [ ] Lanza la escena con la calidad Media y mira los FPS por tramos.
+   ✅ Se mantiene una fluidez parecida a la de Baja, con los mismos planos y el mismo orden de la escena.
+
+### 186.4 Con 2 jugadores y en el juego publicado
+
+1. [ ] Con 2 jugadores (*Prueba → Clientes y servidores*), lanza la escena `Night` en los dos clientes.
+   ✅ Corre en los dos sin errores de script y acaba igual en los dos.
+2. [ ] En el juego publicado, con la luna roja de un evento en vivo, mira que el cielo y la luna se ven como antes de G14c.
+   ✅ El tinte y la textura de la luna son los de siempre: `RedMoonSkyController` y `LightingController` no cambian el evento en vivo. Si se ve distinto, anota la diferencia.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

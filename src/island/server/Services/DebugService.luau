@@ -213,24 +213,40 @@ end
 -- (la hoguera, en (0, 0); los demás sitios de la escena están en su marco). No monta ningún jefe.
 local SURVIVAL_WAIT_OFFSET = Vector3.new(-8, 0, -8) -- dónde espera el personaje real (oculto), en el marco del anchor
 
+-- Anchor de las escenas del Basecamp: el suelo bajo su centro.
+local function basecampStage(): (CFrame, nil, () -> ())
+	local center = BasecampService.getCenter()
+	local terrainOnly = RaycastParams.new()
+	terrainOnly.FilterType = Enum.RaycastFilterType.Include
+	terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
+	local hit = Workspace:Raycast(Vector3.new(center.X, center.Y + 60, center.Z), Vector3.new(0, -300, 0), terrainOnly)
+	local ground = if hit then hit.Position else Vector3.new(center.X, 0, center.Z)
+	return CFrame.new(ground), nil, function() end
+end
+
 local function runSurvival(player: Player)
 	local ok = ArrivalService.play(player, "Survival", nil, {
 		bossId = nil,
 		waitOffset = SURVIVAL_WAIT_OFFSET,
 		clearRadius = 175, -- la recolección se rueda fuera de la puerta norte, a unos 150 del centro
-		create = function()
-			local center = BasecampService.getCenter()
-			local terrainOnly = RaycastParams.new()
-			terrainOnly.FilterType = Enum.RaycastFilterType.Include
-			terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
-			local hit =
-				Workspace:Raycast(Vector3.new(center.X, center.Y + 60, center.Z), Vector3.new(0, -300, 0), terrainOnly)
-			local ground = if hit then hit.Position else Vector3.new(center.X, 0, center.Z)
-			return CFrame.new(ground), nil, function() end
-		end,
+		create = basecampStage,
 	})
 	if not ok then
 		Remotes.Notify:FireClient(player, "🎬 La escena de supervivencia ya está en marcha")
+	end
+end
+
+-- «🎬 Noche y Luna roja» (Fase 25, G14c): la escena «Night» ante la puerta este del Basecamp. Los monos de la horda salen de la
+-- selva a unos 170 studs del centro, así que se limpian los monos reales en 200.
+local function runNight(player: Player)
+	local ok = ArrivalService.play(player, "Night", nil, {
+		bossId = nil,
+		waitOffset = SURVIVAL_WAIT_OFFSET,
+		clearRadius = 200,
+		create = basecampStage,
+	})
+	if not ok then
+		Remotes.Notify:FireClient(player, "🎬 La escena de la noche ya está en marcha")
 	end
 end
 
@@ -986,6 +1002,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	-- «🎬 Supervivencia» (Fase 25, G14b): recolectar, hambre y sed, fabricar y construir en el Basecamp (ver runSurvival).
 	CineSurvival = function(player)
 		runSurvival(player)
+	end,
+	-- «🎬 Noche y Luna roja» (Fase 25, G14c): la noche, el fuego contra las Martejas y la horda de la Luna roja (ver runNight).
+	CineNight = function(player)
+		runNight(player)
 	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)

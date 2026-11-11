@@ -29,10 +29,19 @@ function RedMoonSkyController:Start()
 	RunService.Heartbeat:Connect(function(dt)
 		local state = MatchState.read()
 		local target = 0
-		if LiveEvents.redMoon() then
+		-- Una cinemática (SceneLight, evento redMoon) manda sobre el evento real con el atributo CinematicRedMoon.
+		local forced = Lighting:GetAttribute("CinematicRedMoon")
+		local forcedSeconds = Lighting:GetAttribute("CinematicRedMoonSeconds")
+		local cinematic = typeof(forced) == "number"
+		if cinematic then
+			target = math.clamp(forced :: number, 0, 1)
+		elseif LiveEvents.redMoon() then
 			target = if state and state.phase == "Day" then sky.DayWeight else 1
 		end
-		local step = dt / sky.FadeSeconds
+		local fade = if cinematic and typeof(forcedSeconds) == "number"
+			then math.max(forcedSeconds, 0.05)
+			else sky.FadeSeconds
+		local step = dt / fade
 		amount = if amount < target then math.min(amount + step, target) else math.max(amount - step, target)
 		grade.Enabled = amount > 0.001
 		grade.TintColor = Color3.new(1, 1, 1):Lerp(tint, amount)
@@ -42,7 +51,7 @@ function RedMoonSkyController:Start()
 		-- Sin ciclo de día no hay LightingController: la luna roja se pone aquí.
 		local moonSky = if state then nil else Lighting:FindFirstChildOfClass("Sky")
 		if moonSky then
-			if LiveEvents.redMoon() then
+			if if cinematic then target > 0.5 else LiveEvents.redMoon() then
 				if savedTexture == nil then
 					savedTexture = moonSky.MoonTextureId
 				end

@@ -78,6 +78,9 @@ local function clear()
 	Lighting:SetAttribute("CinematicBrightnessScale", nil)
 	Lighting:SetAttribute("CinematicClockTime", nil)
 	Lighting:SetAttribute("CinematicClockSeconds", nil)
+	Lighting:SetAttribute("CinematicRedMoon", nil)
+	Lighting:SetAttribute("CinematicRedMoonSeconds", nil)
+	Lighting:SetAttribute("CinematicMoonSize", nil)
 	if lift then
 		lift:Destroy()
 		lift = nil
@@ -190,6 +193,16 @@ function SceneLight.install(sequencer: any)
 	sequencer.registerHandler("bloom", function(event: any)
 		setBloom(event)
 	end)
+	-- Evento redMoon { amount, seconds?, size? }: la luna roja de la escena, sin el evento en vivo. amount 0..1 manda sobre
+	-- el evento real (0 = luna normal aunque esté en marcha); seconds = fundido del tinte (3 s por defecto); size = tamaño
+	-- angular de la luna. RedMoonSkyController y LightingController (Isla) leen los atributos. Se quitan al acabar.
+	sequencer.registerHandler("redMoon", function(event: any)
+		Lighting:SetAttribute("CinematicRedMoon", event.amount or 1)
+		Lighting:SetAttribute("CinematicRedMoonSeconds", event.seconds)
+		if typeof(event.size) == "number" then
+			Lighting:SetAttribute("CinematicMoonSize", event.size)
+		end
+	end)
 	sequencer.registerHandler("light", function(event: any, ctx: any)
 		if built[event] then
 			return -- un seek no repite la luz
@@ -211,6 +224,10 @@ function SceneLight.install(sequencer: any)
 			-- Campo hour de la escena: equivale a un evento clock a t = 0.
 			if typeof(scene.hour) == "number" then
 				setClock(scene.hour, nil)
+			end
+			-- Campo redMoonOff: la luna normal aunque el evento en vivo de la luna roja esté en marcha.
+			if scene.redMoonOff == true then
+				Lighting:SetAttribute("CinematicRedMoon", 0)
 			end
 		end,
 		finish = function()

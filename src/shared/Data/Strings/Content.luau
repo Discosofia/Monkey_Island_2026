@@ -879,6 +879,11 @@ return {
 	["Fabrica tu propio equipo"] = "Craft your own gear",
 	["Levanta tus defensas"] = "Raise your defenses",
 	["Recolecta, fabrica, construye"] = "Gather, craft, build",
+	-- Noche y Luna roja (Fase 25, G14c; Data/Cinematics «Night»).
+	["Cae la noche"] = "Night falls",
+	["El fuego los mantiene a raya"] = "The fire keeps them at bay",
+	["La luna sale roja"] = "The moon rises red",
+	["Hordas más grandes. Monos más fuertes."] = "Bigger hordes. Stronger monkeys.",
 	["¡Que vengan!"] = "Bring them on!",
 	["¡Fuego!"] = "Fire!",
 	["¡Aguanten!"] = "Hold on!",

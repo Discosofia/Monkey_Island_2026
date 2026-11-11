@@ -180,9 +180,13 @@ function LightingController:Start()
 		local sky = Lighting:FindFirstChildOfClass("Sky")
 		if moon and sky then
 			-- La luna del cielo crece hacia la llena y se encoge hacia la nueva.
-			sky.MoonAngularSize = moon.MoonSize
+			-- Una cinemática puede fijar el tamaño (CinematicMoonSize) y la luna roja (CinematicRedMoon, SceneLight).
+			local moonSize = Lighting:GetAttribute("CinematicMoonSize")
+			sky.MoonAngularSize = if typeof(moonSize) == "number" then moonSize else moon.MoonSize
 			-- La luna roja (B3) cambia la imagen; el tinte del cielo lo pone RedMoonSkyController.
-			sky.MoonTextureId = if LiveEvents.redMoon() then Config.Moon.RedMoonTexture else moon.MoonTexture
+			local forcedRed = Lighting:GetAttribute("CinematicRedMoon")
+			local redMoon = if typeof(forcedRed) == "number" then forcedRed > 0.5 else LiveEvents.redMoon()
+			sky.MoonTextureId = if redMoon then Config.Moon.RedMoonTexture else moon.MoonTexture
 		end
 		local s = adjust(sampleAt(clock), clock)
 		Lighting.Ambient = s.Ambient
