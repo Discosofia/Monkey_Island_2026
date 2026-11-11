@@ -62,6 +62,15 @@ print(require(m).informe()); m:Destroy()
 - **Mundo:** los escenarios del Lobby y de Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`. Tienen versión: el servidor los reconstruye al arrancar si faltan o son viejos, y para dejarlos fijos en el place se ejecuta `require(game.ServerScriptService.Server.World.<Builder>).build()` en modo edición. El campo de tiro del Lobby es `World/RangeBuilder` (`Workspace.CampoDeTiro`): tiene versión propia, el servidor lo reconstruye al arrancar si falta o es viejo, y para dejarlo fijo se ejecuta `require(game.ServerScriptService.Server.World.RangeBuilder).build()` en modo edición. La isla la genera `island/tools/MapBuilder` (`build({ islandRadius = 950 })`, una sola vez, y borra el terreno). Lo generado se guarda en el place, no en el repo: después hay que guardar y publicar.
 - **Cinemáticas (Fase 25):** `Shared/Data/Cinematics` junta las escenas y tiene casi el tope de locales de Luau. Las escenas nuevas van en su propio archivo en `Shared/Data/Scenes/<Nombre>.luau` (con `require` de `Shared/Data/CinematicKit`: tipos, `cameraKey`, `cutShots`, `actionWriters`, `yawBetween`, `DUSK_HOUR`) y se registran con una línea en `Cinematics`.
 
+## Lista de entrega de cinemáticas (antes de pedir al usuario que grabe)
+
+1. Con raycast, apoya en el suelo a cada actor y montura: nada flotando, hundido en una pendiente ni deslizándose.
+2. Comprueba que ningún terreno, árbol, roca o prop atraviesa a los actores, el campamento o el recorrido de la cámara.
+3. Los actores llevan el vestuario y el armamento de la escena, **no** el equipo del jugador; el avatar real se ve y el servidor no lo recoloca.
+4. Los títulos y logos no tapan al sujeto principal, y las onomatopeyas y los rótulos no quedan cortados.
+5. Cada jefe o batalla tiene una coreografía distinta (sin repetir secuencias).
+6. Captura cada plano cada 0,5 s y revisa la hoja de contacto: sin fotogramas vacíos, en pose o quemados de luz.
+
 ## Reglas del proyecto
 
 - La premium del pase y todo lo de Robux es **solo cosmético**. El Ámbar, el tiempo de huevo y las provisiones nunca se venden: el Ámbar compra mejoras de poder. La sección "Reglas de pago" de `Economia` lo comprueba.
@@ -73,6 +82,11 @@ print(require(m).informe()); m:Destroy()
 - No se editan en Studio los scripts sincronizados: Rojo los sobrescribe.
 - Al escribir archivos con Python en Windows, hay que forzar LF (`newline=""`).
 - Flujo de trabajo: cada grupo de `docs/PLAN.md` es una sesión. Se prueba en Studio y con la calculadora, después se hace el commit, y el push solo cuando el usuario dice "aprobado". Entonces se marca la fila en `PLAN.md` en un commit aparte.
+- **Commits y push:**
+  - No se hace commit ni push hasta que el usuario aprueba de forma explícita («aprobado»). Con la aprobación, commit y push en un solo paso.
+  - Se añaden al índice **solo** los archivos que cambiaste en la tarea, nunca los cambios sin confirmar del usuario. Antes de hacer el commit, `git status` y se enseña la lista de archivos.
+  - Nunca se suben commits anteriores de otra fase sin preguntar antes.
+  - Los hashes y el estado de las filas de `PLAN.md` se escriben con la herramienta Edit, no con `sed` ni heredocs: el texto por shell es poco fiable en este Windows.
 - **Lo que queda sin probar va a `docs/VERIFICACION.md`.** Si algo no se ha podido probar (hacen falta 2 jugadores, el juego publicado, el emulador de teléfono…), se apunta allí como sección nueva, en su formato (`1. [ ] paso` y debajo `✅ lo que debe pasar`), agrupado por cómo se prueba, y va en el mismo commit que el cambio. `PLAN.md`, los handoffs y el resumen al usuario solo remiten a esa sección.
 
 ## Studio y MCP: trampas conocidas
@@ -83,6 +97,21 @@ print(require(m).informe()); m:Destroy()
 - **Cámara:** `screen_capture` con cámara deja la cámara de edición en `Scriptable`, y eso se guarda en el place. Ponla en `Fixed` como último paso.
 - **Clics del MCP:** los clics por coordenadas fallan por el inset. Usa `instance_path`, renombrando antes los padres repetidos (`Frame.Frame`). En el código que se manda por MCP, los nombres con "ñ" van por `FindFirstChild("MuñecosDePractica")`.
 - **Rojo:** no recarga en caliente los cambios de los `*.project.json` y se desconecta al reabrir el place. La captura de Studio en Play no dibuja los `BillboardGui` del mundo.
+- **Play del usuario:** nunca pares un Play que inició el usuario; si Studio está ocupado, pídele que lo libere. Tras una prueba, para el Play solo si lo iniciaste tú.
+- **Rojo sincronizado antes de probar:** antes de cualquier prueba en Play, confirma con `execute_luau` un valor o marca de versión que acabas de cambiar. El código viejo ha dado falsos resultados.
+
+## Trampas de Luau
+
+- Una función o script admite como máximo 200 locales. En cinemáticas grandes, agrupa el estado en tablas o usa `CinematicKit` desde el principio.
+- Carga los `AnimationTrack` **después** de poner el modelo en `workspace`: en un modelo sin padre se quedan con peso 0.
+- Los `ScreenGui` de cinemáticas usan `ZIndexBehavior.Sibling`; con el global, los paneles salen negros.
+- El texto de las esquinas no invade la zona del botón Saltar. Cuenta el inset de la barra superior al colocar miras e interfaz.
+- Las piezas de FX reutilizadas (`BossFx`) se liberan o se recrean cuando se destruye la carpeta que las contiene.
+- No pongas un fundido de entrada en la primera ejecución sin probar el arranque en frío (causó una pantalla negra).
+
+## Comunicación
+
+Si una orden corta puede referirse a varias cosas (qué cinemática, qué jefe o gorila, «rayos» = relámpagos o destellos, deshacer código o actualizar docs), repite tu interpretación en una línea y confirma antes de editar.
 
 ## Skills del proyecto (`.claude/skills/`)
 

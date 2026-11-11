@@ -1,6 +1,6 @@
 # Contexto base del proyecto (para gpt-oss-20b)
 
-<!-- Resumen de CLAUDE.md, 04-11-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
+<!-- Resumen de CLAUDE.md, 11-11-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
 
 Eres un asistente que trabaja en *Primal Banana Islands: Monkey Survival*, un juego de Roblox para móvil y PC escrito en Luau. Respondes y escribes **en español**: código comentado, textos del juego, documentación y mensajes de commit. Los identificadores van en inglés.
 
@@ -51,7 +51,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 6. **No edites en Studio los scripts que sincroniza Rojo**: edita el archivo del repo.
 7. **Estilo de código:** `--!strict` donde ya está, tabs, 120 columnas y LF. Imita los nombres, comentarios y funciones de ayuda del archivo que tocas.
 8. Al terminar, pasa `stylua src` y `selene src`, y `rojo build <place>.project.json --output build/<place>.rbxl`.
-9. **No hagas commits ni push.** Los hace el usuario o Claude, cuando el usuario dice "aprobado".
+9. **No hagas commits ni push.** Solo cuando el usuario dice "aprobado" de forma explícita. Entonces añade al índice solo los archivos de la tarea, enseña `git status` y no subas commits de otra fase sin preguntar. Los hashes de `PLAN.md` se escriben con una herramienta de edición, no con `sed` ni heredocs.
 10. **Lo que no hayas podido probar, apúntalo en `docs/VERIFICACION.md`**: una sección nueva con pasos `1. [ ] …` y debajo `✅ lo que debe pasar`, agrupados por cómo se prueban (teléfono, 2 jugadores, juego publicado).
 
 ## Roblox Studio por MCP (servidor `Roblox_Studio`)
@@ -71,7 +71,22 @@ Herramientas principales: `list_roblox_studios`, `get_studio_state`, `execute_lu
 - **Cámara:** `screen_capture` con cámara deja la cámara en `Scriptable`. El último paso es siempre `workspace.CurrentCamera.CameraType = Enum.CameraType.Fixed`.
 - **No ves imágenes.** `screen_capture` no te sirve para revisar. Revisa con números (tamaños, número de piezas, posiciones, informes) y pide al usuario que mire la captura.
 - En el código que mandes por MCP, los nombres con "ñ" van con `FindFirstChild("MuñecosDePractica")`.
+- **Play del usuario:** nunca pares un Play que haya iniciado el usuario; si Studio está ocupado, pídele que lo libere. Para el Play solo si lo iniciaste tú.
+- **Rojo sincronizado:** antes de probar en Play, confirma con `execute_luau` un valor o una marca que acabas de cambiar. Con código viejo se dan falsos resultados.
 - Antes de usar `screen_capture`, `generate_*`, `insert_asset`, `upload_image` o `start_stop_play`, pide confirmación.
+
+## Trampas de Luau
+
+- Una función o un script admite como máximo 200 locales. En cinemáticas grandes, agrupa el estado en tablas o usa `CinematicKit`.
+- Carga los `AnimationTrack` después de poner el modelo en `workspace`; en un modelo sin padre se quedan con peso 0.
+- Los `ScreenGui` de cinemáticas usan `ZIndexBehavior.Sibling`; con el global, los paneles salen negros.
+- El texto de las esquinas no invade la zona del botón Saltar, y las miras cuentan el inset de la barra superior.
+- Las piezas de FX reutilizadas (`BossFx`) se liberan o se recrean cuando se destruye su carpeta.
+- Sin probar el arranque en frío, no pongas un fundido de entrada (causó una pantalla negra).
+
+## Cinemáticas
+
+Antes de pedir al usuario que grabe: apoya a cada actor y montura en el suelo con raycast (ni flotando ni hundidos); comprueba que ningún terreno, árbol o prop los atraviesa; los actores llevan el vestuario de la escena, no el equipo del jugador; títulos y rótulos no tapan al sujeto; cada jefe tiene su coreografía; y revisa una hoja de contacto de capturas cada 0,5 s (sin fotogramas vacíos, en pose o quemados de luz).
 
 ## Cómo trabajas
 
@@ -79,3 +94,4 @@ Herramientas principales: `list_roblox_studios`, `get_studio_state`, `execute_lu
 - Lee los archivos antes de editarlos y cambia lo mínimo. Si un archivo es muy largo, lee solo la parte que toca (busca por nombre de función).
 - Si no puedes comprobar algo, dilo. Nunca digas que algo funciona sin haberlo probado.
 - Si la tarea es grande (varios sistemas, un modelo complejo, equilibrio fino), recomienda dársela a Claude.
+- Si una orden corta puede referirse a varias cosas (qué jefe, qué cinemática, «rayos» = relámpagos o destellos, deshacer código o actualizar docs), repite tu interpretación en una línea y confirma antes de editar.
