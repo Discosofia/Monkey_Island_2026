@@ -19,6 +19,22 @@ El usuario grabó `O:\Videos Primal banana\2026-11-11 08-15-26.mkv` (hoja en `ho
 | 4 | El Gorila se solapaba con el avatar: el salto acababa en `gt(5, 0)` y el avatar está en `gt(2, 0)` | Aterriza en `gt(10, 0)`. Solo comprobado por geometría: los monos de servidor no existen en edición |
 | 5 | La horda de 16 a 19 s salía casi negra (vídeo): la única luz que seguía a la cámara era de 0,6 | Luz propia desde 15,2 s (rosa fría, brillo 1,3, alcance 60, 4,4 s; antes en 15,8 s y el usuario la vio encenderse tarde). Con 1,8 los maniquíes salían pálidos a 8 studs. Edición no es de noche: el brillo definitivo se juzga en el vídeo |
 
+## Vuelta 3: marcas de cámara de A8 (11-11-2026)
+
+Con las marcas `camcerca` y `camalta` del arnés (A8, regla D1: ≥ 12 st de los actores y ≥ 4,5 st del suelo) salieron cinco planos por debajo de la regla. El usuario pidió corregirlos todos; se midió con el arnés recortado (solo la parte de cámara) en Play.
+
+| # | Plano | Antes | Ahora | Motivo |
+|---|---|---|---|---|
+| 6 | Plano bajo hacia la luna, 11-16 s | cámara a 1,3 st (0,9 sobre el suelo) | 5,5 st, misma inclinación a la luna | `camalta`: a < 3 st la hierba tapa el plano |
+| 7 | Contraplano de la horda, 19-22 s | 2,5 st, a x −16/−12 | 5,5 st, a x −21/−18 | `camalta` y `camcerca` (Cazador y Mago a 9,3 st a 21,8 s) |
+| 8 | Choque, 22-26 s | 4,5 y 4 st (≈ 4,1 sobre el suelo) | 6,5 st | `camalta` por 0,4 st |
+| 9 | Grúa, 0-5 s | final en (−21, 5,5, 7), Cazador a 10,3 st | (−26, 6, 8) | `camcerca` |
+| 10 | Cierre, 26-29 s | 1,2 st rasante, a x −15/−13, FOV 48/44; el Mago a 9,5 st hacia 26 s | 5,5 st, a x −24/−22, FOV 42/38 | **Decisión del usuario:** el rasante estaba justificado (el Gorila salta hacia la cámara y el cuerpo del avatar quedaba sobre la zona del cartel, cambio 3 de la vuelta 2), pero marcaba `camalta` y el Mago. Se sube y se aleja; el FOV baja para que el Gorila siga llenando el plano |
+
+Medido en Play después: la cámara del cierre queda a ≥ 5,4 st del suelo y a 18,5 (Mago), 20,1 (Cazador) y 23,3 st (avatar) de los maniquíes. Queda marcado solo el Babuino a 11,3 st hacia 16,9 s (corte del plano de la horda, sin tocar).
+
+**Coste del cierre (a mirar en vídeo):** con la cámara a 5,5 st, hacia 27,4-28,5 s la cabeza del avatar queda a 0,40 de la altura de pantalla y sus pies a 0,71-0,72, y el cartel «Luna roja» empieza en 0,63. Las piernas del avatar vuelven a quedar bajo el cartel (antes el cambio 3 las había subido por encima). El título y el logo siguen tapando el torso, como ya se había decidido. Si estorba, hay que bajar el punto de mirada del cierre (y = 3,5) para subir al avatar en cuadro, no bajar la cámara.
+
 ## Marcas que quedan para el vídeo (no confirmadas)
 
 | Marca | Lo que se sabe | Veredicto |

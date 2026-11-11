@@ -7666,6 +7666,26 @@ A6 pasa las posiciones de pantalla de las cinemáticas a `Shared/Cinematics/Scre
 1. [ ] Cuando Studio pueda usar el DataStore (hoy da 502), haz la copia de `PlayerData_v1` (§10.0) antes de §192.1 y restaura al acabar.
    ✅ El perfil queda como estaba. Hoy Play pudo marcar `CineEndless`, `CineSurvival`, `CineBossBattle` y los cómics en `cinematicsSeen` del perfil real, sin restaurar (mismo caso que §190.1 y §191.5).
 
+## 193. Fase 25 A8: marcas de cámara del arnés (11-11-2026)
+
+A8 añade a `tools/cine_qa.luau` dos marcas medidas cada cuadro: **camcerca** (cámara a menos de 12 st de un maniquí, mono de cinemática o jefe de plató en pantalla; «muy cerca» bajo 9) y **camalta** (cámara a menos de 4,5 st sobre el suelo). La skill y CLAUDE.md las exigen antes de decir «lista para grabar». Probado en el Studio de la Isla, en Play, con un jugador y **sin copia del perfil** (Play marcó `Night` en `cinematicsSeen`), con una versión recortada del arnés (solo la parte de cámara) en `CineNight`: sale `camcerca` en el Cazador (mín. 9,7 st a 21,8 s), el Mago (9,3 a 21,8 s) y un Babuino (10,9 a 16,9 s), y `camalta` de 10,8 a 29,4 s con mínimo de 0,9 st sobre el Terrain a 15,8 s. Lo que queda sin probar es esto.
+
+### 193.1 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Lanza `CineNight` con el arnés completo de `tools/cine_qa.luau` (no la versión recortada) y lee el JSON al acabar.
+   ✅ Salen las mismas marcas `camcerca` y `camalta` de arriba, más las de siempre, y el JSON trae `cam` con `minDist` y `minHeight`. Sin `camError`.
+2. [ ] Lanza `CineEndless` con el arnés completo.
+   ✅ No sale `camalta` (la cámara a 1,5 st se corrigió en G14d) y el jefe de plató cuenta en `camcerca` solo cuando ya subió (no enterrado). Anota cualquier marca y su hora.
+3. [ ] Lanza `CineBossBattle` y una escena de monturas o mascotas.
+   ✅ Los jefes y las monturas de servidor también cuentan en `camcerca`. Si alguno no sale en la lista y se ve de cerca en el vídeo, anota cuál.
+4. [ ] `CineNight` en vídeo: mira el plano bajo (11-16 s, cámara a 5,5 st), el contraplano (19-22 s, a 5,5 st y 5 st más atrás), la grúa (0-5 s, final a 6 st y 5 st más atrás), el choque (22-26 s, a 6,5 st) y el cierre (26-29 s, ahora a 5,5 st, 6 st más atrás y con menos campo de visión, 42 → 38).
+   ✅ La luna sigue en cuadro en el plano bajo, el contraplano no queda vacío, y en el cierre el Gorila que salta sigue llenando el plano pese a la distancia. Con el arnés (versión recortada) solo queda una marca: el Babuino a 11,3 st hacia 16,9 s (corte de la horda). En el cierre mira si las piernas del avatar, que quedan bajo el cartel «Luna roja» (cabeza a 0,40 y pies a 0,72 de la pantalla; el cartel empieza en 0,63), estorban, y si el Gorila llena el plano. Además el rayo cámara-avatar topa con `Empalizada.GatePost` hacia 4,8 s (final de la grúa): mira en vídeo si el poste tapa el plano.
+
+### 193.2 Perfil real
+
+1. [ ] Cuando Studio pueda usar el DataStore, restaura el perfil (§10.0).
+   ✅ `cinematicsSeen` queda como estaba; hoy Play pudo marcar `Night`.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

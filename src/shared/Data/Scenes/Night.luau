@@ -222,7 +222,7 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				t0 = 0,
 				t1 = 5,
 				a = cameraKey(gc(-30, 18, 6), gc(8, 3, 0), 58),
-				b = cameraKey(gc(-21, 5.5, 7), gc(8, 3, 0), 55),
+				b = cameraKey(gc(-26, 6, 8), gc(8, 3, 0), 55),
 			},
 			-- Lateral del fuego: de lado y más atrás (z -26), mirando a +Z: lo de fuera de la puerta (+X) cae a la izquierda. Empieza
 			-- con los tres a la derecha y se desplaza hacia la selva siguiendo al avatar con la antorcha. La cámara se queda
@@ -237,8 +237,8 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 11,
 				t1 = 16,
-				a = cameraKey(gc(-16, 1.3, 0), aim(gc(-16, 1.3, 0), 6, 4), 60),
-				b = cameraKey(gc(-16, 1.3, 0), aim(gc(-16, 1.3, 0), 14, 13), 60),
+				a = cameraKey(gc(-16, 5.5, 0), aim(gc(-16, 5.5, 0), 6, 4), 60),
+				b = cameraKey(gc(-16, 5.5, 0), aim(gc(-16, 5.5, 0), 14, 13), 60),
 			},
 			-- Detrás de la horda, por encima de la linde de la selva: la ven quieta y echar a correr.
 			{
@@ -251,22 +251,22 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 19,
 				t1 = 22,
-				a = cameraKey(gc(-16, 2.5, 0), gc(40, 3, 0), 58),
-				b = cameraKey(gc(-12, 2.5, 0), gc(34, 4, 0), 52),
+				a = cameraKey(gc(-21, 5.5, 0), gc(40, 3, 0), 58),
+				b = cameraKey(gc(-18, 5.5, 0), gc(34, 4, 0), 52),
 			},
 			-- Choque de lado: la tripulación a la izquierda y la horda a la derecha.
 			{
 				t0 = 22,
 				t1 = 26,
-				a = cameraKey(gc(12, 4.5, -30), gc(14, 3, 0), 60),
-				b = cameraKey(gc(16, 4, -29), gc(17, 3.5, 0), 56),
+				a = cameraKey(gc(12, 6.5, -30), gc(14, 3, 0), 60),
+				b = cameraKey(gc(16, 6.5, -29), gc(17, 3.5, 0), 56),
 			},
-			-- Cierre: bajo, detrás del avatar; el Gorila salta hacia la cámara.
+			-- Cierre: detrás del avatar, a 5,5 st (≥ 4,5) y a 24 studs de la puerta; el Gorila salta hacia la cámara.
 			{
 				t0 = 26,
 				t1 = NIGHT_SECONDS,
-				a = cameraKey(gc(-15, 1.2, -3), gc(12, 3.5, 0), 48),
-				b = cameraKey(gc(-13, 1.2, -3), gc(8, 3.5, 0), 44),
+				a = cameraKey(gc(-24, 5.5, -3), gc(12, 3.5, 0), 42),
+				b = cameraKey(gc(-22, 5.5, -3), gc(8, 3.5, 0), 38),
 			},
 		}
 

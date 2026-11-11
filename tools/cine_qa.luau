@@ -19,12 +19,19 @@
 --                arriba o esquina de «Saltar»). Aviso suave «sinbanda»: un texto visible que no es de esa lista.
 --                ScreenBands se lee con require desde ReplicatedStorage.Shared (solo constantes: el estado de la pila
 --                en esta copia no sirve, así que la Y de BossBar y DayClock se deduce de si la barra está en pantalla).
+--   camcerca     (A8, regla D1) la cámara de la escena queda a menos de OPTS.camNear studs (12) de un actor, mono o jefe de
+--                plató que está en pantalla. Se mide cada cuadro (RenderStepped), de la cámara a la caja del sujeto;
+--                «muy cerca» por debajo de OPTS.camHard (9) y «cámara dentro» si la atraviesa. El detalle da el mínimo y su hora.
+--   camalta      (A8) la cámara queda a menos de OPTS.camHeight studs (4,5) sobre el suelo (rayo hacia abajo; el agua no cuenta).
+--                Por debajo de ~3 st la hierba tapa el plano.
 --   luz          aproximaciones de negro y quemado (ver abajo)
 --
 -- LÍMITES, dichos claros: (1) desde el motor no se leen los píxeles, así que «negro» es el velo `Fade` casi opaco y
 -- «quemado» es Lighting/ColorCorrection/Bloom extremos; la luminancia real se juzga en las capturas. (2) El
 -- deslizamiento, el suelo y «fuera» dan falsos positivos en saltos, barcos y monturas: son pistas con hora, las
--- confirma una captura. (3) No sabe cuál es el sujeto de cada plano.
+-- confirma una captura. (3) No sabe cuál es el sujeto de cada plano. (4) camcerca y camalta no saben si un primer plano o un
+-- plano rasante es a propósito: cada marca se corrige o se justifica en report.md. Solo cuentan los sujetos en pantalla, y
+-- camalta mide el suelo (la hierba del Terrain no se raya).
 --
 -- El resultado queda en el atributo de texto `CineQA` del jugador local (JSON), así sobrevive entre llamadas.
 
@@ -39,6 +46,9 @@ local OPTS = {
 	expect = nil,
 	interval = 0.5,
 	maxSeconds = 90,
+	camNear = 12, -- studs: por debajo, camcerca (regla D1)
+	camHard = 9, -- studs: por debajo, «muy cerca»
+	camHeight = 4.5, -- studs sobre el suelo: por debajo, camalta
 }
 
 local FLOOR_TOL = 0.3
@@ -47,6 +57,8 @@ local OFFSCREEN_MARGIN = 0
 local BAND_TOL = 3 -- px de tolerancia al comparar la caja de un elemento con su banda
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
+local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
@@ -425,6 +437,128 @@ local function sample(t)
 	end
 end
 
+-- A8: distancia de la cámara a los sujetos y altura sobre el suelo, cada cuadro. Sujetos: maniquíes Cinematic_*, monos de
+-- cinemática (etiqueta CinematicActor) y jefes de plató (atributo StageSpot) que no estén enterrados.
+local camSubjects = {}
+local camSubjectsAt = -10
+local function refreshSubjects(now)
+	if now - camSubjectsAt < 1 then
+		return
+	end
+	camSubjectsAt = now
+	local list, seen = {}, {}
+	local function add(model)
+		if model:IsA("Model") and not seen[model] then
+			seen[model] = true
+			table.insert(list, model)
+		end
+	end
+	for _, a in actorsNow() do
+		add(a)
+	end
+	for _, m in CollectionService:GetTagged("CinematicActor") do
+		add(m)
+	end
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("Model") and d:GetAttribute("StageSpot") ~= nil then
+			local spot = d:GetAttribute("StageSpot")
+			if typeof(spot) ~= "CFrame" or d:GetPivot().Y > spot.Y - 2 then
+				add(d)
+			end
+		end
+	end
+	camSubjects = list
+end
+
+local function cameraCheck(t)
+	if camera.CameraType ~= Enum.CameraType.Scriptable then
+		return -- la cámara es la del jugador, no la de la escena
+	end
+	refreshSubjects(t)
+	local camCF = camera.CFrame
+	local camPos = camCF.Position
+	local cam = state.cam
+	-- altura sobre el suelo
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true
+	params.RespectCanCollide = true
+	local excluded = { camera, player.Character }
+	for _, m in camSubjects do
+		table.insert(excluded, m)
+	end
+	params.FilterDescendantsInstances = excluded
+	local hit = workspace:Raycast(camPos, Vector3.new(0, -300, 0), params)
+	if hit then
+		local height = camPos.Y - hit.Position.Y
+		if not cam.minHeight or height < cam.minHeight then
+			cam.minHeight, cam.minHeightT = math.floor(height * 10) / 10, math.floor(t * 10) / 10
+		end
+		if height < OPTS.camHeight then
+			flag("camalta", "camara", "", t)
+			local e = state.flags["camalta|camara"]
+			if not e.min or height < e.min then
+				e.min = height
+				e.detail = string.format(
+					"mín %.1f st sobre %s a t=%.1f (pide ≥ %.1f)",
+					height,
+					if hit.Instance:IsA("Terrain") then "Terrain" else hit.Instance:GetFullName(),
+					t,
+					OPTS.camHeight
+				)
+			end
+		end
+	end
+	-- distancia a los sujetos en pantalla
+	local viewport = camera.ViewportSize
+	for _, m in camSubjects do
+		if m.Parent then
+			local cf, size = m:GetBoundingBox()
+			local rel = cf:PointToObjectSpace(camPos)
+			local half = size / 2
+			local outside = Vector3.new(
+				math.max(math.abs(rel.X) - half.X, 0),
+				math.max(math.abs(rel.Y) - half.Y, 0),
+				math.max(math.abs(rel.Z) - half.Z, 0)
+			)
+			local dist = outside.Magnitude
+			local visible = dist == 0
+			if not visible then
+				for sx = -1, 1, 2 do
+					for sy = -1, 1, 2 do
+						for sz = -1, 1, 2 do
+							local p, inFront = camera:WorldToViewportPoint(cf:PointToWorldSpace(half * Vector3.new(sx, sy, sz)))
+							if inFront and p.X >= 0 and p.X <= viewport.X and p.Y >= 0 and p.Y <= viewport.Y then
+								visible = true
+							end
+						end
+					end
+				end
+			end
+			if visible then
+				if not cam.minDist or dist < cam.minDist then
+					cam.minDist, cam.minDistWho, cam.minDistT = math.floor(dist * 10) / 10, m.Name, math.floor(t * 10) / 10
+				end
+				if dist < OPTS.camNear then
+					local key = "camcerca|" .. m.Name
+					flag("camcerca", m.Name, "", t)
+					local e = state.flags[key]
+					if not e.min or dist < e.min then
+						e.min = dist
+						e.detail = string.format(
+							"mín %.1f st a t=%.1f (%s; pide ≥ %d)",
+							dist,
+							t,
+							if dist == 0 then "cámara dentro del sujeto: ¿fpView?" elseif dist < OPTS.camHard then "muy cerca" else "cerca",
+							OPTS.camNear
+						)
+					end
+				end
+			end
+		end
+	end
+end
+
 task.spawn(function()
 	remote:FireServer(OPTS.command, OPTS.args)
 	local began = os.clock()
@@ -433,6 +567,13 @@ task.spawn(function()
 		task.wait(0.1)
 	end
 	local t0 = os.clock()
+	state.cam = {}
+	local camConn = RunService.RenderStepped:Connect(function()
+		local ok, err = pcall(cameraCheck, os.clock() - t0)
+		if not ok then
+			state.camError = tostring(err)
+		end
+	end)
 	local quiet = 0
 	while os.clock() - t0 < OPTS.maxSeconds do
 		local t = os.clock() - t0
@@ -456,6 +597,7 @@ task.spawn(function()
 		end
 		task.wait(OPTS.interval)
 	end
+	camConn:Disconnect()
 	state.status = "done"
 	state.seconds = math.floor((os.clock() - t0) * 10) / 10
 	save(state)

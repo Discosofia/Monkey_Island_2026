@@ -70,6 +70,7 @@ print(require(m).informe()); m:Destroy()
 4. Los títulos y logos no tapan al sujeto principal, y las onomatopeyas y los rótulos no quedan cortados.
 5. Cada jefe o batalla tiene una coreografía distinta (sin repetir secuencias).
 6. Captura cada plano cada 0,5 s y revisa la hoja de contacto: sin fotogramas vacíos, en pose o quemados de luz.
+7. La cámara queda a ≥ 12 studs de los actores en pantalla y a ≥ 4,5 st sobre el suelo, salvo plano a propósito apuntado en el informe (marcas `camcerca` y `camalta` del arnés `tools/cine_qa.luau`).
 
 ## Reglas del proyecto
 

@@ -1275,7 +1275,7 @@ Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se ha
   - **A5.** Evento `stageShow`/`stageHide` (o jefe de plató enterrado) para los jefes de escena. **Hecha** (a003fa1, 11-11-2026): tabla `Shared/Data/StageBosses` (17 entradas por id de escena), `StageBoss.mount` y avisos `[StageBosses]` en `IslandBossHooks`; `DebugService` usa la tabla y ya no tiene constantes ENDLESS_BOSS*. Nada cambia visualmente. Sin probar: VERIFICACION §191.
   - **A6.** Tabla de bandas de pantalla en `Shared/Cinematics/ScreenBands` (franja, pila de la barra del jefe y el reloj, título, subtítulo, caption y «Saltar»). **Hecha** (56c0dbb, 11-11-2026): `Endless` sin cambios visibles (reloj a 12 px sin barra y 64 con barra, sin el `drop = 52`); el arnés marca **banda** y **sinbanda**. Sin probar: VERIFICACION §192.
   - **A7.** `dayClock` sin saltos hacia atrás (defecto g). Hecha (guarda en PlotActor y ramp en Endless); falta confirmar en vídeo (VERIFICACION §189).
-  - **A8.** Script de chequeo de cámara en edición (distancia a actores y altura sobre el suelo). Pendiente.
+  - **A8.** Chequeo de cámara (distancia a actores y altura sobre el suelo). **Hecha en código (11-11-2026, sin commit):** va dentro del arnés `tools/cine_qa.luau` y se mide en Play, no en edición (en edición los actores no se mueven). Marcas **camcerca** (< 12 st, «muy cerca» < 9) y **camalta** (< 4,5 st); la skill (§2, paso 7.2b) y CLAUDE.md (punto 7 de la lista de entrega) las exigen. En `CineNight`: Cazador 9,7 st, Mago 9,3 st y cámara a 0,9 st a 15,8 s. Sin probar: VERIFICACION §193.
 - **B. Escenas concretas**
   - **B1.** Arreglos de `Endless` de la lista de defectos (VERIFICACION §187.7, a a g). Hecha en código y probada con el arnés; falta confirmar en vídeo (VERIFICACION §189).
   - **B2.** Repetir `Night` en vídeo y medir `CinematicRedMoon` a 0 hacia t ≈ 8 s. Pendiente.
@@ -1288,7 +1288,7 @@ Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se ha
   - **C4.** `Flag`: 9 pies hundidos, `FLAG_GRAB_WAIT` y desenfoque persistente. Pendiente.
   - **C5.** `Lab`: decidir si fija la hora; luz quemada en 2,2-2,5; regrabar con posiciones separadas. Pendiente.
 - **D. Coherencia**
-  - **D1.** Regla de planos a ≥ 12 studs, comprobada con A8. Pendiente.
+  - **D1.** Regla de planos a ≥ 12 studs, comprobada con A8. Regla escrita en la skill y en CLAUDE.md y marcada por el arnés; falta aplicarla escena a escena (`Night` tiene marcas por decidir, VERIFICACION §193.1.4).
   - **D2.** Final consistente (título, logo y fundido con la misma temporización en las escenas de G14). Pendiente.
   - **D3.** Pasada de `hideReal` y `plotHide`. Pendiente.
 - **E. Proceso**
