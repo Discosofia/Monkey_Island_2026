@@ -7570,6 +7570,35 @@ Informe en `docs/qa/Endless/report.md`. Los defectos a a g de §187.7 y un defec
 2. [ ] Mira la cámara del cierre en edición: de pl(0,2.5,−24) a pl(0,7,4), mirando al cielo.
    ✅ El cielo queda detrás del título y la empalizada, al fondo. Si algo entra en cuadro (un actor, una estructura o el cartel), anota cuál.
 
+## 190. Fase 25 A3: puntos de waitTerrain medidos (11-11-2026)
+
+A3 midió en edición (Studio de la Isla) el suelo bajo cada punto de `waitTerrain`. La playa (Battle_Pack, Arrival y ArrivalShort) y los 4 Battle_Boss ya coincidían (|diferencia| ≤ 0,16 st). Se corrigieron Pets (avatar y Beagle a y 12,8 y 13,4; se quitó el Labrador, a 2,8 studs del avatar) y Mounts (el tercer punto, la ladera de la montaña, de y 30 a 32,4; `MOUNTAIN_CENTER` no se tocó porque también lo usa `hideEnemies`). Tras el cambio, los 5 puntos dan |diferencia| ≤ 0,1 en edición. En Play (sin copia del perfil: el DataStore devolvió 502) CineArrival, CineBattle, CineBossBattle ×4, CinePets y CineMounts no escribieron ningún aviso «waitTerrain» (esperaron menos de 0,3 s) y duraron 15,5 / 16,5 / ~18,8 / 40 / 20 s desde el disparo.
+
+### 190.1 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Lanza `ArrivalShort` y busca en la Salida «[CinematicClient] … waitTerrain».
+   ✅ No sale ningún aviso de `waitTerrain`. No tiene orden de depuración propia; comparte playa con `Arrival`, que se midió en edición.
+2. [ ] Lanza `CineBattleComic`, `CineBattleReel`, `CinePetsComic`, `CinePetsReel`, `CineMountsComic` y `CineMountsReel`, y busca en la Salida «[CinematicClient] … waitTerrain» tras cada una.
+   ✅ No sale el aviso, o sale «listo» en menos de 0,5 s.
+3. [ ] Lanza `CineBossBattleComic` y `CineBossBattleReel` y busca el aviso de `waitTerrain` tras cada una. El Albino no tiene Reel, así que ese caso no se prueba.
+   ✅ No sale el aviso, o sale «listo» en menos de 0,5 s.
+4. [ ] Lanza `CineBossBattle` varias veces hasta ver los 4 jefes, y anota cuál sale en cada pasada. Mira el aviso de `waitTerrain` de cada uno.
+   ✅ Los 4 jefes salen en la rotación y ninguno escribe el aviso. Hoy solo se midió la duración de la escena, no qué jefe salió.
+5. [ ] Cuando se pueda activar el acceso a las API de Studio, haz la copia de `PlayerData_v1` (§10.0) y lanza una de estas escenas con ella. Restaura la copia al acabar.
+   ✅ La escena aparece en `cinematicsSeen` durante la prueba, y la restauración deja el perfil como estaba. Hoy no se puede: el DataStore da 502 en Studio, así que Play pudo marcar `cinematicsSeen` en el perfil real y eso queda sin restaurar (referencia §10.0).
+
+### 190.2 Con el juego publicado y 2 jugadores en la Isla
+
+1. [ ] Con 2 jugadores en la Isla (publicado, no en Play de Studio), lanza `CineBossBattle` y `CinePets` en el cliente del segundo jugador y mira el aviso de `waitTerrain`.
+   ✅ El terreno ya está cargado cerca en Play de Studio con un jugador; con 2 jugadores debe seguir sin aviso. Si sale «waitTerrain», anota la escena, el segundo y el punto.
+
+### 190.3 Avisos de consola vistos en Play (no son de A3)
+
+Durante las pruebas de Play salieron tres avisos que no son de A3 pero conviene mirar: `rbxassetid://203785492` con «Asset type does not match requested type» durante Arrival; `rbxassetid://130589909201898` con «No asset content representation found» durante las batallas de jefe; y la frase de consola «[Strings] sin inglés: 🥊 Batalla contra {boss}: grabando» (herramienta de desarrollo en `DebugService`).
+
+1. [ ] Busca en la Salida los dos avisos de ContentId y la frase «sin inglés» tras lanzar `Arrival` y una batalla de jefe, y comprueba si salen de nuevo.
+   ✅ Si salen, se anota el id y la escena. El aviso de «sin inglés» se queda en español porque es una herramienta de desarrollo.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

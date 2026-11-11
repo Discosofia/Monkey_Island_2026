@@ -3501,7 +3501,9 @@ local function petsScene(variant: string): Scene
 		hour = PETS_HOUR,
 		streamFollowsCamera = true,
 		-- El claro de la jungla (donde empieza la escena) con su terreno cargado antes de poner a nadie.
-		waitTerrain = { JUNGLE_AVATAR, PET_JUNGLE.beagle.pos, PET_JUNGLE.labrador.pos },
+		-- Alturas medidas en edición (A3, 11-11-2026): el claro sube hasta 13,4 en el Beagle. El Labrador está a 2,8 studs
+		-- del avatar, en el mismo terreno: no hace falta un punto aparte.
+		waitTerrain = { Vector3.new(JUNGLE_AVATAR.X, 12.8, JUNGLE_AVATAR.Z), Vector3.new(-31, 13.4, 264) },
 		-- Las mallas de las siete mascotas, cargadas antes de construirlas (PetActor.build espera si no).
 		prepare = function()
 			PetActor.preloadAll(petIds)
@@ -4228,7 +4230,9 @@ local function mountsScene(variant: string): Scene
 		hour = MOUNTS_HOUR,
 		streamFollowsCamera = true,
 		-- Los tres sitios con su terreno cargado antes de poner a nadie (el montaje empieza en la jungla).
-		waitTerrain = { MOUNT_ROW.Jaguar, BEACH_TO, MOUNTAIN_CENTER },
+		-- Tercer punto: el suelo de la ladera (medido en edición, A3, 11-11-2026); MOUNTAIN_CENTER (y 30) quedaba 2,4
+		-- por debajo y la espera se agotaba siempre.
+		waitTerrain = { MOUNT_ROW.Jaguar, BEACH_TO, Vector3.new(MOUNTAIN_X, 32.4, -150) },
 		-- Las mallas y texturas de las tres monturas se bajan antes de arrancar (las tres a la vez): el montaje enseña las
 		-- tres en los primeros cortes y, sin esto, salían a bloques o sin textura hasta que cargaban.
 		prepare = function()
