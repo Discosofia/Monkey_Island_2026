@@ -7672,10 +7672,12 @@ A8 añade a `tools/cine_qa.luau` dos marcas medidas cada cuadro: **camcerca** (c
 
 ### 193.1 En el Studio de la Isla, en Play, con un jugador
 
-1. [ ] Lanza `CineNight` con el arnés completo de `tools/cine_qa.luau` (no la versión recortada) y lee el JSON al acabar.
+1. [x] Lanza `CineNight` con el arnés completo de `tools/cine_qa.luau` (no la versión recortada) y lee el JSON al acabar.
    ✅ Salen las mismas marcas `camcerca` y `camalta` de arriba, más las de siempre, y el JSON trae `cam` con `minDist` y `minHeight`. Sin `camError`.
-2. [ ] Lanza `CineEndless` con el arnés completo.
+   Resultado (11-11-2026): sin `camalta` (mínimo 4,9 st a 5,0 s) y una sola `camcerca`, el Babuino (11,8 st a 16,9 s; 11,1 st en la repetición), que se justifica en `docs/qa/Night/report.md` (vuelta 4) por ser corte de la horda y quedar por encima de 9 st. Sin `camError`. El Cazador y el Mago ya no salen.
+2. [x] Lanza `CineEndless` con el arnés completo.
    ✅ No sale `camalta` (la cámara a 1,5 st se corrigió en G14d) y el jefe de plató cuenta en `camcerca` solo cuando ya subió (no enterrado). Anota cualquier marca y su hora.
+   Resultado (11-11-2026): cinco pasadas. Sin `camalta` (mínimo 5,0 st) y sin `camcerca` de Cazador, Médico ni avatar. Queda una marca del Caudillo (8,7 st a 25,0 s, una muestra), de antes de alejar el contrapicado: se mide en §194.1. Sin errores (`docs/qa/Endless/report.md`, vuelta 3).
 3. [ ] Lanza `CineBossBattle` y una escena de monturas o mascotas.
    ✅ Los jefes y las monturas de servidor también cuentan en `camcerca`. Si alguno no sale en la lista y se ve de cerca en el vídeo, anota cuál.
 4. [ ] `CineNight` en vídeo: mira el plano bajo (11-16 s, cámara a 5,5 st), el contraplano (19-22 s, a 5,5 st y 5 st más atrás), la grúa (0-5 s, final a 6 st y 5 st más atrás), el choque (22-26 s, a 6,5 st) y el cierre (26-29 s, ahora a 5,5 st, 6 st más atrás y con menos campo de visión, 42 → 38).
@@ -7685,6 +7687,93 @@ A8 añade a `tools/cine_qa.luau` dos marcas medidas cada cuadro: **camcerca** (c
 
 1. [ ] Cuando Studio pueda usar el DataStore, restaura el perfil (§10.0).
    ✅ `cinematicsSeen` queda como estaba; hoy Play pudo marcar `Night`.
+
+## 194. Fase 25: arnés completo en Night y Endless y reloj de las escenas (11-11-2026)
+
+El arnés completo (`tools/cine_qa.luau`) pasa en `Night` y `Endless` en Play, con un jugador y sin copia del perfil (DataStore 502). Informes: `docs/qa/Night/report.md` (vueltas 4 y 5) y `docs/qa/Endless/report.md` (vueltas 3 y 4). El usuario regrabó las dos escenas el 11-11 (`2026-11-11 14-44-40.mkv` y `14-45-19.mkv`) y se revisó el vídeo: seis defectos corregidos en `src` (contrapicado de `Endless` dentro de la empalizada, cierre de `Endless` con la barra del jefe, horda, choque y cierre de `Night`, y el fogonazo final de las escenas que acaban en negro). Falta volver a grabar y comprobar lo de §194.1 y §194.2. El reloj de `Endless` ya no baja dentro de cada día (medido en 3 Plays y confirmado en el vídeo); el arreglo está en `SceneLight`, `LightingController` y `Endless`.
+
+### 194.1 En el Studio de la Isla, en Play, con un jugador
+
+1. [ ] Lanza `CineEndless` con el arnés completo de `tools/cine_qa.luau` y lee el JSON. El contrapicado nuevo va de (28, 5,8, 90) a (25, 5,8, 88), FOV 42/44, de 22,5 a 24,5 s. La última pasada de la vuelta 4 ya lo midió sin marca del Caudillo: repítelo una vez tras cualquier cambio de cámara.
+   ✅ En 22,5–24,5 s la cámara queda a 12 st o más del Caudillo, sin `camcerca` de él, y fuera de la empalizada (radio 91 o más desde el centro). No sale ninguna marca nueva (`camalta`, o `camcerca` de Cazador, Médico o avatar). Si sale una, anota el segundo y la distancia.
+2. [ ] Captura quieta, una a una, del poste `Empalizada.GatePost` en la grúa de `Night`, hacia 4,8 s.
+   ✅ El poste no queda entre la cámara y el avatar. Si lo tapa, anota el encuadre y el segundo.
+3. [ ] Capturas quietas, una a una, de los dos planos nuevos de `Endless`: contrapicado a 22,5 s y lateral a 25,2 s, con el Caudillo subido.
+   ✅ En el contrapicado el Caudillo sale entero, sin cortarle la cabeza ni el pecho, y sin pared naranja delante. En el lateral la hierba y la valla no lo tapan.
+4. [ ] Captura quieta, una a una, del cierre de `Endless` a 28 s (cámara en pl(0, 5,8, −28) mirando a pl(0, 9, 4), FOV 44).
+   ✅ La barra «Chimpancé Caudillo» ya no sale (se quita entre 27,56 y 27,81 s). La parcela y los héroes se ven a tamaño normal, y el título «Modo infinito» cae sobre el cielo, con la empalizada al fondo.
+5. [ ] Negro final de `Survival`, `Endless` y `Night` en el juego publicado y con arranque en frío. No es Play: publica el place (o entra al juego publicado) y ve la escena desde el arranque en frío.
+   ✅ Entre el último plano y la tarjeta «Volviendo al Basecamp…» solo hay negro: no asoma el mundo. La tarjeta aparece sin hueco. Si la pantalla se queda en negro más de 1,5 s sin tarjeta, anota la escena y el segundo.
+
+### 194.2 En vídeo (el usuario vuelve a grabar Night y Endless)
+
+Tercera grabación, 11-11 a las 15:25: `2026-11-11 15-25-13.mkv` (Night, 29,9 s) y `2026-11-11 15-25-53.mkv` (Endless, 35,6 s; la escena empieza 2,5 s dentro del vídeo). Hojas en `build/videos/regrabar2/`. Los segundos de cada paso son los de la escena, salvo donde se diga «del vídeo».
+
+1. [ ] `Night`, plano bajo de 11 a 16 s y contraplano de la horda de 19 a 22 s.
+   ✅ La luna sigue en cuadro en el plano bajo (la cámara está en x −18, no en −16), y el contraplano no queda vacío.
+2. [ ] `Night`, grúa de 0 a 5 s y choque de 22 a 26 s.
+   ✅ El poste de la valla a 4,8 s no tapa al avatar. En el choque la acción sale en cuadro, con los héroes sin el poste delante y sin cortar a los actores (cámara a 6,5 st, FOV 52/50).
+   Vídeo 15:25: el choque de 22 a 26 s sale mucho mejor (horda a la izquierda, héroes con habilidades a la derecha), pero el poste de la puerta aún les tapa un poco. Sin nota de la grúa de 0 a 5 s en esta tanda. Abierto: paso 4 del bloque siguiente.
+3. [ ] `Night`, cierre de 26 a 29 s.
+   ✅ El Gorila que salta llena el plano (cámara a 5,5 st del suelo, FOV 30/27 al final). Si las piernas del avatar, bajo el cartel «Luna roja», estorban, anota el segundo (VERIFICACION §193.1.4).
+   Vídeo 15:25 (26,5 a 28,5 s): peor que antes. El Mago y el Cazador salen enormes a los lados, el avatar va en medio con el logo encima, y el Gorila sale pequeño y oscuro detrás del avatar (aterriza en gt(10,0)). Abierto: paso 1 del bloque siguiente. Además, el vídeo acaba en negro a 29,5 s sin llegar a la tarjeta (ver el paso 10).
+4. [ ] `Endless`, plano inicial de 0 a 3 s.
+   ✅ La cámara está más alta que antes y la hierba del primer plano no tapa la escena.
+5. [ ] `Endless`, contraplano de 21 a 22,6 s, con el Caudillo subiendo a 20,8 s.
+   ✅ El Caudillo sube a 20,8 s sin asomar antes, y entra entero en el contraplano.
+   Visto en el vídeo del 11-11: sube a 20,8 s sin asomar antes. Falta confirmar lo de «entero» en la grabación nueva.
+6. [x] `Endless`, contrapicado de 22,5 a 24,5 s y lateral de 25,2 a 27,6 s, con el jefe lleno.
+   ✅ En el contrapicado el Caudillo llena el cuadro sin pared naranja delante (la cámara está fuera de la empalizada). En el lateral el jefe entra entero, y la hierba, la valla y la barra no lo tapan.
+   Vídeo 15:25: contrapicado sin pared naranja (el Caudillo de lado; los pies cortados por la franja y el subtítulo, anotado y sin bloquear) y lateral limpio.
+7. [ ] `Endless`, cierre de 27,6 a 32 s: título «Modo infinito», logo y negro.
+   ✅ La barra del jefe ya no sale (se quita entre 27,56 y 27,81 s). La parcela y los héroes se ven a tamaño normal. El título se lee sobre el cielo, con la empalizada al fondo, y el cartel de la parcela se apaga a 27,4 s. El logo sobre el Cazador (28,0 a 30,1 s) es decisión del usuario: anota si molesta.
+   Vídeo 15:25 (30 a 32 s del vídeo, que son 27,5 a 29,5 s de escena): la barra sale fuera, pero el cierre arranca muy cerca, con los tres cortados por el borde inferior, y luego se aleja; la parcela queda pequeña y «Modo infinito» cae encima del grupo. Abierto: paso 3 del bloque siguiente.
+8. [x] `Endless`, reloj del Día 7 y del Día 12.
+   ✅ El Día 7 sube de 6,14 a 7,54 h, y el Día 12 de 18,65 a 19,50 h, sin dar la vuelta. Solo baja al cambiar de día (Días 8 a 11).
+   Resultado (vídeo del 11-11, `2026-11-11 14-45-19.mkv`): Día 7 de 06:13 a 07:00 y Día 12 de 18:31 a 19:30, sin dar la vuelta.
+9. [ ] `Night`, horda de 16 a 19 s.
+   ✅ Los monos de la horda se leen desde 16 s, y no salen casi negros. El cambio de exposición a 19 s no deja un bache negro. Solo se juzga en vídeo: el arnés no ve la luz de la horda.
+   Vídeo 15:25: casi negra de 16,5 a 18,5 s (la luz 1,6/70 y la exposición +0,3 casi no se notan); a 19 s ya se lee algo. Abierto: paso 2 del bloque siguiente (luz propia mayor).
+10. [ ] `Night`, `Endless` y `Survival`, último segundo: del último plano a la tarjeta «Volviendo al Basecamp…».
+   ✅ Entre el último plano y la tarjeta solo hay negro: no asoma el mundo antes. La tarjeta aparece y tapa sin hueco.
+   Vídeo 15:25: `Endless`, negro continuo de 33,5 a 34,5 s y tarjeta a 35,0 s, sin fogonazo (confirmado). `Night` acaba en negro a 29,5 s sin llegar a la tarjeta: abierto (el negro de `Night` solo está medido en Studio). `Survival`: sin dato en esta tanda.
+
+### 194.3 Con dos jugadores
+
+1. [ ] Con dos jugadores en la Isla (dos clientes de Play o el juego publicado), lanza `CineEndless` solo en el primero. Mira el reloj del segundo cada 0,5 s durante la escena.
+   ✅ El segundo jugador no cambia de hora: el reloj nuevo de `LightingController` es por cliente. Si cambia, anota el segundo y los valores.
+2. [ ] Con dos jugadores, lanza `CineEndless` en los dos a la vez y compara el reloj de cada uno en el Día 12.
+   ✅ Cada uno sube sin bajar dentro del día, y no copia los saltos del otro.
+
+### 194.4 Perfil real
+
+1. [ ] Cuando Studio pueda usar el DataStore (hoy da 502), haz la copia de `PlayerData_v1` (§10.0) y restaura `cinematicsSeen` al acabar.
+   ✅ `cinematicsSeen` queda como estaba. Hoy Play de `Night` y `Endless` pudo marcarlas en el perfil real (mismo caso que §193.2).
+
+## 195. Fase 25: cuatro arreglos de Night y Endless tras la tercera grabación (11-11-2026)
+
+Cambios en `Night.luau` y `Endless.luau` (sin commit). Arnés completo en Play pasado en el Studio de la Isla (informes: `docs/qa/Night/report.md` y `docs/qa/Endless/report.md`, vuelta 6). Lo de aquí solo se ve en vídeo o con dos jugadores: el arnés no lee píxeles y en edición no hay monos de servidor ni luna. No había vídeo nuevo (los últimos son los de las 15:25), así que no hay hojas nuevas en `build/videos`.
+
+### 195.1 En vídeo (el usuario regraba Night y Endless)
+
+1. [ ] `Night`, cierre de 26 a 29 s (cámara en gc(−17, 6, 9), FOV 40/38; el Gorila aterriza en gt(10, 6)).
+   ✅ El avatar, el Gorila y los otros dos se ven separados: el Gorila no queda tapado por el avatar ni por el poste de la puerta, y no salen Mago o Cazador enormes a los lados. Título y logo caen sobre el avatar (decisión ya tomada). Si el poste tapa al Gorila, anota el segundo.
+2. [ ] `Night`, horda de 16,5 a 19 s (luz de cámara 3/90 y luz fría fija sobre el recorrido, 2,5/60).
+   ✅ Los siete monos se leen a lo largo de toda la carrera, sin quedar negros ni pálidos. Si sigue oscuro, anota el segundo y sube el brillo de la luz fija; si sale quemado, bájalo.
+3. [ ] `Night`, choque de 22 a 26 s (cámara +2 st en x; el Mago da dos pasos hacia fuera de 21 a 21,9 s).
+   ✅ El poste de la puerta no tapa a los héroes. El paso del Mago se ve natural en el contraplano de 19 a 22 s (no un salto).
+4. [ ] `Endless`, cierre de 27,6 a 32 s (a pl(0, 5,8, −28) mirando a pl(0, 1, 4), FOV 50; termina en pl(3, 15, −48) mirando a pl(0, 1, −4), FOV 52). Restar 2,5 s al tiempo del vídeo.
+   ✅ Los tres salen enteros, sin cortar por el borde inferior ni por la franja. «Modo infinito» cae sobre el cielo o la parcela, no sobre el grupo. La parcela se ve a buen tamaño al final.
+5. [ ] `Endless`, contrapicado del Caudillo de 22,6 a 25,2 s: el arnés marcó `camcerca` del Caudillo a 4,0 st en un solo cuadro, t = 25,0 s (corte al plano lateral; la caja del jefe se abre con el rugido). No lo toca ninguno de los cuatro cambios.
+   ✅ En vídeo no se ve la cámara dentro del jefe ni un cuadro tapado por él en el corte de 25,2 s. Si se ve, hay que alejar el final del contrapicado.
+
+6. [ ] Cabezas brillantes de noche (`Night` de 0 a 29 s y `Endless` de 21 a 27,6 s). Causa medida en Play: antorcha en mano con luz de brillo 3 a 2,6-2,8 st de la cabeza (la única luz del avatar), luces de armadura de 1,2-1,5 a 1-2 st, cientos de piezas Neon y el Bloom del mundo (1,0/2,0). Arreglo: `dimLights` (luces ×0,3, partículas ×0,5, el Neon se queda) y `bloom` 0,25/3 en `Night` desde 0 s y en `Endless` desde 21 s; antorcha de `Night` a brillo 1,2. Medido: luz efectiva sobre la cabeza de ~4-7 a 1,1-2,2 en `Night` y 0,0-0,3 en `Endless`; el Bloom vuelve a 1,0/2,0 al acabar.
+   ✅ Las cabezas del Mago, el Cazador y el avatar se ven con su color y sombra, sin halo blanco, y las armaduras siguen reconociéndose. Si el halo sigue, baja `TORCH_GLOW` de `Night` o pasa `neon = true`; si ahora quedan oscuras, sube `lights` de 0,3 a 0,5. `Survival` (anochecer a 17,5-18 h) y las batallas no se tocaron: `Survival` no usa `dimLights`; mira en su vídeo si pasa lo mismo.
+
+### 195.2 En el Studio de la Isla, captura quieta
+
+1. [ ] Captura quieta (método del §6 de la skill, una a una) del cierre de `Night` a 27,5 s y del choque a 24 s, con maniquíes y una caja de 5×8×5 donde aterriza el Gorila.
+   ✅ El poste de z = +11 no tapa la caja del Gorila en el cierre, y el poste de z = −11 no tapa al Mago en el choque.
 
 ## Cuando termines
 

@@ -121,10 +121,10 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			add({ t = t, kind = "plotUpgrade", key = id, level = level })
 		end
 		-- Lleva el reloj de la escena a `to` en `over` segundos. LightingController lee `seconds` como los segundos que tardaría en
-		-- recorrer 12 h (no como la duración del cambio), así que se calcula con la distancia. `from` es la hora de la que parte
-		-- (la fijó antes un clock con seconds = 0, o un ramp anterior).
+		-- recorrer 12 h (no como la duración del cambio), así que se calcula con la distancia. `from` es la hora de la que parte;
+		-- también va en el evento, para que LightingController coloque el reloj ahí aunque el salto anterior se haya perdido.
 		local function ramp(t: number, from: number, to: number, over: number)
-			add({ t = t, kind = "clock", hour = to, seconds = 12 * over / math.abs(to - from) })
+			add({ t = t, kind = "clock", hour = to, from = from, seconds = 12 * over / math.abs(to - from) })
 		end
 		local function startDay(day: number, hour: number?)
 			local t0 = DAY_START[day]
@@ -246,6 +246,9 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			brightness = 0.6,
 			range = 50,
 		})
+		-- De noche las luces de las armaduras y el Bloom del mundo dejaban las cabezas blancas (QA del 14-11); de día no queman.
+		add({ t = 21.0, kind = "dimLights", lights = 0.3, particles = 0.5, neon = false })
+		add({ t = 21.0, kind = "bloom", intensity = 0.25, threshold = 3 })
 		add({ t = 21.3, kind = "caption", text = Strings.later("Los jefes vuelven más fuertes"), seconds = 3.4 })
 		put(21.0, "avatar", NIGHT_AVATAR, yawBetween(NIGHT_AVATAR, BOSS_AT))
 		put(21.0, "hunter", NIGHT_HUNTER, yawBetween(NIGHT_HUNTER, BOSS_AT))
@@ -261,8 +264,9 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		-- ===== Final (27,6 a 31,4): de vuelta en la parcela, ya de noche; título, logo y negro
 		add({ t = 27.4, kind = "plotSign", show = false }) -- el cartel de la parcela tapaba el título
 		add({ t = 27.5, kind = "dayClock", show = false })
+		add({ t = 27.4, kind = "bossBarHide", seconds = 0.4 }) -- el jefe ya no sale: la barra no se queda sobre la parcela
 		local endAvatar, endHunter, endMedic = pl(0, 0, -10), pl(-4, 0, -12), pl(4, 0, -12) -- fuera del Cofre (-8, -8,5) y la Incubadora (8, -8,5)
-		local endCamera = pl(0, 2.5, -24)
+		local endCamera = pl(0, 5.8, -28)
 		put(27.6, "avatar", endAvatar, yawBetween(endAvatar, endCamera))
 		put(27.6, "hunter", endHunter, yawBetween(endHunter, endCamera))
 		put(27.6, "medic", endMedic, yawBetween(endMedic, endCamera))
@@ -292,8 +296,8 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 0,
 				t1 = 3,
-				a = cameraKey(Vector3.new(-13, 2.2, 27), Vector3.new(18, 7, 10), 58),
-				b = cameraKey(Vector3.new(-12, 2.4, 26), Vector3.new(36, 22, -24), 50),
+				a = cameraKey(Vector3.new(-13, 6.2, 27), Vector3.new(18, 9, 10), 58),
+				b = cameraKey(Vector3.new(-12, 6.4, 26), Vector3.new(36, 22, -24), 50),
 			},
 			-- Grúa que baja hacia los tres, ya sin helicóptero.
 			{
@@ -341,30 +345,33 @@ local endlessScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 21,
 				t1 = 22.6,
-				a = cameraKey(Vector3.new(0, 3, 46), Vector3.new(0, 9, 100), 55),
-				b = cameraKey(Vector3.new(1, 3.2, 49), Vector3.new(0, 9, 100), 50),
+				a = cameraKey(Vector3.new(0, 5.8, 42), Vector3.new(0, 10, 100), 55),
+				b = cameraKey(Vector3.new(1, 6, 45), Vector3.new(0, 10, 100), 50),
 			},
-			-- Contrapicado que se acerca al Caudillo girando (el rugido): fuera de la empalizada, a 15 studs o más.
+			-- Contrapicado que se acerca al Caudillo girando (el rugido). La caja del jefe mide ±3,9 × ±5,1 st y crece con la
+			-- animación: la cámara se queda a 15 studs o más y a 4,8 de altura (QA de Endless, regla D1); el campo de visión
+			-- baja para que el jefe siga llenando el plano.
 			{
 				t0 = 22.6,
 				t1 = 25.2,
-				a = cameraKey(Vector3.new(16, 4, 84), Vector3.new(0, 7.5, 100), 55),
-				b = cameraKey(Vector3.new(8, 3, 86), Vector3.new(0, 7.5, 100), 58),
+				a = cameraKey(Vector3.new(28, 5.8, 90), Vector3.new(0, 10.5, 100), 42),
+				b = cameraKey(Vector3.new(25, 5.8, 88), Vector3.new(0, 10.5, 100), 44),
 			},
 			-- Plano bajo lateral con travelling (el pisotón).
 			{
 				t0 = 25.2,
 				t1 = 27.6,
-				-- A 4,5 de altura: con 1,5 la hierba tapaba al jefe (QA de Endless, ver docs/qa/Endless).
-				a = cameraKey(Vector3.new(-14, 4.5, 92), Vector3.new(0, 9, 100), 52),
-				b = cameraKey(Vector3.new(-10, 5, 90), Vector3.new(0, 9, 100), 52),
+				-- A 4,8 de altura: con 1,5 la hierba tapaba al jefe (QA de Endless, ver docs/qa/Endless). Con el pisotón la caja
+				-- del jefe se abre unos 3 st, así que la cámara queda a 15 st o más de ella.
+				a = cameraKey(Vector3.new(-20, 6, 92), Vector3.new(0, 9.5, 100), 44),
+				b = cameraKey(Vector3.new(-18, 6.4, 88), Vector3.new(0, 9.5, 100), 44),
 			},
-			-- Cierre: el plano se aleja de la parcela de noche.
+			-- Cierre: el plano se aleja de la parcela de noche, a 5 de altura y a más de 12 st de los tres (QA de Endless).
 			{
 				t0 = 27.6,
 				t1 = ENDLESS_SECONDS,
-				a = cameraKey(endCamera, pl(0, 7, 4), 52),
-				b = cameraKey(pl(3, 20, -60), pl(0, 4, 3), 60),
+				a = cameraKey(endCamera, pl(0, 1, 4), 50),
+				b = cameraKey(pl(3, 15, -48), pl(0, 1, -4), 52),
 			},
 		}
 

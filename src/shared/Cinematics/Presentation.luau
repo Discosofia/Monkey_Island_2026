@@ -33,6 +33,8 @@ export type TextOptions = {
 }
 
 local GUI_NAME = "Cinematic"
+-- Cuánto espera, en negro, la tarjeta de «Volviendo al Basecamp» al acabar una escena que termina en negro.
+local HOLD_BLACK_SECONDS = 1.5
 local BAR_HEIGHT = ScreenBands.TOP -- alto de cada franja, en fracción de la pantalla
 local GOLD = Color3.fromRGB(242, 178, 36)
 local FADE_IN = 0.5
@@ -369,12 +371,33 @@ function Presentation.install(sequencer: SequencerModule)
 	end)
 	sequencer.addHooks({
 		finish = function()
-			-- Si la escena acaba en negro, se devuelve la imagen con un fundido en vez de cortarla de golpe.
+			-- Si la escena acaba en negro, se mantiene el negro hasta que sale la tarjeta de espera «CinematicHold» (el
+			-- servidor la pide al devolver al jugador al Basecamp, unos 0,25 s después): así no se ve el mundo entre las
+			-- dos (Night, Endless y Survival, vídeo del 11-11). Si la tarjeta no sale a tiempo, se devuelve la imagen con
+			-- un fundido en vez de cortarla de golpe.
 			local current = gui
 			if current and fadeFrame and fadeFrame.BackgroundTransparency < 0.5 then
-				Presentation.fade(0.5, false)
-				task.delay(0.55, function()
-					if gui == current then -- si empezó otra escena entretanto, no se toca su pantalla
+				local player = Players.LocalPlayer
+				local function holdCardUp(): boolean
+					local playerGui = if player then player:FindFirstChild("PlayerGui") else nil
+					return playerGui ~= nil and playerGui:FindFirstChild("CinematicHold") ~= nil
+				end
+				task.spawn(function()
+					local waited = 0
+					while gui == current and waited < HOLD_BLACK_SECONDS and not holdCardUp() do
+						task.wait(0.05)
+						waited += 0.05
+					end
+					if gui ~= current then -- si empezó otra escena entretanto, no se toca su pantalla
+						return
+					end
+					if holdCardUp() then
+						task.wait(0.15) -- la tarjeta (DisplayOrder 1000) ya está encima
+					else
+						Presentation.fade(0.5, false)
+						task.wait(0.55)
+					end
+					if gui == current then
 						Presentation.clear()
 					end
 				end)

@@ -10,6 +10,7 @@
 --       son la fracción de vida (0 a 1). El primer evento la crea en `from`; cada uno la lleva a `to` en `seconds` (0,25)
 --       con una estela más clara que baja con retraso. Con to <= 0 se apaga con un fundido 0,6 s después. `name` es el
 --       nombre del jefe sin traducir (Bosses[id].name): se traduce aquí. Cuelga del ScreenGui "Cinematic" (Presentation).
+--   bossBarHide { seconds? }   quita la barra del jefe con un fundido (0,4 s) cuando la escena deja de enseñarlo.
 --   bossFx { fx, style, actor?, pos?, warn?, flight?, radius?, direction?, origin?, seed? }   un efecto real del jefe
 --       (CombatClient/BossFx.play): fx = "stomp" | "rock" | "lavaBomb" | "charge" | "grab" | "roar". El suelo es el que hay
 --       bajo `actor` en ese instante o el de `pos` (Vector3 relativo al anchor, cuentan X y Z). `direction` y `origin` (la
@@ -400,11 +401,34 @@ local function onTorch(event: Sequencer.Event, ctx: Sequencer.Context)
 	end
 end
 
+-- Evento bossBarHide { seconds? }: quita la barra del jefe con un fundido (la escena ya no lo enseña).
+local function onBossBarHide(event: Sequencer.Event, ctx: Sequencer.Context)
+	local state = stateOf(ctx)
+	local bar = state.bar
+	if not bar then
+		return
+	end
+	state.bar = nil
+	local holder = bar.holder
+	ScreenBands.setTop("BossBar", nil)
+	local seconds: number = event.seconds or 0.4
+	if ctx.seeking == true or seconds <= 0 or not holder.Parent then
+		holder:Destroy()
+		return
+	end
+	local tween = TweenService:Create(holder, TweenInfo.new(seconds), { GroupTransparency = 1 })
+	tween.Completed:Connect(function()
+		holder:Destroy()
+	end)
+	tween:Play()
+end
+
 -- ===================================== instalación =====================================
 
 function BattleActor.install(sequencer: typeof(Sequencer))
 	sequencer.registerHandler("hit", onHit)
 	sequencer.registerHandler("bossBar", onBossBar)
+	sequencer.registerHandler("bossBarHide", onBossBarHide)
 	sequencer.registerHandler("bossFx", onBossFx)
 	sequencer.registerHandler("torch", onTorch)
 

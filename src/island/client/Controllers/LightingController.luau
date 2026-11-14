@@ -47,10 +47,15 @@ local DAY_START_CLOCK = Config.Lighting.DayCenterClock - DAY_HOURS / 2
 -- Hora fijada por una cinemática (Lighting, número 0-24) y segundos opcionales de su fundido de entrada.
 local CINEMATIC_CLOCK_ATTRIBUTE = "CinematicClockTime"
 local CINEMATIC_CLOCK_SECONDS_ATTRIBUTE = "CinematicClockSeconds"
+-- Origen del último cambio de hora (SceneLight): un contador que sube con cada uno y la hora de la que parte. Así el salto
+-- no se pierde aunque dos eventos clock caigan en el mismo cuadro (Día 7 de Endless).
+local CINEMATIC_CLOCK_FROM_ATTRIBUTE = "CinematicClockFrom"
+local CINEMATIC_CLOCK_JUMP_ATTRIBUTE = "CinematicClockJump"
 local CLOCK_IN_SECONDS = 0.4
 local CLOCK_OUT_SECONDS = 0.8
--- Horas de más (o de menos) que se dibujan respecto al ciclo real; vale 0 fuera de las escenas.
+-- Horas de más (o de menos) que se dibujan respecto al ciclo real; vale 0 fuera de las escenas. Siempre en [-12, 12).
 local clockOffset = 0
+local lastClockJump: any = nil
 
 local LightingController = {}
 
@@ -168,10 +173,23 @@ function LightingController:Start()
 			local custom = Lighting:GetAttribute(CINEMATIC_CLOCK_SECONDS_ATTRIBUTE)
 			speed = 12 / math.max(if typeof(custom) == "number" then custom else CLOCK_IN_SECONDS, 0.05)
 		end
+		-- Un cambio con hora de origen coloca el desfase en esa hora en este mismo cuadro.
+		local jump = Lighting:GetAttribute(CINEMATIC_CLOCK_JUMP_ATTRIBUTE)
+		if jump ~= lastClockJump then
+			lastClockJump = jump
+			local origin = Lighting:GetAttribute(CINEMATIC_CLOCK_FROM_ATTRIBUTE)
+			if typeof(jump) == "number" and typeof(origin) == "number" then
+				clockOffset = (origin - clock + 12) % 24 - 12
+			end
+		end
+		-- El desfase avanza por la diferencia envuelta: cuando el objetivo cruza ±12 h no se da la vuelta de 23 h.
 		local step = speed * dt
-		clockOffset = if clockOffset < goal
-			then math.min(clockOffset + step, goal)
-			else math.max(clockOffset - step, goal)
+		local diff = (goal - clockOffset + 12) % 24 - 12
+		if math.abs(diff) <= step then
+			clockOffset = goal
+		else
+			clockOffset = (clockOffset + math.sign(diff) * step + 12) % 24 - 12
+		end
 		if clockOffset ~= 0 then
 			clock = (clock + clockOffset) % 24
 		end

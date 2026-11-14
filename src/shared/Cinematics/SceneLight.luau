@@ -78,6 +78,8 @@ local function clear()
 	Lighting:SetAttribute("CinematicBrightnessScale", nil)
 	Lighting:SetAttribute("CinematicClockTime", nil)
 	Lighting:SetAttribute("CinematicClockSeconds", nil)
+	Lighting:SetAttribute("CinematicClockFrom", nil)
+	Lighting:SetAttribute("CinematicClockJump", nil)
 	Lighting:SetAttribute("CinematicRedMoon", nil)
 	Lighting:SetAttribute("CinematicRedMoonSeconds", nil)
 	Lighting:SetAttribute("CinematicMoonSize", nil)
@@ -170,9 +172,17 @@ local function setBloom(event: any)
 end
 
 -- Pone la hora fijada (LightingController la lee solo en la Isla; en los demás places no hace nada).
-local function setClock(hour: any, seconds: any)
+-- `from` (opcional) es la hora de la que parte el cambio; un cambio instantáneo (seconds = 0) parte de su propia hora.
+-- LightingController la aplica en el mismo cuadro, así un salto y la rampa que le sigue no se pisan.
+local function setClock(hour: any, seconds: any, from: any)
 	if typeof(hour) ~= "number" then
 		return
+	end
+	local origin = if typeof(from) == "number" then from elseif seconds == 0 then hour else nil
+	if origin then
+		local count = Lighting:GetAttribute("CinematicClockJump")
+		Lighting:SetAttribute("CinematicClockFrom", origin % 24)
+		Lighting:SetAttribute("CinematicClockJump", (if typeof(count) == "number" then count else 0) + 1)
 	end
 	Lighting:SetAttribute("CinematicClockTime", hour % 24)
 	Lighting:SetAttribute("CinematicClockSeconds", if typeof(seconds) == "number" then seconds else nil)
@@ -188,7 +198,7 @@ function SceneLight.install(sequencer: any)
 	-- Evento clock { hour, seconds? }: fija la hora del día (0-24) que dibuja LightingController mientras dura
 	-- la escena; seconds = duración del fundido hacia esa hora (0,4 s por defecto). Se quita al acabar.
 	sequencer.registerHandler("clock", function(event: any)
-		setClock(event.hour, event.seconds)
+		setClock(event.hour, event.seconds, event.from)
 	end)
 	sequencer.registerHandler("bloom", function(event: any)
 		setBloom(event)

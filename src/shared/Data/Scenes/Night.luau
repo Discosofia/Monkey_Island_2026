@@ -32,6 +32,7 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 	local out: { [string]: Scene? } = {}
 	local function build(): Scene
 		local NIGHT_SECONDS = 29
+		local TORCH_GLOW = 1.2 -- brillo de la luz de la antorcha en mano
 		local GATE_X = 81 -- la puerta este, en el marco del anchor
 		local function gt(f: number, s: number): Vector3
 			return Vector3.new(GATE_X + f, 0, s)
@@ -55,7 +56,7 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		local HORDE = {
 			{ name = "macaco1", species = "Macaco", f = 22, s = -12, near = gt(11, -9) },
 			{ name = "macaco2", species = "Macaco", f = 22, s = -3, near = gt(11, -2) },
-			{ name = "macaco3", species = "Macaco", f = 23, s = 9, near = gt(11, 6) },
+			{ name = "macaco3", species = "Macaco", f = 23, s = 9, near = gt(14, 3) },
 			{ name = "babuino1", species = "Babuino", f = 27, s = -8, near = gt(14, -5) },
 			{ name = "babuino2", species = "Babuino", f = 28, s = 4, near = gt(14, 3) },
 			{ name = "babuino3", species = "Babuino", f = 26, s = 13, near = gt(14, 10) },
@@ -107,6 +108,10 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 
 		-- ===== Apertura (0 a 5): cae la noche, las antorchas se encienden una a una
 		add({ t = 0, kind = "letterbox" })
+		-- Luces de las armaduras (brillo 1,2-1,5 a 1-2 st de las cabezas, más cientos de piezas Neon) y Bloom del mundo (1,0/2,0):
+		-- de noche dejaban las cabezas blancas. Mismo remedio que las batallas (battleLight), con el Bloom bajo para toda la escena.
+		add({ t = 0, kind = "dimLights", lights = 0.3, particles = 0.5, neon = false })
+		add({ t = 0, kind = "bloom", intensity = 0.25, threshold = 3 })
 		-- Luz fría y tenue que sigue a la cámara: de noche cerrada, sin ella los tres salen negros fuera del círculo de las antorchas.
 		add({
 			t = 0,
@@ -124,9 +129,11 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		for _, name in { "avatar", "hunter", "mage" } do
 			table.insert(events, BossChoreo.torch(0, name, false))
 		end
-		table.insert(events, BossChoreo.torch(2.5, "avatar", true, 3))
-		table.insert(events, BossChoreo.torch(3, "hunter", true, 3))
-		table.insert(events, BossChoreo.torch(3.5, "mage", true, 3))
+		-- Antorcha en mano: la luz quedaba a 2,6-2,8 st de la cabeza con brillo 3 y la dejaba blanca (QA del 14-11); con 1,2 el suelo
+		-- sigue alumbrado (alcance 28) y la cara no se quema.
+		table.insert(events, BossChoreo.torch(2.5, "avatar", true, TORCH_GLOW))
+		table.insert(events, BossChoreo.torch(3, "hunter", true, TORCH_GLOW))
+		table.insert(events, BossChoreo.torch(3.5, "mage", true, TORCH_GLOW))
 
 		-- ===== Miedo al fuego (5 a 11): las Martejas se acercan, el avatar avanza con la antorcha y ellas se retiran
 		add({ t = 5.3, kind = "caption", text = Strings.later("El fuego los mantiene a raya"), seconds = 3.2 })
@@ -177,12 +184,28 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			follow = true,
 			offset = Vector3.new(0, 5, 0),
 			color = Color3.fromRGB(200, 150, 170),
-			brightness = 1.3,
-			range = 60,
-			seconds = 4.4,
+			brightness = 3,
+			range = 90,
+			seconds = 3.8,
 		})
+		-- Segunda luz fría y fija sobre el recorrido de la horda (vídeo de las 15:25: la horda seguía casi negra con 1,6/70).
+		add({
+			t = 15.2,
+			kind = "light",
+			pos = gc(62, 12, -2),
+			color = Color3.fromRGB(150, 170, 230),
+			brightness = 2.5,
+			range = 60,
+			seconds = 3.8,
+		})
+		-- En el vídeo del 11-11 la horda (16 a 19 s) salía casi negra: más brillo de imagen solo en ese plano; con el contraplano
+		-- vuelve el de la luna roja (con luz 1,8 y a 8 studs los maniquíes salían pálidos, por eso la luz sube poco).
+		add({ t = 16.0, kind = "exposure", value = 0.3, tint = Color3.fromRGB(255, 190, 185) })
+		add({ t = 19.0, kind = "exposure", value = -0.35, tint = Color3.fromRGB(255, 170, 160) })
 
 		-- ===== El choque (22 a 26): grito, flechas y bola de fuego
+		-- El Mago da dos pasos hacia fuera durante el contraplano: desde la cámara del choque, el poste de la puerta ya no lo tapa.
+		go(21.0, "mage", "Walk", MAGE_NOW, gt(2, -6), 0.9)
 		anim(22.2, "avatar", "WarCry", 1.4)
 		skill(22.25, "WarCry", "avatar", nil, { seconds = 1.4 })
 		anim(22.5, "hunter", "AimBow", 1.3)
@@ -203,7 +226,7 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			end
 		end
 		-- Aterriza a 8 studs del avatar (antes a 3: se solapaban); el resto de la horda frena en f 11 a 14.
-		monkey(26.0, "gorila", { action = "Pounce", move = { pos = gt(10, 0), seconds = 1.1, yaw = IN } })
+		monkey(26.0, "gorila", { action = "Pounce", move = { pos = gt(10, 6), seconds = 1.1, yaw = IN } })
 		anim(26.9, "avatar", "Slash1", 0.7)
 		add({ t = 26.3, kind = "title", text = Strings.later("Luna roja"), seconds = 1.4 })
 		add({
@@ -237,8 +260,8 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 			{
 				t0 = 11,
 				t1 = 16,
-				a = cameraKey(gc(-16, 5.5, 0), aim(gc(-16, 5.5, 0), 6, 4), 60),
-				b = cameraKey(gc(-16, 5.5, 0), aim(gc(-16, 5.5, 0), 14, 13), 60),
+				a = cameraKey(gc(-18, 5.5, 0), aim(gc(-18, 5.5, 0), 6, 4), 60),
+				b = cameraKey(gc(-18, 5.5, 0), aim(gc(-18, 5.5, 0), 14, 13), 60),
 			},
 			-- Detrás de la horda, por encima de la linde de la selva: la ven quieta y echar a correr.
 			{
@@ -254,19 +277,21 @@ local nightScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				a = cameraKey(gc(-21, 5.5, 0), gc(40, 3, 0), 58),
 				b = cameraKey(gc(-18, 5.5, 0), gc(34, 4, 0), 52),
 			},
-			-- Choque de lado: la tripulación a la izquierda y la horda a la derecha.
+			-- Choque de lado: la tripulación a la derecha y la horda a la izquierda. Vídeo del 11-11: a 30 studs la acción salía
+			-- pequeña y el poste tapaba a los héroes; ahora a unos 24 (Mago a 17 st, Macaco 1 a 16, Babuino 1 a 22).
 			{
 				t0 = 22,
 				t1 = 26,
-				a = cameraKey(gc(12, 6.5, -30), gc(14, 3, 0), 60),
-				b = cameraKey(gc(16, 6.5, -29), gc(17, 3.5, 0), 56),
+				a = cameraKey(gc(13, 6.5, -24), gc(14, 3, 0), 52),
+				b = cameraKey(gc(15, 6.5, -23), gc(16, 3.5, 0), 50),
 			},
-			-- Cierre: detrás del avatar, a 5,5 st (≥ 4,5) y a 24 studs de la puerta; el Gorila salta hacia la cámara.
+			-- Cierre: detrás del avatar, a 5,5 st (≥ 4,5) y a 20 studs de la puerta (medido el 11-11: a 16 el Mago salía a 10,6 st); el Gorila salta
+			-- hacia la cámara y con el campo de visión corto llena el plano (a 24 studs salía pequeño tras el avatar).
 			{
 				t0 = 26,
 				t1 = NIGHT_SECONDS,
-				a = cameraKey(gc(-24, 5.5, -3), gc(12, 3.5, 0), 42),
-				b = cameraKey(gc(-22, 5.5, -3), gc(8, 3.5, 0), 38),
+				a = cameraKey(gc(-17, 6, 9), gc(6, 3.5, 3), 40),
+				b = cameraKey(gc(-16, 6, 9), gc(6, 3.5, 3), 38),
 			},
 		}
 
