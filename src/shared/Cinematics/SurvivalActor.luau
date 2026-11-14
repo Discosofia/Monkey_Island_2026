@@ -28,6 +28,8 @@
 --   buildRise { id, at, yaw?, seconds?, key? }   quita el fantasma con la misma `key` (por defecto id y posición) y levanta la pieza
 --       sólida: sube desde el suelo en `seconds` (0,7) con polvo y el sonido Build. La StandingTorch nace apagada y enciende
 --       su Fire y su PointLight al terminar de subir.
+--   campfireLight { scale? }               multiplica (0,5 por defecto) el brillo de las luces de la hoguera del Basecamp, solo en este
+--       cliente; se devuelve al acabar.
 -- Todo lo que crea (carpeta «CinematicSurvivalFx», vista previa, fantasmas, piezas, barras) lleva CinematicKeep y se borra al
 -- acabar la escena. Los efectos con partículas no salen al saltar a un instante (seek); los cambios de estado, sí (queda el
 -- resultado final). Solo cliente. Sin CombatClient, loot avisa y no hace nada.
@@ -73,7 +75,9 @@ local PREVIEW_RISE_STUDS = 2
 local PREVIEW_RISE_SPEED = 1.7 -- studs por segundo
 local PREVIEW_SPIN_SPEED = 2.2 -- radianes por segundo
 local BUILD_RISE_SECONDS = 0.7
-local TORCH_BRIGHTNESS = 4 -- el doble de la PointLight de BuildModels.StandingTorch: es lo que marca el anochecer
+-- Con 4 (el doble de la PointLight de BuildModels.StandingTorch) la luz caía a 4 st de la cara del avatar y sumaba 3,5 sobre su
+-- cabeza (medido el 14-11); con 1,5 el suelo se alumbra igual (alcance 34) y la cara no se quema. La llama grande marca el anochecer.
+local TORCH_BRIGHTNESS = 1.5
 local TORCH_RANGE = 34
 local TORCH_FIRE_SIZE = 8
 local TORCH_LIGHT_SECONDS = 0.4
@@ -93,6 +97,7 @@ type State = {
 	preview: { model: Model, t0: number, base: Vector3 }?,
 	hook: ((t: number) -> ())?,
 	hiddenReal: { { part: BasePart, old: number } }, -- vegetación real escondida en este cliente (hideReal)
+	dimmed: { { light: Light, old: number, set: number } }, -- luces del mapa bajadas en este cliente (campfireLight)
 }
 
 -- Las barras que hay ahora (la lista no lleva huecos).
@@ -125,6 +130,7 @@ local function stateOf(ctx: Sequencer.Context): State
 		preview = nil,
 		hook = nil,
 		hiddenReal = {},
+		dimmed = {},
 	}
 	ctx._survival = fresh
 	-- Por cuadro, con el reloj de la escena: el parpadeo de las barras y el giro del arma sobre la mesa.
@@ -884,6 +890,30 @@ local function onBuildRise(event: Sequencer.Event, ctx: Sequencer.Context)
 	end)
 end
 
+-- campfireLight { scale }: baja el brillo de las luces de la hoguera del Basecamp (Mapa.Basecamp.Hoguera) mientras dura la escena,
+-- solo en este cliente. De noche, a unos 22 st de la cabeza del avatar, la PointLight (2,5/50) sumaba 1,4 y se sumaba al resto.
+local function onCampfireLight(event: Sequencer.Event, ctx: Sequencer.Context)
+	local state = stateOf(ctx)
+	if #state.dimmed > 0 then
+		return
+	end
+	local map = Workspace:FindFirstChild("Mapa")
+	local basecamp = map and map:FindFirstChild("Basecamp")
+	local fire = basecamp and basecamp:FindFirstChild("Hoguera")
+	if not fire then
+		return
+	end
+	local scale: number = event.scale or 0.5
+	for _, descendant in fire:GetDescendants() do
+		if descendant:IsA("PointLight") or descendant:IsA("SpotLight") then
+			local light = descendant :: Light
+			local old = light.Brightness
+			light.Brightness = old * scale
+			table.insert(state.dimmed, { light = light, old = old, set = light.Brightness })
+		end
+	end
+end
+
 -- ===================================== instalación =====================================
 
 function SurvivalActor.install(sequencer: typeof(Sequencer))
@@ -897,6 +927,7 @@ function SurvivalActor.install(sequencer: typeof(Sequencer))
 	sequencer.registerHandler("craftFx", onCraftFx)
 	sequencer.registerHandler("buildGhost", onBuildGhost)
 	sequencer.registerHandler("buildRise", onBuildRise)
+	sequencer.registerHandler("campfireLight", onCampfireLight)
 
 	sequencer.addHooks({
 		finish = function(_, ctx)
@@ -925,6 +956,12 @@ function SurvivalActor.install(sequencer: typeof(Sequencer))
 			for _, entry in state.hiddenReal do
 				if entry.part.Parent then
 					entry.part.LocalTransparencyModifier = entry.old
+				end
+			end
+			-- Devuelve la luz de la hoguera si nadie más la tocó entre tanto.
+			for _, entry in state.dimmed do
+				if entry.light.Parent and entry.light.Brightness == entry.set then
+					entry.light.Brightness = entry.old
 				end
 			end
 			if state.folder then

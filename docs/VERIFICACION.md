@@ -7392,8 +7392,9 @@ Lo que sigue sin probar o sin ver en vídeo. Lo visual lo juzga el usuario en la
    ✅ No sale ninguna línea «[CinematicClient] Night: waitTerrain…». Si sale, debe tardar 0,3 s o menos. Si dice «agotado» o tarda más, copia la línea entera: es un punto de espera mal situado.
 2. [ ] Mide con un marcador propio la duración de la escena, desde el primer fotograma hasta el negro final.
    ✅ Dura unos 29,6 s (en Play, tras el arreglo, midió 29,4 s). Si se aleja más de medio segundo, anota la duración real.
-3. [ ] A unos 8 s de la escena, mira el atributo `CinematicRedMoon` del Lighting.
+3. [x] A unos 8 s de la escena, mira el atributo `CinematicRedMoon` del Lighting.
    ✅ Vale 0: la luna todavía no es roja. Si no, anota el valor y el segundo.
+   Medido el 14-11 en Play: 0 hasta ~11 s y 1 desde ~11,2-12,2 s (±1 s por el muestreo cada segundo). Ver `docs/qa/Night/report.md`, vuelta 7.
 4. [ ] Con el evento en vivo de Luna roja encendido desde el panel de administración, lanza `Night`.
    ✅ La parte de noche (0 a 11 s) no sale roja, porque manda el atributo de la escena. Al acabar, vuelve el rojo del evento. Si sale roja antes de 11 s, anota el segundo.
 5. [ ] Tras la escena, mira la marca de `cinematicsSeen` en el perfil. Antes haz una copia del perfil (§10.0).
@@ -7756,24 +7757,89 @@ Cambios en `Night.luau` y `Endless.luau` (sin commit). Arnés completo en Play p
 
 ### 195.1 En vídeo (el usuario regraba Night y Endless)
 
-1. [ ] `Night`, cierre de 26 a 29 s (cámara en gc(−17, 6, 9), FOV 40/38; el Gorila aterriza en gt(10, 6)).
+1. [x] `Night`, cierre de 26 a 29 s (cámara en gc(−17, 6, 9), FOV 40/38; el Gorila aterriza en gt(10, 6)).
    ✅ El avatar, el Gorila y los otros dos se ven separados: el Gorila no queda tapado por el avatar ni por el poste de la puerta, y no salen Mago o Cazador enormes a los lados. Título y logo caen sobre el avatar (decisión ya tomada). Si el poste tapa al Gorila, anota el segundo.
-2. [ ] `Night`, horda de 16,5 a 19 s (luz de cámara 3/90 y luz fría fija sobre el recorrido, 2,5/60).
+   Vídeo 14-11: pasa con nota (decisión del usuario). El Gorila ya no queda detrás del avatar, pero el Cazador lo tapa en parte, sale oscuro y el poste queda pegado al borde derecho. Se deja así.
+2. [x] `Night`, horda de 16,5 a 19 s (luz de cámara 3/90 y luz fría fija sobre el recorrido, 2,5/60).
    ✅ Los siete monos se leen a lo largo de toda la carrera, sin quedar negros ni pálidos. Si sigue oscuro, anota el segundo y sube el brillo de la luz fija; si sale quemado, bájalo.
-3. [ ] `Night`, choque de 22 a 26 s (cámara +2 st en x; el Mago da dos pasos hacia fuera de 21 a 21,9 s).
+   Vídeo 14-11: bien. Los monos y el Gorila se leen de 15,5 a 18,5 s, sin negro ni quemado; va algo rojiza.
+3. [x] `Night`, choque de 22 a 26 s (cámara +2 st en x; el Mago da dos pasos hacia fuera de 21 a 21,9 s).
    ✅ El poste de la puerta no tapa a los héroes. El paso del Mago se ve natural en el contraplano de 19 a 22 s (no un salto).
-4. [ ] `Endless`, cierre de 27,6 a 32 s (a pl(0, 5,8, −28) mirando a pl(0, 1, 4), FOV 50; termina en pl(3, 15, −48) mirando a pl(0, 1, −4), FOV 52). Restar 2,5 s al tiempo del vídeo.
+   Vídeo 14-11: bien. El poste queda al borde sin tapar a nadie y el contraplano no tiene saltos a simple vista.
+4. [x] `Endless`, cierre de 27,6 a 32 s (a pl(0, 5,8, −28) mirando a pl(0, 1, 4), FOV 50; termina en pl(3, 15, −48) mirando a pl(0, 1, −4), FOV 52). Restar 2,5 s al tiempo del vídeo.
    ✅ Los tres salen enteros, sin cortar por el borde inferior ni por la franja. «Modo infinito» cae sobre el cielo o la parcela, no sobre el grupo. La parcela se ve a buen tamaño al final.
-5. [ ] `Endless`, contrapicado del Caudillo de 22,6 a 25,2 s: el arnés marcó `camcerca` del Caudillo a 4,0 st en un solo cuadro, t = 25,0 s (corte al plano lateral; la caja del jefe se abre con el rugido). No lo toca ninguno de los cuatro cambios.
+   Vídeo 14-11: bien. Los tres salen enteros y el título cae debajo del grupo. La parcela queda pequeña pero legible.
+5. [x] `Endless`, contrapicado del Caudillo de 22,6 a 25,2 s: el arnés marcó `camcerca` del Caudillo a 4,0 st en un solo cuadro, t = 25,0 s (corte al plano lateral; la caja del jefe se abre con el rugido). No lo toca ninguno de los cuatro cambios.
    ✅ En vídeo no se ve la cámara dentro del jefe ni un cuadro tapado por él en el corte de 25,2 s. Si se ve, hay que alejar el final del contrapicado.
+   Vídeo 14-11: sin defecto visible. A 27,6 y 27,8 s del vídeo el Caudillo sale entero y de lado. A 2 fps no se resuelve el cuadro exacto del corte.
 
 6. [ ] Cabezas brillantes de noche (`Night` de 0 a 29 s y `Endless` de 21 a 27,6 s). Causa medida en Play: antorcha en mano con luz de brillo 3 a 2,6-2,8 st de la cabeza (la única luz del avatar), luces de armadura de 1,2-1,5 a 1-2 st, cientos de piezas Neon y el Bloom del mundo (1,0/2,0). Arreglo: `dimLights` (luces ×0,3, partículas ×0,5, el Neon se queda) y `bloom` 0,25/3 en `Night` desde 0 s y en `Endless` desde 21 s; antorcha de `Night` a brillo 1,2. Medido: luz efectiva sobre la cabeza de ~4-7 a 1,1-2,2 en `Night` y 0,0-0,3 en `Endless`; el Bloom vuelve a 1,0/2,0 al acabar.
    ✅ Las cabezas del Mago, el Cazador y el avatar se ven con su color y sombra, sin halo blanco, y las armaduras siguen reconociéndose. Si el halo sigue, baja `TORCH_GLOW` de `Night` o pasa `neon = true`; si ahora quedan oscuras, sube `lights` de 0,3 a 0,5. `Survival` (anochecer a 17,5-18 h) y las batallas no se tocaron: `Survival` no usa `dimLights`; mira en su vídeo si pasa lo mismo.
+   Vídeo 14-11: `Night` y `Endless` bien a simple vista (sin medir). El usuario vio el mismo brillo en `Survival`: ya lleva la receta (ver §196).
 
 ### 195.2 En el Studio de la Isla, captura quieta
 
 1. [ ] Captura quieta (método del §6 de la skill, una a una) del cierre de `Night` a 27,5 s y del choque a 24 s, con maniquíes y una caja de 5×8×5 donde aterriza el Gorila.
    ✅ El poste de z = +11 no tapa la caja del Gorila en el cierre, y el poste de z = −11 no tapa al Mago en el choque.
+
+## 196. Fase 25: vídeo del 14-11 de Night y Endless, B2 y B3 de Survival (14-11-2026)
+
+El usuario regrabó Night y Endless el 14-11 (`2026-11-14 11-58-49.mkv` y `11-59-28.mkv`). Se revisaron en `build/videos/regrabar3/` y los resultados están en `docs/qa/Night/report.md` (vuelta 7) y `docs/qa/Endless/report.md` (vuelta 6): los pasos de §195.1.1 a §195.1.5 salieron bien (el cierre de Night con el Gorila, pasa con nota por decisión del usuario). B2 está medido en Play. En `Survival` se aplicó la receta de §195.1.6 (`dimLights` y `bloom` desde 0 s), la antorcha de pie baja de brillo 4 a 1,5 y la luz de la hoguera se reduce a la mitad mientras dura la escena (evento nuevo `campfireLight` de `SurvivalActor`). Medido en Play: luz efectiva sobre las cabezas ≤ 2,25 en toda la escena (antes 3,6 a 25 s) y el Bloom a 0,25/3, de vuelta a 1,0/2,0 al acabar.
+
+### 196.1 En vídeo (el usuario regraba Survival con un avatar normal)
+
+1. [ ] `Survival` de 0 a 28 s con un avatar de piel normal (el de prueba era verde lima).
+   ✅ Las manos y la cabeza tienen el color del avatar, sin tono amarillo-verdoso. Si siguen verdosas con un avatar normal, anota el plano: sería un fallo del material.
+2. [ ] `Survival`, anochecer de 20 a 24 s (17,5 a 18 h) y antorcha de pie encendida de 24,4 a 27 s.
+   ✅ Las cabezas del Cazador, el Médico y el avatar se ven con su color y sombra, sin halo blanco; las armaduras siguen reconociéndose. La antorcha de pie ya no cae encima de la cara del avatar. Si el halo sigue, baja `TORCH_BRIGHTNESS` de `SurvivalActor` (1,5) o el `scale` de `campfireLight` (0,5); si ahora queda oscura la escena, súbelos.
+3. [ ] `Survival`, hoguera del Basecamp.
+   ✅ La hoguera sigue alumbrando el suelo del campamento (a la mitad de brillo) y, al acabar la escena, vuelve a 2,5. Al volver al juego su luz es la de siempre.
+4. [ ] `Survival`, triángulo de luz de la grúa de apertura.
+   ✅ Se ve la sombra de la empalizada, sin forma extraña: dos cuñas oscuras junto a la valla y una clara en el centro. En Play, con `GlobalShadows` apagado, desaparecen: es sombra, no un fallo. Si en el vídeo sale otra forma, anota el segundo.
+
+### 196.2 En el juego publicado
+
+1. [ ] Negro final de `Night`, `Endless` y `Survival` con arranque en frío (§194.1.5, el vídeo del 14-11 ya lo confirmó en `Night` y `Endless` dentro de Studio).
+   ✅ Entre el último plano y la tarjeta «Volviendo al Basecamp…» solo hay negro. La tarjeta aparece sin hueco.
+
+### 196.3 Con dos jugadores
+
+1. [ ] Con dos jugadores en la Isla, lanza `CineSurvival` solo en el primero y mira la hoguera del segundo.
+   ✅ La luz de la hoguera del segundo jugador no cambia: `campfireLight` solo la baja en el cliente que ve la escena.
+
+### 196.5 Marcas de cámara y encuadre de `Survival` (abiertas)
+
+1. [ ] Arnés completo sobre `CineSurvival` (primera pasada con las marcas A8): `camalta` desde 2,4 hasta 25,8 s (mínimo 3,2 st), `camcerca` del avatar a 5,3 st a 18,0 s y del Cazador a 8,4 st a 8,8 s, `gui` del caption sobre el Cazador (1,6-17,7 s) y las sospechas de `suelo` y `deslizando`. Detalle en `docs/qa/Survival/report.md`.
+   ✅ Cada marca de `camalta` y `camcerca` se corrige o se justifica como plano a propósito en el informe, con la hora y el motivo; `suelo` y `deslizando` se confirman como falsos positivos con una captura quieta; el caption no tapa al Cazador.
+
+### 196.4 Medido en Studio y sin repetir en vídeo
+
+1. [ ] Cabezas de `Night` y `Endless` con la receta de la skill §5 (`execute_luau` recorriendo los `Cinematic_*`).
+   ✅ Luz efectiva sobre las cabezas ≤ ~2,2 en `Night` y ≤ 0,3 en `Endless`. En el vídeo del 14-11 las cabezas se ven bien a simple vista, pero no se midieron.
+
+## 197. Fase 25: cámaras de `Survival` corregidas por las marcas A8 (14-11-2026)
+
+Los 13 planos de `shots` (`Data/Scenes/Survival.luau`) suben a ≥ 4,9 st sobre el suelo y se alejan a ≥ 12 st de los actores (FOV más cerrado para mantener el tamaño); los planos de la mesa pasan al sur (plano 7) y a un barrido por el sur (plano 8). El arnés completo y la medición por cuadro en Play dan: `camcerca` sin marcas reales (mínimo 12,5 st), `camalta` solo en el contrapicado del plano 3, y el plano 8 con avatar y mesa dentro de pantalla y sin rayos interrumpidos. Detalle en `docs/qa/Survival/report.md` (vuelta 2). **No se pudieron sacar fotogramas quietos ni pasar el subagente revisor:** el visor de Studio devolvía la imagen en blanco en `screen_capture` (incluso en una vista alta del Basecamp).
+
+### 197.1 Con fotogramas quietos (o en el vídeo del usuario)
+
+1. [ ] Plano 3 de `Survival` (5,6 a 7,3 s), caída del árbol vista desde el norte (cámara a g(24, 9,3, −42), a ~26 st del árbol y ~5 st sobre el suelo). El vídeo del 14-11 era del plano anterior (cámara en x = 30), donde la copa se estrellaba contra el objetivo a 6,3 s.
+   ✅ Se ven el avatar a la izquierda, el árbol que cae hacia la derecha y la copa al suelo, sin cubo verde a pantalla completa y sin hierba tapando. Hacia 6,9-7,2 s el tronco puede quedar tras el relieve (el Terrain corta el rayo a la base): si el árbol caído no se ve, sube un poco `look` de `b` o acerca la cámara a z = −38. Si la cámara queda demasiado alta o lejos para el avatar, baja `y` hasta 8,6 (queda a ~4,5 st) o cierra el FOV.
+2. [ ] Plano 8 (17 a 20 s), barrido por el sur de la mesa de trabajo.
+   ✅ Se ve el arma subir y girar y pasar a la mano del avatar; el avatar no queda tapado por el tronco de la mesa. No se parece a más de la mitad del plano 7 (si se repite mucho, cambia el lado del barrido).
+3. [ ] Planos 2, 4, 5 y 6 (2,5 a 5,6 y 7,3 a 14,5 s).
+   ✅ Los sujetos (el avatar con el hacha, el Cazador con la roca y el Médico con la mata, el avatar comiendo, el Cazador bebiendo) se leen con tamaño suficiente a las nuevas distancias (16-20 st); si salen demasiado pequeños, cierra el FOV unos 4 grados o acerca la cámara sin bajar de 12 st.
+4. [ ] Caption («Sobrevive en la isla», «El hambre y la sed…», «Fabrica…», «Levanta…») sobre el Cazador, de 1,6 a 17,7 s.
+   ✅ El caption no tapa la cara del Cazador ni la acción del plano. El arnés lo marca `gui`; con el cambio de planos hay que mirarlo en un fotograma.
+5. [ ] Marcas `suelo` (0,5 a 27 s, los tres flotan 1,0-1,4 st sobre Terrain) y `deslizando` (los tres, ~17 st/s sin pista de andar).
+   ✅ Una captura quieta de los tres actores en el Basecamp los muestra con los pies en el suelo, y la marcha por script (`move`) los explica: falsos positivos. Si de verdad flotan, corrige el `snap`.
+6. [ ] Dos cuadros sueltos justo en un corte: el avatar a 7,0 st en el corte del plano 1 al 2 (2,3 s) y la altura de 3,07 st en 23,50 s.
+   ✅ Son artefactos del reloj del arnés al cambiar de plano (1 cuadro, sin ver). Si en el vídeo se ve un destello de ese plano, sube `t1` del plano anterior 0,03 s.
+
+### 197.2 Perfil de prueba
+
+1. [ ] Restaurar el perfil con Play parado: copias `PlayerData_v1_backups` claves `u_8620190944_antesCamSurvival`, `…Survival2` y `…Survival3` (las tres pasadas de Play; desde Edit el DataStore da «Access forbidden»).
+   ✅ El perfil queda como al empezar. Solo difería `session.time` entre el perfil vivo y la copia, así que probablemente no hace falta; Play marcó `Survival` en `cinematicsSeen` (trampa 7 de PLAN).
 
 ## Cuando termines
 

@@ -116,6 +116,12 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 
 		-- ===== Apertura (0 a 2,5): llegan corriendo desde el sur
 		add({ t = 0, kind = "letterbox" })
+		-- Luces de las armaduras (brillo 1,2-1,5 a 1-2 st de las cabezas, más cientos de piezas Neon) y Bloom del mundo (1,0/2,0):
+		-- sumaban 2,1-3,6 sobre cada cabeza y las dejaban blancas, como en Night. Mismo remedio, con el Bloom bajo toda la escena.
+		add({ t = 0, kind = "dimLights", lights = 0.3, particles = 0.5, neon = false })
+		add({ t = 0, kind = "bloom", intensity = 0.25, threshold = 3 })
+		-- La luz de la hoguera (2,5/50) sumaba 1,4 sobre la cabeza del avatar a 22 st: a la mitad mientras dure la escena.
+		add({ t = 0, kind = "campfireLight", scale = 0.5 })
 		-- Un Yarumo real a unos 14 studs de la tala (tronco blanco, y su pieza gris) salía en plano: se esconde en este cliente.
 		add({ t = 0, kind = "hideReal", at = TREE_AT, radius = 36 })
 		add({ t = 0.3, kind = "caption", text = Strings.later("Sobrevive en la isla"), seconds = 1.8 })
@@ -281,46 +287,56 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				t0 = 2.5,
 				t1 = 5.6,
 				-- (a 18 studs del avatar: a 10 el tronco ocupaba media pantalla)
-				a = cameraKey(g(14, 3.5, 0), g(20, 3.3, -13.5), 55), -- z = 0, no 4: a 5,8 de la armadura del Cazador
-				b = cameraKey(g(15, 3.4, -1), g(20, 3.3, -13.5), 52),
+				-- A 4,9 sobre el suelo y a 16 st del avatar (A8, 14-11: antes 3,5 y 11 st); el FOV cerrado mantiene el tamaño.
+				a = cameraKey(g(8, 4.9, 3.5), g(20, 3.3, -13.5), 46),
+				b = cameraKey(g(10, 4.9, 2), g(20, 3.3, -13.5), 44),
 			},
 			-- Contrapicado de la caída del árbol (hacia el este, de izquierda a derecha).
 			{
 				t0 = 5.6,
 				t1 = 7.3,
 				-- Desde x = 30 (a 22 el avatar quedaba cortado en el borde derecho).
-				a = cameraKey(g(30, 1.4, -29), g(26, 7, -14), 62),
-				b = cameraKey(g(30, 1.2, -28), g(32, 5, -14), 62),
+				-- Perpendicular a la caída (el árbol cae hacia +x) y lejos: en la grabación del 14-11 la copa llegaba a x ≈ 36 y se
+				-- estrellaba contra la cámara de x = 30 (cubo verde a pantalla completa a 6,3 s). El terreno sube hacia el norte: a
+				-- z = -42 está ~4,2 st sobre el anchor (medido en Play el 14-11: con y = 6,7 la cámara quedaba a 2,5), así que a
+				-- 9,3 queda a ~5 st sobre él (A8), sin hierba, y deja de ser contrapicado.
+				a = cameraKey(g(24, 9.3, -42), g(27, 8, -14), 46),
+				b = cameraKey(g(25, 9.3, -43), g(30, 6, -14), 46),
 			},
 			-- Medio cruzado: el Cazador con la roca (izquierda) y el Médico con la mata (derecha).
 			{
 				t0 = 7.3,
 				t1 = 9.0,
 				-- En diagonal (a 12-24 studs): de lado se ve el pico contra la roca y las dos parejas quedan a distinta profundidad.
-				a = cameraKey(g(8, 3.6, 2), g(19.5, 2.8, 18), 58),
-				b = cameraKey(g(10, 3.4, 3), g(19.5, 2.8, 18), 55),
+				-- A 4,9 sobre el suelo y a ~18 st del Cazador (A8, 14-11: antes 3,6 y 8 st de su caja); el FOV cerrado
+				-- mantiene a los dos en cuadro.
+				a = cameraKey(g(4, 4.9, -4), g(19, 2.8, 18), 42),
+				b = cameraKey(g(6, 4.9, -2), g(19, 2.8, 18), 40),
 			},
 			-- El avatar come.
 			{
 				t0 = 9.0,
 				t1 = 11.8,
-				a = cameraKey(g(13, 3, -5), g(18.2, 3.6, -13.7), 55),
-				b = cameraKey(g(12.5, 3.1, -5.6), g(18.2, 3.6, -13.7), 50),
+				-- A 4,9 sobre el suelo y a 16-17 st del avatar, en su línea de cara (A8, 14-11: antes 3 y 10 st).
+				a = cameraKey(g(9.5, 4.9, 1.5), g(18.2, 3.6, -13.7), 38),
+				b = cameraKey(g(10.3, 4.9, 0.2), g(18.2, 3.6, -13.7), 35),
 			},
 			-- El Cazador bebe.
 			{
 				t0 = 11.8,
 				t1 = 14.5,
 				-- Empuje lento: la escena dura 2,7 s y beber, 1,5 (antes el plano casi no se movía y parecía congelado).
-				a = cameraKey(g(2, 3.4, 2), g(18.2, 3.6, 11), 55),
-				b = cameraKey(g(8, 3.1, 6), g(18.2, 3.6, 11), 48),
+				-- A 4,9 sobre el suelo y a 16-20 st del Cazador (A8, 14-11: antes 3,4 y 9 st de su caja).
+				a = cameraKey(g(1, 4.9, 0.5), g(18.2, 3.6, 11), 46),
+				b = cameraKey(g(4.5, 4.9, 3), g(18.2, 3.6, 11), 40),
 			},
 			-- Picado sobre la mesa.
 			{
 				t0 = 14.5,
 				t1 = 17.0,
-				a = cameraKey(Vector3.new(-22, 11, 7), Vector3.new(-33, 3, 0), 52),
-				b = cameraKey(Vector3.new(-24, 9.5, 6), Vector3.new(-34, 3.5, 0), 48),
+				-- De lado, desde el sur, a ~18 st del avatar (A8, 14-11: desde el este pasaba a 7 st de su cara).
+				a = cameraKey(Vector3.new(-26, 8, 18), Vector3.new(-33, 3, 0), 42),
+				b = cameraKey(Vector3.new(-31, 7.5, 17), Vector3.new(-34, 3.5, 0), 40),
 			},
 			-- Primer plano del arma que sube y gira.
 			{
@@ -328,34 +344,37 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				t1 = 20.0,
 				-- Rodea la mesa mientras el arma sube y pasa a la mano: así no hay plano vacío cuando el arma ya no está.
 				-- Desde el lado del avatar, no por detrás: su cabeza tapaba la mesa. El arma sube a ~6,4 de altura y entra en cuadro.
-				a = cameraKey(Vector3.new(-28, 6.5, 12), Vector3.new(-34, 5.2, 0), 42),
-				b = cameraKey(Vector3.new(-18, 5.5, -9), Vector3.new(-31, 3.5, 0), 46), -- a 15 del avatar (a 5 le pegaba en la cara)
+				-- A8 (14-11): barrido por el sur, a 16-19 st del avatar (antes pasaba a 5 st por el este). Desde el oeste el tronco
+				-- de la mesa (`Log`) tapaba al avatar de 18,8 a 19,9 s: desde el sur mesa y avatar quedan lado a lado.
+				a = cameraKey(Vector3.new(-38, 5.8, 16), Vector3.new(-34, 5, 0), 38),
+				b = cameraKey(Vector3.new(-24, 5.6, 16), Vector3.new(-31, 3.8, 0), 44),
 			},
 			-- Travelling lateral por fuera del arco de muros (tres tramos seguidos, sin corte entre ellos).
 			{
 				t0 = 20.0,
 				t1 = 21.17,
-				a = cameraKey(ring(70, 4.5), ringLook(85), 58),
-				b = cameraKey(ring(100, 4.6), ringLook(115), 58),
+				a = cameraKey(ring(70, 4.9), ringLook(85), 58),
+				b = cameraKey(ring(100, 5), ringLook(115), 58),
 			},
 			{
 				t0 = 21.17,
 				t1 = 22.33,
-				a = cameraKey(ring(100, 4.6), ringLook(115), 58),
-				b = cameraKey(ring(130, 4.8), ringLook(145), 58),
+				a = cameraKey(ring(100, 5), ringLook(115), 58),
+				b = cameraKey(ring(130, 5.2), ringLook(145), 58),
 			},
 			{
 				t0 = 22.33,
 				t1 = 23.5,
-				a = cameraKey(ring(130, 4.8), ringLook(145), 58),
-				b = cameraKey(ring(160, 5), ringLook(175), 58),
+				a = cameraKey(ring(130, 5.2), ringLook(145), 58),
+				b = cameraKey(ring(160, 5.4), ringLook(175), 58),
 			},
 			-- Contraplano desde dentro del arco: la antorcha que se enciende, con el avatar al otro lado.
 			{
 				t0 = 23.5,
 				t1 = 26.0,
-				a = cameraKey(Vector3.new(-1, 3.6, -10), TORCH_AT + Vector3.new(0, 3, 0), 55),
-				b = cameraKey(Vector3.new(-3, 3.8, -11), TORCH_AT + Vector3.new(0, 3, 0), 55),
+				-- A 4,9 sobre el suelo (A8, 14-11: antes 3,6).
+				a = cameraKey(Vector3.new(-1, 4.9, -10), TORCH_AT + Vector3.new(0, 3, 0), 55),
+				b = cameraKey(Vector3.new(-3, 5.1, -11), TORCH_AT + Vector3.new(0, 3, 0), 55),
 			},
 			-- Cierre: plano abierto que se aleja de la hoguera.
 			{

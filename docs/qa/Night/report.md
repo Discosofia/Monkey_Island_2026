@@ -92,6 +92,22 @@ Cambios en `Night.luau` (sin commit), arnés completo en Play (un jugador, sin c
 
 **Sin probar:** el juicio visual de los cuatro cambios (VERIFICACION §195). No había vídeo nuevo, así que no hay hojas nuevas en `build/videos`.
 
+## Vuelta 7: vídeo del 14-11 (14-11-2026)
+
+El usuario regrabó `O:\Videos Primal banana\2026-11-14 11-58-49.mkv` (30,4 s). Hojas en `build/videos/regrabar3/night/` (fps 2, recorte 1566:800:24:140) y cuadros sueltos en `build/videos/regrabar3/zoom/`. Sin cambios de código en esta vuelta.
+
+| # | Plano | Resultado |
+|---|---|---|
+| 1 | Grúa de 0 a 5 s, poste de la valla a 4,8 s | **Bien**: el poste queda al borde y no tapa al avatar |
+| 2 | Horda de 15,5 a 18,5 s (luz de cámara 3/90 y luz fría fija) | **Bien**: los monos y el Gorila se leen, sin negro ni quemado; va algo rojiza |
+| 3 | Choque de 21,5 a 25 s | **Bien**: héroes a la derecha, el poste al borde sin tapar a nadie |
+| 4 | Cierre de 26 a 28,5 s (cámara oblicua, Gorila en gt(10, 6)) | **Pasa con nota** (decisión del usuario): el Gorila ya no queda detrás del avatar y no salen Mago o Cazador enormes, pero el Cazador lo tapa en parte, sale oscuro y rojizo y el poste queda pegado al borde derecho. Se deja así |
+| 5 | Cabezas sin brillo | **Bien a simple vista**: color y sombra, sin halo blanco. No se midió con la receta de la skill §5 |
+| 6 | Negro final | **Bien**: negro de 28,5 a 29,5 s y tarjeta «Volviendo al Basecamp…» a 30 s. Cierra el punto (d) de la vuelta 5 |
+| 7 | Título y logo sobre el avatar | Decisión ya tomada |
+
+**B2 (medido en Play, 14-11):** `CinematicRedMoon` vale 0 desde que arranca la escena hasta ~11 s. Muestreado cada segundo con `CineNight`: 0 hasta la muestra de 13,1 s del reloj propio y 1 en la de 14,2 s, con la escena arrancada entre 2 y 3 s de ese reloj. El salto cae entre 11,2 y 12,2 s de escena, y el evento `redMoon` está a 11,5 s. A ~8 s vale 0 (VERIFICACION §186.2, paso 3). Incertidumbre de ±1 s por el muestreo. En el vídeo la luna es azul-violeta a ~3,5 s y a ~11 s, y rosa a 11,5 s.
+
 ## Marcas que quedan para el vídeo (no confirmadas)
 
 | Marca | Lo que se sabe | Veredicto |

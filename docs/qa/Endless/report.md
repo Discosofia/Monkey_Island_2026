@@ -111,6 +111,19 @@ Arnés completo en Play (33,7 s, 66 muestras, sin `error` ni `camError`): **ning
 
 **Cabezas blancas de noche (14-11-2026).** Mismo defecto que en `Night` (ver su vuelta 6, fila 19): `dimLights` y `bloom` 0,25/3 a 21,0 s, al empezar el Día 12. Medido en Play a 24,5 s: Bloom 0,25/3,0 y luz efectiva sobre la cabeza 0,0-0,3. Juicio en vídeo (VERIFICACION §195.1.6).
 
+## Vuelta 6: vídeo del 14-11 (14-11-2026)
+
+El usuario regrabó `O:\Videos Primal banana\2026-11-14 11-59-28.mkv` (37,3 s; la escena empieza ~2,5 s dentro). Hojas en `build/videos/regrabar3/endless/` y cuadros sueltos en `build/videos/regrabar3/zoom/` (`endless_27.6.jpg`, `endless_27.8.jpg`). Sin cambios de código en esta vuelta.
+
+| # | Plano | Resultado |
+|---|---|---|
+| 1 | Cierre de 27,6 a 32 s (pl(0, 5,8, −28) mirando a pl(0, 1, 4), FOV 50) | **Bien**: los tres salen enteros, sin cortar por el borde inferior ni por la franja. «Modo infinito» cae debajo del grupo, no encima. La parcela queda pequeña pero legible. A 33,5 s del vídeo el logo vuelve a cubrir al grupo (decisión del usuario) |
+| 2 | `camcerca` del Caudillo a 25,0 s (4,0 st en un cuadro, corte al lateral) | **Sin defecto visible**: a 27,6 y 27,8 s del vídeo (≈ 25,1 y 25,3 s de escena) el Caudillo sale entero y de lado, sin la cámara dentro ni un cuadro tapado. A 2 fps no se resuelve el cuadro exacto del corte |
+| 3 | Reloj del Día 12 | **Bien**: de 18:30 a 19:30 sin dar la vuelta |
+| 4 | Negro final | **Bien**: negro de 33,5 a 34,5 s y tarjeta sin fogonazo |
+| 5 | Cabezas | **Bien a simple vista**: las del Caudillo y los héroes salen normales. No se midió con la receta de la skill §5 |
+| 6 | Pies del Caudillo en el contrapicado | Cortados por la franja y el subtítulo (ya anotado, no bloquea) |
+
 ## Lo que se vio bien
 
 Duración ≈ 30,6 s sin líneas de `waitTerrain`; sin errores de Lua; ninguna marca de terreno en las dos vueltas; sin «atraviesa» tras mover el cierre; el Caudillo se ve entero en los dos primeros planos de noche (**corrección de la vuelta 4:** en el vídeo del 11-11 el contrapicado de la vuelta 3 salió con pared naranja, ya arreglado); el cierre no tiene terreno ni árboles en medio.
