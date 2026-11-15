@@ -125,9 +125,12 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		-- Un Yarumo real a unos 14 studs de la tala (tronco blanco, y su pieza gris) salía en plano: se esconde en este cliente.
 		add({ t = 0, kind = "hideReal", at = TREE_AT, radius = 36 })
 		add({ t = 0.3, kind = "caption", text = Strings.later("Sobrevive en la isla"), seconds = 1.8 })
-		run(0, "avatar", Vector3.new(5, 0, 38), CAMP_AVATAR, 2.2)
-		run(0, "hunter", Vector3.new(-5, 0, 41), CAMP_HUNTER, 2.3)
-		run(0, "medic", Vector3.new(9, 0, 34), CAMP_MEDIC, 2.3)
+		-- Entran desde detrás de la hoguera, lejos de la cámara (z 34-41 salían con los pies cortados por el borde inferior hasta
+		-- ~1,5 s, vídeos del 14-11). La posición de salida es la de `actors` (más abajo): `run` solo mueve al actor desde donde
+		-- esté, y el `from` solo da el giro y la velocidad.
+		run(0, "avatar", Vector3.new(10, 0, -8), CAMP_AVATAR, 2.2)
+		run(0, "hunter", Vector3.new(-10, 0, -6), CAMP_HUNTER, 2.3)
+		run(0, "medic", Vector3.new(14, 0, -6), CAMP_MEDIC, 2.3)
 		face(2.25, "avatar", CAMP_AVATAR, FIRE)
 		face(2.35, "hunter", CAMP_HUNTER, FIRE)
 		face(2.4, "medic", CAMP_MEDIC, FIRE)
@@ -164,7 +167,7 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 
 		-- ===== Hambre y sed (9 a 14,5): las barras bajan al umbral bajo y parpadean; comer y beber las sube
 		add({ t = 9.0, kind = "survivalBars", hunger = 1, thirst = 1, seconds = 0 })
-		add({ t = 9.3, kind = "caption", text = Strings.later("El hambre y la sed no esperan"), seconds = 2.2 })
+		add({ t = 9.3, kind = "caption", text = Strings.later("El hambre y la sed no esperan"), seconds = 1.7 })
 		add({ t = 9.4, kind = "survivalBars", hunger = 0.16, thirst = 0.2, seconds = 1.6 })
 		-- Comer y beber de cara a la cámara (en la grabación el avatar comía de espaldas) y con la mano derecha, la de Consume:
 		-- sueltan el arma antes y la recogen al acabar.
@@ -204,7 +207,7 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 		put(14.5, "avatar", AVATAR_TABLE, yawBetween(AVATAR_TABLE, TABLE_AT))
 		put(14.5, "hunter", WAIT_HUNTER, yawBetween(WAIT_HUNTER, FIRE))
 		put(14.5, "medic", WAIT_MEDIC, yawBetween(WAIT_MEDIC, FIRE))
-		add({ t = 14.8, kind = "caption", text = Strings.later("Fabrica tu propio equipo"), seconds = 2.2 })
+		add({ t = 14.8, kind = "caption", text = Strings.later("Fabrica tu propio equipo"), seconds = 1.4 })
 		anim(14.7, "avatar", "Hammer", 1.4)
 		add({ t = 16.2, kind = "craftFx", at = TABLE_AT + Vector3.new(0, 4.4, 0), weapon = "BoneAxe" })
 		loot(16.5, "avatar", "BoneAxe", 1)
@@ -318,8 +321,12 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				t0 = 9.0,
 				t1 = 11.8,
 				-- A 4,9 sobre el suelo y a 16-17 st del avatar, en su línea de cara (A8, 14-11: antes 3 y 10 st).
-				a = cameraKey(g(9.5, 4.9, 1.5), g(18.2, 3.6, -13.7), 38),
-				b = cameraKey(g(10.3, 4.9, 0.2), g(18.2, 3.6, -13.7), 35),
+				-- Mira un poco más abajo (3,0/3,5 en vez de 3,6) para que el caption («El hambre y la sed no esperan») no pise las piernas.
+				-- FOV 46/43 (antes 38/35): con 38/35 los zapatos aún cruzaban el caption al final del plano (vídeo 14-11 18:59); más ancho,
+				-- el cuerpo mide ~0,8 y cabe entre la franja (0,12) y el caption (0,80).
+				-- Con 2,2 la cabeza salía cortada por la franja de arriba (vídeo 14-11 18:29), y con 2,9 al final del plano (medido: 0,136 del cuadro por stud).
+				a = cameraKey(g(9.5, 4.9, 1.5), g(18.2, 3.0, -13.7), 46),
+				b = cameraKey(g(10.3, 4.9, 0.2), g(18.2, 3.5, -13.7), 43),
 			},
 			-- El Cazador bebe.
 			{
@@ -327,16 +334,19 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				t1 = 14.5,
 				-- Empuje lento: la escena dura 2,7 s y beber, 1,5 (antes el plano casi no se movía y parecía congelado).
 				-- A 4,9 sobre el suelo y a 16-20 st del Cazador (A8, 14-11: antes 3,4 y 9 st de su caja).
-				a = cameraKey(g(1, 4.9, 0.5), g(18.2, 3.6, 11), 46),
-				b = cameraKey(g(4.5, 4.9, 3), g(18.2, 3.6, 11), 40),
+				-- FOV 4 grados más cerrado (14-11: el Cazador salía pequeño).
+				a = cameraKey(g(1, 4.9, 0.5), g(18.2, 3.6, 11), 42),
+				b = cameraKey(g(4.5, 4.9, 3), g(18.2, 3.6, 11), 36),
 			},
 			-- Picado sobre la mesa.
 			{
 				t0 = 14.5,
 				t1 = 17.0,
 				-- De lado, desde el sur, a ~18 st del avatar (A8, 14-11: desde el este pasaba a 7 st de su cara).
-				a = cameraKey(Vector3.new(-26, 8, 18), Vector3.new(-33, 3, 0), 42),
-				b = cameraKey(Vector3.new(-31, 7.5, 17), Vector3.new(-34, 3.5, 0), 40),
+				-- Mira algo más abajo (2,2/2,7 en vez de 3/3,5) por el caption «Fabrica tu propio equipo»; con 1,0/1,5 la cabeza salía
+				-- cortada por la franja de arriba (vídeo 14-11 18:29).
+				a = cameraKey(Vector3.new(-26, 8, 18), Vector3.new(-33, 2.2, 0), 42),
+				b = cameraKey(Vector3.new(-31, 7.5, 17), Vector3.new(-34, 2.7, 0), 40),
 			},
 			-- Primer plano del arma que sube y gira.
 			{
@@ -346,8 +356,8 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				-- Desde el lado del avatar, no por detrás: su cabeza tapaba la mesa. El arma sube a ~6,4 de altura y entra en cuadro.
 				-- A8 (14-11): barrido por el sur, a 16-19 st del avatar (antes pasaba a 5 st por el este). Desde el oeste el tronco
 				-- de la mesa (`Log`) tapaba al avatar de 18,8 a 19,9 s: desde el sur mesa y avatar quedan lado a lado.
-				a = cameraKey(Vector3.new(-38, 5.8, 16), Vector3.new(-34, 5, 0), 38),
-				b = cameraKey(Vector3.new(-24, 5.6, 16), Vector3.new(-31, 3.8, 0), 44),
+				a = cameraKey(Vector3.new(-38, 5.8, 16), Vector3.new(-34, 4.4, 0), 38),
+				b = cameraKey(Vector3.new(-24, 5.6, 16), Vector3.new(-31, 3.3, 0), 44),
 			},
 			-- Travelling lateral por fuera del arco de muros (tres tramos seguidos, sin corte entre ellos).
 			{
@@ -403,7 +413,7 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				role = "Guerrero",
 				weapon = "StoneAxe",
 				snap = true,
-				pos = Vector3.new(5, 0, 38),
+				pos = Vector3.new(10, 0, -8),
 				yaw = 0,
 			},
 			hunter = {
@@ -412,7 +422,7 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				armor = "VolcanicArmor",
 				weapon = "StonePick",
 				snap = true,
-				pos = Vector3.new(-5, 0, 41),
+				pos = Vector3.new(-10, 0, -6),
 				yaw = 0,
 			},
 			medic = {
@@ -421,7 +431,7 @@ local survivalScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				outfit = "CeibaOfLifeOutfit",
 				weapon = false,
 				snap = true,
-				pos = Vector3.new(9, 0, 34),
+				pos = Vector3.new(14, 0, -6),
 				yaw = 0,
 			},
 			tree = nodeProp(TREE_AT, function(base)

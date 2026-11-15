@@ -103,3 +103,30 @@ Hojas de contacto en `build/videos/regrabar3/survival/` (`hoja_1` a `hoja_4`, 2 
 - El arnés no mira píxeles: que algo tape al sujeto sin cortar el rayo de la cabeza o del centro de la mesa no se ha medido.
 - Una copia del perfil por pasada (`…antesCamSurvival`, `2`, `3`, `4` y `5` en `PlayerData_v1_backups`). No se restauró (desde Edit, «Access forbidden»); el perfil vivo solo difería de la copia en `session.time` (VERIFICACION §197.2).
 - Sin commit hasta «aprobado».
+
+## Vuelta 3 (14-11-2026, vídeo `2026-11-14 18-15-48.mkv`, 30,3 s)
+
+Hojas en `build/videos/regrabar3/survival2/` (`hoja_1` a `hoja_4`, 2 fps, recorte `1564:796:25:143`; la escena empieza ~0,5 s dentro del vídeo).
+
+- **Plano 3 (5,6-7,3 s): bien.** Sin cubo verde; el árbol cae hacia la derecha y se ve entero en el suelo a ~7 s (copa y tronco). El avatar queda a la **derecha** del árbol (no a la izquierda). La copa se corta un poco por arriba en los dos primeros cuadros.
+- **Planos 2, 4, 5 y 8: bien.** Plano 6 (el Cazador bebe): sujetos pequeños (~60 px de 190 de alto), legibles. Plano 8: se parece de composición al 7 (mesa a un lado, avatar al otro) pero con otro fondo.
+- **Defectos del vídeo, corregidos en esta vuelta (`Data/Scenes/Survival.luau`):**
+  1. Plano 1: los tres actores entraban por la esquina inferior derecha, con los pies cortados hasta ~1,5 s. Ahora entran desde avatar (14, 16), Cazador (−4, 12) y Médico (14, 6).
+  2. Caption «El hambre y la sed no esperan» (plano 5) y «Fabrica tu propio equipo» (plano 7) pisaban las piernas del avatar: la cámara mira más abajo (plano 5: look y 3,6 → 2,2; plano 7: 3/3,5 → 1,0/1,5) y los captions duran menos (1,7 y 1,4 s en vez de 2,2).
+  3. Plano 6: FOV 46/40 → 42/36.
+- **Arnés recortado** (cámara y caption contra actores; no el completo) en dos pasadas de Play, `CineSurvival`: `camalta` ninguna (mín. 4,8 st); `camcerca` solo de un cuadro pegado a un corte (avatar 7,6 st a 2,3 y 5,4 s; Cazador 10,1 st a 25,8 s; trampa g) y mínimo fuera de cortes 12,9 st; `caption` solo a 11,8 y 17,0 s (un cuadro en el corte, con el texto ya casi apagado) y a ~1,4 s en el plano 1 (pies del Cazador bajo el texto). Queda un `cortado` del Cazador de un cuadro a 0,83 s (pies bajo el borde): no se ve en el vídeo, se mira en la regrabación.
+- **Perfil:** copia `u_8620190944_antesCamSurvival6`; el perfil guardado solo difiere de `…antesCamSurvival` y `…6` en `session.time`. Sin restaurar nada.
+- **Sin fotogramas quietos** (trampa f); la corrección de planos 1, 5, 6 y 7 se juzga con la regrabación (VERIFICACION §198.1).
+
+## Vuelta 4 (14-11-2026, vídeo `2026-11-14 18-29-09.mkv`, 33,5 s): cuerpos cortados
+
+Hojas en `build/videos/regrabar3/survival3/` y `z4/` (6 fps de 6,6 a 8,4 s). El usuario vio personajes cortados en varias tomas. Causas, todas mías o del motor:
+
+1. **Cabeza cortada por la franja de arriba en los planos 5 y 7**: bajar la mirada para despegar el caption de las piernas (vuelta 3) subió demasiado al avatar. Medido por actor y cada 0,25 s en Play (cabeza y pies como fracción del alto; las franjas son 0,12 y 0,88): cada stud que baja la mirada mueve el cuerpo 0,136 del cuadro. Ahora: plano 5 mira a 3,0/3,5 (cabeza 0,16 a 0,13, pies 0,67-0,70), plano 7 a 2,2/2,7 (cabeza 0,17-0,19, pies 0,60-0,64) y plano 8 a 4,4/3,3 (pies 0,77 en vez de 0,93).
+2. **Plano 1, Cazador con los pies cortados 0,7-1,3 s**: `run` solo mueve al actor desde donde esté (su `from` solo da giro y velocidad), así que cambiar el `from` no hizo nada. La salida está en `actors` (`pos`): ahora avatar (10, −8), Cazador (−10, −6) y Médico (14, −6) (antes z 34-41), detrás de la hoguera y lejos de la cámara.
+3. **Avatar enorme durante un cuadro a 7,3 s (corte plano 3 → 4)**: `cutShots` dejaba 10 ms de mezcla entre el último punto de un plano y el primero del siguiente, y a 60 fps un cuadro cae ahí (la cámara pasa a medio camino, por spline). Era lo que el arnés llamaba «camcerca de un cuadro pegado a un corte» y se tomó por artefacto del reloj (trampa g, **era real**). `CinematicKit.cutShots` deja ahora 0,5 ms: afecta a todas las escenas que lo usan (Night, Endless, Survival y las de `Cinematics`).
+- **Medido tras los arreglos (Play, `CineSurvival`):** 0 cuerpos con la cabeza sobre 0,13 o los pies bajo 0,88 en toda la escena; cada corte es un salto único de cámara (2,3, 5,4, 7,2, 11,7, 14,4, 16,9, 19,9, 23,4 y 25,9 s), sin cuadros a medio camino; sin `camcerca`.
+
+## Vuelta 5 (14-11-2026, vídeo `2026-11-14 18-59-27.mkv`, 33,3 s)
+
+Hojas en `build/videos/regrabar3/survival4/`. Planos 1, 3, 4, 6, 7, 8, travelling, antorcha y cierre sin defectos; las cabezas ya no tocan la franja, los pies entran en cuadro, los tres actores entran enteros por detrás de la hoguera y el corte de 7,3 s ya no enseña el avatar enorme. **Defecto que quedaba:** en el plano 5 los zapatos cruzaban el caption («El hambre y la sed no esperan») al final del plano. Arreglo: FOV 38/35 → 46/43 con la misma altura de mirada. Medido en Play (9 a 11,8 s): cabeza ≥ 0,22, pies ≤ 0,70 y ningún cuerpo cortado en toda la escena. Falta verlo en una regrabación (VERIFICACION §198.1).

@@ -48,7 +48,9 @@ function Kit.cutShots(shots: { CameraShot }): { { t: number, pos: Vector3, look:
 		add(shot.t0 + 0.01, shot.a)
 		add(if last then shot.t1 else shot.t1 - 0.03, shot.b)
 		if not last then
-			add(shot.t1 - 0.01, shot.b)
+			-- 0,5 ms antes del corte, no 10: a 60 fps un cuadro caía en la mezcla de esos 10 ms y se veía la cámara a medio camino
+			-- (el avatar enorme a 7,3 s de Survival, 14-11).
+			add(shot.t1 - 0.0005, shot.b)
 		end
 	end
 	return points

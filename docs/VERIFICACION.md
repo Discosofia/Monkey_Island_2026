@@ -7823,13 +7823,15 @@ Los 13 planos de `shots` (`Data/Scenes/Survival.luau`) suben a ≥ 4,9 st sobre 
 
 ### 197.1 Con fotogramas quietos (o en el vídeo del usuario)
 
-1. [ ] Plano 3 de `Survival` (5,6 a 7,3 s), caída del árbol vista desde el norte (cámara a g(24, 9,3, −42), a ~26 st del árbol y ~5 st sobre el suelo). El vídeo del 14-11 era del plano anterior (cámara en x = 30), donde la copa se estrellaba contra el objetivo a 6,3 s.
-   ✅ Se ven el avatar a la izquierda, el árbol que cae hacia la derecha y la copa al suelo, sin cubo verde a pantalla completa y sin hierba tapando. Hacia 6,9-7,2 s el tronco puede quedar tras el relieve (el Terrain corta el rayo a la base): si el árbol caído no se ve, sube un poco `look` de `b` o acerca la cámara a z = −38. Si la cámara queda demasiado alta o lejos para el avatar, baja `y` hasta 8,6 (queda a ~4,5 st) o cierra el FOV.
-2. [ ] Plano 8 (17 a 20 s), barrido por el sur de la mesa de trabajo.
+1. [x] Plano 3 de `Survival` (5,6 a 7,3 s), caída del árbol vista desde el norte (cámara a g(24, 9,3, −42), a ~26 st del árbol y ~5 st sobre el suelo). El vídeo del 14-11 era del plano anterior (cámara en x = 30), donde la copa se estrellaba contra el objetivo a 6,3 s.
+   Vídeo 14-11 18:15: bien, el árbol cae entero y sin cubo verde; el avatar queda a la derecha del árbol (no a la izquierda). 
+   ✅ Se ven el avatar, el árbol que cae hacia la derecha y la copa al suelo, sin cubo verde a pantalla completa y sin hierba tapando. Hacia 6,9-7,2 s el tronco puede quedar tras el relieve (el Terrain corta el rayo a la base): si el árbol caído no se ve, sube un poco `look` de `b` o acerca la cámara a z = −38. Si la cámara queda demasiado alta o lejos para el avatar, baja `y` hasta 8,6 (queda a ~4,5 st) o cierra el FOV.
+2. [x] Plano 8 (17 a 20 s), barrido por el sur de la mesa de trabajo.
    ✅ Se ve el arma subir y girar y pasar a la mano del avatar; el avatar no queda tapado por el tronco de la mesa. No se parece a más de la mitad del plano 7 (si se repite mucho, cambia el lado del barrido).
-3. [ ] Planos 2, 4, 5 y 6 (2,5 a 5,6 y 7,3 a 14,5 s).
+3. [x] Planos 2, 4, 5 y 6 (2,5 a 5,6 y 7,3 a 14,5 s). Vídeo 14-11 18:15: legibles; el plano 6 sale pequeño y su FOV se cerró 4° (ver §198.1).
    ✅ Los sujetos (el avatar con el hacha, el Cazador con la roca y el Médico con la mata, el avatar comiendo, el Cazador bebiendo) se leen con tamaño suficiente a las nuevas distancias (16-20 st); si salen demasiado pequeños, cierra el FOV unos 4 grados o acerca la cámara sin bajar de 12 st.
-4. [ ] Caption («Sobrevive en la isla», «El hambre y la sed…», «Fabrica…», «Levanta…») sobre el Cazador, de 1,6 a 17,7 s.
+4. [x] Caption («Sobrevive en la isla», «El hambre y la sed…», «Fabrica…», «Levanta…») sobre el Cazador, de 1,6 a 17,7 s.
+   Vídeo 14-11 18:15: no tapa la cara del Cazador, pero pisaba las piernas del avatar en los planos 5 y 7 (corregido, §198.1).
    ✅ El caption no tapa la cara del Cazador ni la acción del plano. El arnés lo marca `gui`; con el cambio de planos hay que mirarlo en un fotograma.
 5. [ ] Marcas `suelo` (0,5 a 27 s, los tres flotan 1,0-1,4 st sobre Terrain) y `deslizando` (los tres, ~17 st/s sin pista de andar).
    ✅ Una captura quieta de los tres actores en el Basecamp los muestra con los pies en el suelo, y la marcha por script (`move`) los explica: falsos positivos. Si de verdad flotan, corrige el `snap`.
@@ -7838,8 +7840,47 @@ Los 13 planos de `shots` (`Data/Scenes/Survival.luau`) suben a ≥ 4,9 st sobre 
 
 ### 197.2 Perfil de prueba
 
-1. [ ] Restaurar el perfil con Play parado: copias `PlayerData_v1_backups` claves `u_8620190944_antesCamSurvival`, `…Survival2` y `…Survival3` (las tres pasadas de Play; desde Edit el DataStore da «Access forbidden»).
+1. [x] Restaurar el perfil con Play parado: copias `PlayerData_v1_backups` claves `u_8620190944_antesCamSurvival`, `…Survival2` y `…Survival3` (las tres pasadas de Play; desde Edit el DataStore da «Access forbidden»).
    ✅ El perfil queda como al empezar. Solo difería `session.time` entre el perfil vivo y la copia, así que probablemente no hace falta; Play marcó `Survival` en `cinematicsSeen` (trampa 7 de PLAN).
+   Comprobado el 14-11 desde Play (servidor): el perfil guardado solo difiere de `…antesCamSurvival` y `…6` en `session.time`. No hace falta restaurar.
+
+## 198. Fase 25: retoques de `Survival` tras el vídeo del 14-11 y bloque de pruebas (14-11-2026)
+
+Con el vídeo `2026-11-14 18-15-48.mkv` se vio el plano 3 bien (§197.1.1) y se retocaron entrada de los actores, caption y FOV (`Data/Scenes/Survival.luau`). El vídeo de las 18:29 enseñó cuerpos cortados en varios planos: ver §198.1 y la vuelta 4 del informe (incluye un cambio en `CinematicKit.cutShots` que afecta a todas las escenas). Medido en Play con el arnés recortado: sin `camalta` (mín. 4,8 st) y sin `camcerca` fuera de los cortes (mín. 12,9 st). `CineEndless` también sin marcas (§194.1.1 hecho: Caudillo a ≥ 14,4 st, cámara a ≥ 5,2 st y fuera de la empalizada en 22-24,5 s). Informe: `docs/qa/Survival/report.md` (vuelta 3).
+
+### 198.1 En vídeo (el usuario regraba `Survival`)
+
+El vídeo del 14-11 18:29 enseñó cabezas y pies cortados en varios planos; se corrigieron (informe, vuelta 4) y se midió en Play sin ningún cuerpo cortado. Falta verlo en vídeo.
+
+1. [ ] Plano 1 (0 a 2,5 s).
+   ✅ Los tres actores entran desde detrás de la hoguera y corren hacia ella, enteros desde el primer cuadro (ninguno con los pies cortados por abajo).
+2. [ ] Plano 5 (8,8 a 11,8 s) y plano 7 (14,5 a 17 s). Vídeo 14-11 18:59: plano 7 bien; en el plano 5 los zapatos aún cruzaban el caption al final, y se ensanchó el FOV a 46/43 (medido en Play: cabeza ≥ 0,22, pies ≤ 0,70, sin verlo aún en vídeo).
+   ✅ La cabeza del avatar no toca la franja de arriba, y el caption («El hambre y la sed no esperan», «Fabrica tu propio equipo») cae bajo los pies sin pisarle las piernas.
+3. [ ] Plano 8 (17 a 20 s).
+   ✅ El avatar entra con los pies dentro del cuadro todo el plano, y el arma que sube sigue visible.
+4. [ ] Cortes entre planos, sobre todo 7,3 s (árbol caído → Cazador con la roca).
+   ✅ Ningún cuadro suelto con el avatar enorme ni con la cámara a medio camino. Si en otra escena (`Night`, `Endless`…) se ve un cuadro raro en un corte, anota el segundo: `cutShots` cambió para todas.
+5. [ ] Plano 6 (11,8 a 14,5 s), el Cazador bebe.
+   ✅ El Cazador sale más grande que en el vídeo del 14-11 de las 17:51 y sigue en cuadro durante el empuje.
+6. [ ] Captions de 9,3 y 14,8 s (duran 1,7 y 1,4 s).
+   ✅ Se alcanzan a leer; si se quedan cortos, sube `seconds` y mueve el plano que sigue.
+
+### 198.2 Con fotogramas quietos
+
+1. [ ] Capturas quietas, una a una, de `Night` (poste `Empalizada.GatePost` a ~4,8 s) y de los planos de `Endless` a 22,5, 25,2 y 28 s (§194.1.2 a 194.1.4).
+   ✅ Los de §194.1. Hoy el visor puede devolver la imagen en blanco (trampa f): si pasa, se juzga con vídeo.
+
+### 198.3 Con el juego publicado y con dos jugadores
+
+1. [ ] Negro final de `Survival`, `Endless` y `Night` con arranque en frío (§194.1.5).
+   ✅ Solo negro entre el último plano y la tarjeta «Volviendo al Basecamp…».
+2. [ ] Dos jugadores en la Isla: `CineEndless` solo en el primero, y luego en los dos (§194.3).
+   ✅ El reloj del segundo no cambia en el primer caso; en el segundo, cada reloj sube sin bajar dentro del día.
+
+### 198.4 Escenas que necesitan vídeo o capturas
+
+1. [ ] B4 de PLAN (regrabar Albino y Ceniza, calidades Baja y Media, cómics y reels del Orangután y el Caudillo) y C1 (un fotograma de cada escena con `copy` o `localPlayer`: Arrival, Voyage, Pets, Mounts, Flyover, Ballgame, Rescue).
+   ✅ Sin defectos nuevos. No se han hecho: piden grabaciones del usuario o capturas del visor.
 
 ## Cuando termines
 
