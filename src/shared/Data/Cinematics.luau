@@ -1573,7 +1573,10 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		skill = "eruption",
 		hour = 17.5,
 		exposure = 0.42,
-		brightness = 1.8,
+		-- 0,7 (antes 1,8): la luz que sigue a la cámara sumaba 0,7 a 1,4 sobre cada cabeza; con las del traje, las
+		-- rendijas del volcán y el Bloom del mundo las cabezas sumaban 2,2 a 4,1 y salían blancas (medido 14-11; con 1,0 y el
+		-- Bloom bajo, 1,5 a 3,6).
+		brightness = 0.7,
 		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -11.5, -18) },
 		plan = bossPlan(),
 		choreo = "ceniza",
@@ -1825,8 +1828,13 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 			event.value = battle.exposure or 0.42
 		elseif event.kind == "light" then
 			event.brightness = battle.brightness or 1.8
+		elseif event.kind == "dimLights" then
+			-- Receta de cabezas brillantes (skill cinematicas-roblox §5): partículas a la mitad y el Bloom bajo, que si no
+			-- convierte las luces del traje y el Neon en un halo blanco (Albino medía 5 a 7,7 sobre cada cabeza).
+			event.particles = 0.5
 		end
 	end
+	table.insert(events, { t = 0, kind = "bloom", intensity = 0.25, threshold = 3 })
 	-- La versión normal con coreografía propia (G14a) saca de BossChoreo los eventos y los planos; las demás, la común.
 	local choreo: BossChoreo.Choreo? = nil
 	if variant == "normal" and battle.choreo then

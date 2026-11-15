@@ -661,7 +661,9 @@ function BossChoreo.albino(ctx: Context): Choreo
 	end
 	local function torch(t: number, name: string, lit: boolean)
 		if carries[name] then
-			s.add(BossChoreo.torch(t, name, lit))
+			-- Brillo 0,6 (el de BattleActor es 2; con 1,2 las tres antorchas juntas aún sumaban 4,2 a 5,9 sobre la cabeza del
+			-- mago, medido 14-11): en la cueva son la única luz, pero tres a 3 st unas de otras se suman.
+			s.add(BossChoreo.torch(t, name, lit, 0.6))
 		end
 	end
 	local function reach(pos: Vector3): number
@@ -774,18 +776,26 @@ function BossChoreo.albino(ctx: Context): Choreo
 	-- Luz propia: cálida hasta el resoplido (se funde de 5,6 a 6,0 a la vez que las antorchas), fría y baja en la penumbra,
 	-- cálida otra vez cuando el mago reenciende. La exposición de t = 0 (0,3) la pone la entrada de la batalla.
 	local warm, cold = Color3.fromRGB(255, 236, 210), Color3.fromRGB(150, 170, 215)
-	s.add(followLight(0, warm, 1.2, 60, 6.0))
+	s.add(followLight(0, warm, 0.8, 60, 6.0))
 	s.add(exposure(5.9, 0.08))
 	s.add(followLight(5.9, cold, 0.35, 40, 2.9))
+	-- La vuelta de la luz no es un salto de un cuadro: una luz cálida a media fuerza cuando el mago empieza el hechizo (8,45)
+	-- y la plena a 8,75 (0,9: con 1,2 y las antorchas el bloque de hielo del Congelado salía casi blanco).
+	s.add(exposure(8.5, 0.15))
+	s.add(followLight(8.45, warm, 0.5, 60, 0.45))
 	s.add(exposure(8.75, 0.3))
-	s.add(followLight(8.75, warm, 1.2, 60, nil))
+	s.add(followLight(8.75, warm, 0.7, 60, nil))
 
 	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí).
 	local plan = openingShots(3.6)
 	table.insert(plan, shot(3.6, 5.4, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
 	table.insert(plan, shot(5.4, 6.4, { 0, 8, -16 }, { "abs", 0, 6, 0 }, 56))
-	table.insert(plan, shot(6.4, 8.6, { 20, 5, -6 }, { "mid", "C", 3 }, 54))
-	table.insert(plan, shot(8.6, 9.4, { 4, 3, -14 }, { "crew", "mago", 3 }, 50))
+	-- Desde atrás a la IZQUIERDA y más alto (antes { 20, 5, -6 }, a 11 st del médico, y en el vídeo del 14-11 22:25 con
+	-- { 16, 7, -22 } seguía tapando): la púa de cristal de 6,8 s sube junto al médico (a la derecha, x = +7 a +9) y dura hasta
+	-- ~9,4; cualquier cámara a la derecha la tiene entre ella y el jefe, y bajo la luz cálida de 8,75 sale blanca. La izquierda
+	-- (el cazador, a x = -8) no tiene ninguna.
+	table.insert(plan, shot(6.4, 8.6, { -16, 7, -22 }, { "mid", "C", 3 }, 54))
+	table.insert(plan, shot(8.6, 9.4, { -4, 3.4, -15.5 }, { "crew", "mago", 3 }, 50))
 	table.insert(plan, shot(9.4, 10.4, { 22, 8, -12 }, { "abs", 0, 6, 0 }, 46, { 20, 9, -12 }))
 	table.insert(plan, shot(10.4, 12.0, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
 	table.insert(plan, closingShot(ctx.total))
@@ -814,6 +824,9 @@ function BossChoreo.ceniza(ctx: Context): Choreo
 	end
 
 	s.enter()
+	-- Las rendijas del volcán (luces del mapa «Respiradero», a 8-20 st de las cabezas) sumaban 0,4 a 1,3 cada una sobre los
+	-- maniquíes: a un tercio mientras dura la escena, solo en este cliente.
+	s.add({ t = 0, kind = "mapLights", part = "Respiradero", scale = 0.35 })
 
 	-- Canaliza el aullido: grietas de lava alrededor del jefe. Mientras, disparan el cazador y el mago.
 	s.add(BossChoreo.bossAct(2.6, "Howl"))
@@ -925,14 +938,22 @@ function BossChoreo.ceniza(ctx: Context): Choreo
 	s.bar(13.0, 0.04, 0, 0.25)
 	s.add(BossChoreo.bossAct(13.05, "Die"))
 
-	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí).
-	local plan = openingShots(3.8)
-	table.insert(plan, shot(3.8, 5.6, { 0, 5, -14 }, { "abs", 0, 8, 4 }, 58))
-	table.insert(plan, shot(5.6, 7.4, { -14, 5, -12 }, { "crew", "cazador", 3 }, 52))
-	table.insert(plan, shot(7.4, 9.6, { 22, 8, -12 }, { "abs", 3, 3, -10 }, 48, { 20, 9, -12 }))
-	table.insert(plan, shot(9.6, 10.6, { -20, 3.4, -6 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, shot(10.6, 12.0, { 22, 9, 0 }, { "mid", "C", 3 }, 58))
-	table.insert(plan, closingShot(ctx.total))
+	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí). El Gorila de Ceniza (escala 3,625,
+	-- sobre una cresta más alta que la tripulación) es el más alto: con las miradas comunes la cabeza quedaba bajo la franja negra
+	-- en cinco planos (fracción del cuadro 0,02 a 0,08, y -0,06 en el de 10,6 s). Las miradas suben 1,5 a 5,9 studs (inclinar
+	-- 4 a 13 grados, sin tocar el FOV) hasta dejar la cabeza a 0,16 o más; los planos de 2,5 a 5,6 s y el cierre ya cabían.
+	local plan = {
+		shot(0, 2.5, { 26, 7, 8 }, { "mid", "C", 8.2 }, 56, { 26, 6, 2 }, { "mid", "C", 8.2 }),
+		shot(2.5, 3.8, { 18, 10, -10 }, { "abs", 0, 9, 0 }, 46, { 17, 10, -9 }),
+		shot(3.8, 5.6, { 0, 5, -14 }, { "abs", 0, 8, 4 }, 58),
+		-- FOV +6 en 5,6 y 9,6 s (vídeo del 14-11 22:25: con la cabeza a 0,14 a 0,17 aún tocaba la barra del jefe, que ocupa
+		-- hasta ~0,17 del cuadro): más ancho, la cabeza baja a ~0,19 y la tripulación no sube de 0,9.
+		shot(5.6, 7.4, { -14, 5, -12 }, { "crew", "cazador", 4.5 }, 58),
+		shot(7.4, 9.6, { 22, 8, -12 }, { "abs", 3, 5.8, -10 }, 48, { 20, 9, -12 }),
+		shot(9.6, 10.6, { -20, 3.4, -6 }, { "mid", "guerrero", 5.4 }, 58),
+		shot(10.6, 12.0, { 22, 9, 0 }, { "mid", "C", 8.9 }, 58),
+		closingShot(ctx.total),
+	}
 	return { events = s.events, plan = plan }
 end
 

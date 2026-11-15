@@ -7852,18 +7852,22 @@ Con el vídeo `2026-11-14 18-15-48.mkv` se vio el plano 3 bien (§197.1.1) y se 
 
 El vídeo del 14-11 18:29 enseñó cabezas y pies cortados en varios planos; se corrigieron (informe, vuelta 4) y se midió en Play sin ningún cuerpo cortado. Falta verlo en vídeo.
 
-1. [ ] Plano 1 (0 a 2,5 s).
+> Vídeo `2026-11-14 20-03-33.mkv` revisado (hojas a 2 fps y cortes a 60 fps, `build/videos/survival5/`): puntos 1 a 6 correctos. Defecto nuevo en 198.1.7.
+
+1. [x] Plano 1 (0 a 2,5 s).
    ✅ Los tres actores entran desde detrás de la hoguera y corren hacia ella, enteros desde el primer cuadro (ninguno con los pies cortados por abajo).
-2. [ ] Plano 5 (8,8 a 11,8 s) y plano 7 (14,5 a 17 s). Vídeo 14-11 18:59: plano 7 bien; en el plano 5 los zapatos aún cruzaban el caption al final, y se ensanchó el FOV a 46/43 (medido en Play: cabeza ≥ 0,22, pies ≤ 0,70, sin verlo aún en vídeo).
+2. [x] Plano 5 (8,8 a 11,8 s) y plano 7 (14,5 a 17 s). Vídeo 14-11 18:59: plano 7 bien; en el plano 5 los zapatos aún cruzaban el caption al final, y se ensanchó el FOV a 46/43 (medido en Play: cabeza ≥ 0,22, pies ≤ 0,70, sin verlo aún en vídeo).
    ✅ La cabeza del avatar no toca la franja de arriba, y el caption («El hambre y la sed no esperan», «Fabrica tu propio equipo») cae bajo los pies sin pisarle las piernas.
-3. [ ] Plano 8 (17 a 20 s).
+3. [x] Plano 8 (17 a 20 s).
    ✅ El avatar entra con los pies dentro del cuadro todo el plano, y el arma que sube sigue visible.
-4. [ ] Cortes entre planos, sobre todo 7,3 s (árbol caído → Cazador con la roca).
+4. [x] Cortes entre planos, sobre todo 7,3 s (árbol caído → Cazador con la roca).
    ✅ Ningún cuadro suelto con el avatar enorme ni con la cámara a medio camino. Si en otra escena (`Night`, `Endless`…) se ve un cuadro raro en un corte, anota el segundo: `cutShots` cambió para todas.
-5. [ ] Plano 6 (11,8 a 14,5 s), el Cazador bebe.
+5. [x] Plano 6 (11,8 a 14,5 s), el Cazador bebe.
    ✅ El Cazador sale más grande que en el vídeo del 14-11 de las 17:51 y sigue en cuadro durante el empuje.
-6. [ ] Captions de 9,3 y 14,8 s (duran 1,7 y 1,4 s).
+6. [x] Captions de 9,3 y 14,8 s (duran 1,7 y 1,4 s).
    ✅ Se alcanzan a leer; si se quedan cortos, sube `seconds` y mueve el plano que sigue.
+7. [ ] Corte de 2,5 s (grúa → lateral del hacha). En el vídeo del 14-11 20:03, 4 cuadros a 60 fps (~0,07 s) con el avatar enorme y cortado por el borde izquierdo justo después del corte, y luego a su tamaño normal. Medido en Play (Studio a 15 fps, cámara y actores por cuadro): cámara y avatar cambian en el mismo cuadro y el avatar queda a 16,2 st; no se reproduce, causa sin hallar (¿raycast de `snap` con el terreno del bosque aún sin cargar?).
+   ✅ Regrabar `Survival` y mirar el cuadro a cuadro de 2,6 a 2,9 s del vídeo: avatar a su tamaño desde el primer cuadro del plano 2.
 
 ### 198.2 Con fotogramas quietos
 
@@ -7880,7 +7884,50 @@ El vídeo del 14-11 18:29 enseñó cabezas y pies cortados en varios planos; se 
 ### 198.4 Escenas que necesitan vídeo o capturas
 
 1. [ ] B4 de PLAN (regrabar Albino y Ceniza, calidades Baja y Media, cómics y reels del Orangután y el Caudillo) y C1 (un fotograma de cada escena con `copy` o `localPlayer`: Arrival, Voyage, Pets, Mounts, Flyover, Ballgame, Rescue).
-   ✅ Sin defectos nuevos. No se han hecho: piden grabaciones del usuario o capturas del visor.
+   ✅ Sin defectos nuevos. B4 sigue sin hacer (pide grabaciones del usuario). C1 medida en Play, no a ojo: ver §200.
+
+## 199. Vídeos del modo infinito: Short y YouTube de `Endless` y `Night` (14-11-2026)
+
+Borradores de CapCut `infinito-short-es-v1`, `infinito-short-en-v1`, `infinito-youtube-es-v1` e `infinito-youtube-en-v1` (guiones en `docs/videos/shorts/infinito-*.json`, tomas en `O:\Videos Primal banana\Infinito`). Los cortes llevan `ancho: true`: la imagen de la cinemática sin franjas ni Explorador, a lo ancho del lienzo y con franjas negras para el texto. Los recortes salen a `build/videos/recortes/`. Sin probar que CapCut abra los borradores ni que el recorte encaje a lo ancho.
+
+### 199.1 En CapCut
+
+1. [ ] Abrir los cuatro borradores. En el Short, comprobar que cada corte sale a lo ancho (sin recortar los carteles del juego) y centrado.
+   ✅ Los cuatro se abren con 8 cortes (Short, 34,5 s) o 15 (YouTube, 92 s), sin cortes en negro ni desplazados.
+2. [ ] Generar la voz desde la pista `voz`, añadir el filtro y la música de la biblioteca (-10 dB), exportar (Short 1080x1920 y YouTube 1920x1080, 30 fps, sin marca de agua).
+   ✅ Retoque de 5 minutos o menos por vídeo. Anotar los minutos reales.
+3. [ ] Revisar el plano de la horda de `Night` (YouTube, corte 12) y la luz roja de 0:15 a 0:26.
+   ✅ Se distingue a los monos; si sale casi negro, acortar o quitar ese corte.
+
+## 200. Fase 25 C1: actores de las escenas anteriores a G14b (14-11-2026)
+
+Medido en Play en el Studio de la Isla (piezas, piezas transparentes, ropa, accesorios, armas y altura de la raíz sobre el Terrain, cada 1,5 a 2 s): `Arrival` y `Voyage` con los cuatro roles (Mago 365 piezas, Guerrero 209, Médico 241, Cazador 179, cada uno con su arma y solo el `Handle` transparente), copias del avatar de `Mounts`, `Voyage` y `Rescue` con 131 piezas, ninguna transparente, ropa y un accesorio, y raíz a 3,0 a 3,5 st del suelo en `Arrival`. Sin copias invisibles en ninguna. No se juzgó nada a ojo: el visor no dibuja la escena en vivo.
+
+### 200.1 Con el juego abierto y mirando
+
+1. [ ] Lanzar `CineArrival`, `CineVoyage`, `CinePets`, `CineMounts`, `CineFlyover` y `CineRescue` y mirar un cuadro de cada una (el avatar y la tripulación).
+   ✅ El avatar sale con su traje y sin armadura del jugador, nada flota ni se hunde, y no hay terreno atravesando a nadie. `Pets` y `Flyover` medidos también (14-11): monos y mascotas con los pies a 0 a 0,5 st del suelo, y en `Flyover` el jinete del Quetzalcóatl entero (131 piezas, ropa 2, accesorio 1) a 43,7 st del suelo porque vuela. En `Pets` el avatar es tu personaje real y no se midió.
+2. [ ] `CineBallgame` en el Studio de Dunas, a ojo. Medido en Play el 14-11: cinco Guerreros de 39 piezas y el avatar copia de 40 (ropa 2, accesorio 1), ninguna pieza transparente, pies a 0 a 0,24 st de `Cancha.Court.Floor`; un Guerrero a 6,9 st de la raíz sobre el suelo en una muestra (un salto, sin confirmar a ojo).
+   ✅ Lo mismo que el punto 1, con el equipamiento de la pelota, y el salto de 18 s es un salto de juego y no un actor flotando.
+
+## 201. Fase 25 B4: vídeos de Ceniza y Albino del 14-11 (21:32), arreglados y medidos en Play, falta regrabar
+
+Vídeos `2026-11-14 21-32-21.mkv` (Gorila de Ceniza) y `21-32-53.mkv` (Gorila Albino); hojas en `build/videos/b4/`. Vistos solo a 1 y 2 fps, sin coreografía cuadro a cuadro ni las calidades Baja y Media (esas no se ven en vídeo). Cambios: `BossChoreo.ceniza` y `albino` (planos y luces), `bossBattleScene` (Bloom bajo y partículas a la mitad en todas las batallas de jefe), brillo de Ceniza 1,8 → 0,7 y un evento nuevo `mapLights` (`SurvivalActor`) que baja las luces «Respiradero» del volcán. Medido en Play (Studio de la Isla, 14-11) con el código nuevo: cabeza de Ceniza a 0,14 a 0,28 del cuadro en todos los planos (antes 0,02 a 0,08 y -0,06), tripulación a ≥ 12,4 st de la cámara en Ceniza y ≥ 13,3 en Albino, luz sobre las cabezas de Ceniza 1,0 a 2,3 en casi todas las muestras y un pico de 3,5 en alguna (antes 2,2 a 4,1; el pico no se localizó, quizá un efecto de habilidad) y de Albino 3,2 a 4,1 con antorchas y 1,1 a 1,9 en la penumbra (antes 4,2 a 5,9). Las antorchas son la única luz de la cueva y siguen por encima del 2,25 de la receta de la skill.
+
+Segunda vuelta (vídeos `2026-11-14 22-25-24.mkv` Ceniza y `22-25-51.mkv` Albino, hojas en `build/videos/b4r/`): Ceniza ya enseña la cabeza entera en todos los planos, pero en dos (5,6 y 9,6 s de la escena) aún toca la barra del jefe: FOV 52 → 58 en esos dos. En Albino la pared azul seguía (un bloque de cristal azul que crece sobre el jefe de ~7,9 a 8,6 s y, en el plano siguiente, una columna a la izquierda que bajo la luz cálida sale blanca) porque la púa del médico está a la derecha y la cámara atrás-derecha la tenía en medio: las cámaras de 6,4 a 8,6 y de 8,6 a 9,4 pasan a la izquierda. Con un rayo desde la cámara a la cabeza de cada maniquí no se vio nada delante salvo una roca de `Mapa.Obsidiana` que tapa al Guerrero en 16 de 33 cuadros del plano de 6,4 a 8,6 (a revisar en vídeo); el cristal no se puede medir así (sus piezas no se consultan por rayo).
+
+### 201.1 En vídeo (el usuario regraba Ceniza y Albino)
+
+Tercera vuelta (vídeos `22-36-46.mkv` Ceniza y `22-37-10.mkv` Albino, hojas en `build/videos/b4s/`, 2 fps): puntos 1 a 3 vistos y bien, salvo la losa del punto 2.
+
+1. [x] Ceniza, planos de 0 a 15 s.
+   ✅ La cabeza del jefe entera bajo la franja negra en todos los planos y la barra no le pisa la cara; la tripulación no brilla blanca y las rendijas del volcán siguen viéndose. (Visto en la tercera vuelta: cabeza entera y bajo la barra en todos los planos.)
+2. [x] Albino, de ~5,4 a 8,6 s de la escena (plano de la púa de cristal): la púa que sube junto al médico ya no tapa media pantalla (era la púa de 6,8 s, no la Nova; las cámaras pasaron a la izquierda). Visto: la púa sube a un lado de la tripulación sin taparla; en el primer cuadro del plano de 8,6 s una losa azul ocupa el tercio izquierdo (el mago queda a su derecha).
+   ✅ Se ve la tripulación y la púa a un lado, sin pared azul a pantalla completa. Pendiente de gusto: si la losa del tercio izquierdo a 8,6 s estorba, se mueve esa cámara un poco a la derecha o se abre el FOV.
+3. [x] Albino, cambio de luz de la penumbra a las antorchas (8,45 a 8,75 s): es del guion (el resoplido apaga las antorchas a 5,6 s y el mago las reenciende a 8,7), ahora con una luz intermedia a 8,45 y exposición en dos pasos.
+   ✅ La vuelta de la luz se nota como un encendido, no como un salto, y el bloque de hielo del Congelado (9,2 s) conserva el detalle en vez de salir blanco. (Visto: el bloque se ve claro pero con detalle; algo de blanco en los trozos de hielo de la derecha.)
+4. [ ] Orangután y Caudillo con el Bloom bajo y las partículas a la mitad (cambio común a las cuatro batallas de jefe, solo medido en Ceniza y Albino).
+   ✅ Sin cabezas ni armaduras blancas y sin que los efectos (rocas, lianas) se queden apagados.
 
 ## Cuando termines
 

@@ -914,9 +914,26 @@ local function onCampfireLight(event: Sequencer.Event, ctx: Sequencer.Context)
 	end
 end
 
+-- mapLights { part, scale? }: baja el brillo de las luces del mapa cuyo padre se llama `part` (por ejemplo «Respiradero», las
+-- rendijas del volcán de Ceniza), solo en este cliente y mientras dura la escena (finish las devuelve). Las de un volcán a
+-- 8-20 st de las cabezas sumaban 0,4 a 1,3 cada una (medido el 14-11) y, con las del traje, las dejaban blancas.
+local function onMapLights(event: Sequencer.Event, ctx: Sequencer.Context)
+	local state = stateOf(ctx)
+	local scale: number = event.scale or 0.4
+	for _, descendant in Workspace:GetDescendants() do
+		if (descendant:IsA("PointLight") or descendant:IsA("SpotLight")) and descendant.Parent.Name == event.part then
+			local light = descendant :: Light
+			local old = light.Brightness
+			light.Brightness = old * scale
+			table.insert(state.dimmed, { light = light, old = old, set = light.Brightness })
+		end
+	end
+end
+
 -- ===================================== instalación =====================================
 
 function SurvivalActor.install(sequencer: typeof(Sequencer))
+	sequencer.registerHandler("mapLights", onMapLights)
 	sequencer.registerHandler("nodeHit", onNodeHit)
 	sequencer.registerHandler("nodeFall", onNodeFall)
 	sequencer.registerHandler("loot", onLoot)
