@@ -14,6 +14,8 @@
 -- true, el guion trae su propia luz (eventos light y exposure) y Data/Cinematics quita la luz común de battleLight().
 -- BossChoreo.build(nombre, ctx) elige el constructor por el campo `choreo` de la batalla.
 
+local Strings = require(script.Parent.Parent.Strings)
+
 local BossChoreo = {}
 
 export type Event = { t: number, kind: string, [string]: any }
@@ -33,8 +35,36 @@ export type Context = {
 	crewSpot: (name: string) -> (number, number), -- (x, z) de un maniquí en el marco del jefe
 	total: number, -- duración de la batalla
 	torches: { string }?, -- maniquíes que llevan antorcha (BossBattle.torches)
+	reelTail: number?, -- segundos de cola del reel (REEL_TAIL_SECONDS de Data/Cinematics)
+	colors: { Color3 }?, -- { color del jefe, crema } de los paneles del cómic
+	narration: string?, -- texto de la narración del cómic y del reel
+	quote: string?, -- la frase del jefe
 }
-export type Choreo = { events: EventList, plan: { PlanShot }, ownLight: boolean? }
+-- Un corte del reel (lo lee bossReelCuts de Data/Cinematics): ventana, fondo, cámara y sujeto.
+export type ReelPlan = {
+	t0: number,
+	t1: number,
+	shape: string,
+	bg: string,
+	cam: { number },
+	camB: { number }?,
+	subject: { any },
+	subjectB: { any }?,
+	h: number?,
+	fill: number?,
+	width: number?,
+	f: number?,
+}
+-- `comic`, `reel` y `reelEvents` (opcionales): la capa cómic y los cortes de las variantes «comic» y «reel». Sin ellos
+-- esas variantes usan la capa común de Data/Cinematics. `reelEvents` no lleva el cartel de cierre.
+export type Choreo = {
+	events: EventList,
+	plan: { PlanShot },
+	ownLight: boolean?,
+	comic: EventList?,
+	reel: { ReelPlan }?,
+	reelEvents: EventList?,
+}
 
 local CREW = { "guerrero", "cazador", "mago", "medico" }
 local RUN_ANIM_STUDS = 16 -- studs/s a los que la pista Run va a su velocidad
@@ -220,8 +250,12 @@ function BossChoreo.anim(t: number, name: string, action: string, seconds: numbe
 end
 
 -- Una habilidad de AbilityShow (evento abilityFx; el campo es «fx»).
+-- Las de KEY_SKILLS son las que cuentan la historia de la batalla (contraataque y remate): llevan key = true y
+-- AbilityShow las deja salir aunque pasen del tope de piezas de Baja y Media.
+local KEY_SKILLS = { FrostNova = true, Frozen = true, ArrowRain = true, AreaHeal = true, Meteor = true }
+
 function BossChoreo.skill(t: number, fx: string, from: string, to: any, args: { [string]: any }?): Event
-	return { t = t, kind = "abilityFx", fx = fx, from = from, to = to, args = args }
+	return { t = t, kind = "abilityFx", fx = fx, from = from, to = to, args = args, key = KEY_SKILLS[fx] }
 end
 
 -- Un golpe (BattleActor): hitKind = "Dealt" | "Taken" | "Heal"; opts = { crit?, ko?, pow? }.
@@ -406,6 +440,395 @@ local function closingShot(total: number): PlanShot
 	return shot(12.0, total, { 22, 8, -10 }, { "abs", 0, 7, 0 }, 55, { 22, 10, -10 }, { "abs", 0, 7, -6 })
 end
 
+-- Capa cómic, cortes del reel y capa del reel de un jefe, derivados de sus planos (`plan`: 8, uno por tiempo del guion)
+-- para que sigan a la cámara si se retoca un plano. Cada jefe pone su `BossLayerSpec` (datos); los textos son los de
+-- siempre (Strings.later). Entradas de texto: `narration` (usa ctx.narration), `sfx` (onomatopeya) y `bubble` (globo; sin
+-- `text`, dice la frase del jefe, ctx.quote). Los `sfx` del cómic llevan `size` (duran 1,1 s); los del reel, `band`
+-- (bandMax) y `seconds`.
+type TextEntry = {
+	type: string,
+	t: number,
+	text: string?,
+	actor: string?,
+	seconds: number?,
+	corner: string?,
+	side: string?,
+	x: number?,
+	y: number?,
+	rot: number?,
+	size: number?,
+	band: number?,
+}
+-- Un corte final del último plano: el primero empieza en el plano (con su cámara) y el segundo trae su `t0` y su `cam`;
+-- `t1` = "end" es el final del reel con su cola.
+type FinaleCut = {
+	t0: number?,
+	t1: any,
+	shape: string,
+	bg: string,
+	cam: { number }?,
+	subject: { any },
+	h: number?,
+	fill: number?,
+	width: number?,
+	f: number?,
+}
+type BossLayerSpec = {
+	panels: { { any } }, -- cómic, por plano: forma, fondo y segundos
+	reel: { { any } }, -- reel, por plano: forma, fondo, h, fill, width
+	finale: { FinaleCut }, -- los cortes del último plano del reel
+	comicText: { TextEntry },
+	reelText: { TextEntry },
+}
+
+local FINALE_CUTS: { FinaleCut } = {
+	{ t1 = 13.2, shape = "reelTall", bg = "speed", subject = { "abs", 0, 6, 0 }, h = 14, fill = 0.5, f = 0.55 },
+	{
+		t0 = 13.2,
+		t1 = "end",
+		shape = "reelTop",
+		bg = "halftone",
+		cam = { 22, 7, -2 },
+		subject = { "crew", "mago", 3.5 },
+		width = 22,
+		f = 0.2,
+	},
+}
+
+local ORANGUTAN_SPEC: BossLayerSpec = {
+	panels = {
+		{ "diagLeft", "halftone", nil },
+		{ "diagRight", "speed", 0.2 },
+		{ "wide", "flat", 0.25 },
+		{ "diagLeft", "halftone", 0.25 },
+		{ "wide", "flat", 0.25 },
+		{ "diagRight", "halftone", 0.2 },
+		{ "diagLeft", "speed", 0.2 },
+		{ "diagRight", "speed", 0.2 },
+	},
+	reel = {
+		{ "reelDiagR", "flat", nil, nil, 28 },
+		{ "reelTop", "halftone", 7, 0.6, nil },
+		{ "reelSlant", "flat", nil, nil, 16 },
+		{ "reelDiagL", "halftone", nil, nil, 12 },
+		{ "reelTop", "halftone", nil, nil, 26 },
+		{ "reelSlant", "speed", 12, 0.55, nil },
+		{ "reelDiagR", "speed", nil, nil, 24 },
+	},
+	finale = FINALE_CUTS,
+	comicText = {
+		{ type = "narration", t = 0.2, corner = "TL", seconds = 2.2 },
+		{ type = "sfx", t = 2.65, text = Strings.later("¡ROAAAR!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
+		{ type = "bubble", t = 2.9, actor = "boss", seconds = 0.9 },
+		{ type = "bubble", t = 4.0, actor = "guerrero", text = Strings.later("¡Que vengan!"), seconds = 0.8 },
+		{ type = "sfx", t = 4.05, text = Strings.later("¡FUM!"), x = 0.72, y = 0.3, rot = 10, size = 0.17 },
+		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 1.0 },
+		{ type = "sfx", t = 10.5, text = Strings.later("¡WHOOSH!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
+		{ type = "sfx", t = 11.5, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "sfx", t = 12.95, text = Strings.later("¡BUM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
+		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.9 },
+	},
+	reelText = {
+		{ type = "narration", t = 0.15, corner = "BL", seconds = 2.0 },
+		{
+			type = "sfx",
+			t = 2.65,
+			text = Strings.later("¡ROAAAR!"),
+			x = 0.5,
+			y = 0.78,
+			rot = -12,
+			band = 0.6,
+			seconds = 0.9,
+		},
+		{ type = "bubble", t = 2.95, actor = "boss", seconds = 0.7, side = "right" },
+		{
+			type = "bubble",
+			t = 4.0,
+			actor = "guerrero",
+			text = Strings.later("¡Que vengan!"),
+			seconds = 0.8,
+			side = "left",
+		},
+		{
+			type = "sfx",
+			t = 4.1,
+			text = Strings.later("¡FUM!"),
+			x = 0.7,
+			y = 0.7,
+			rot = 15,
+			band = 0.3,
+			seconds = 0.4,
+		},
+		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
+		{
+			type = "sfx",
+			t = 10.5,
+			text = Strings.later("¡WHOOSH!"),
+			x = 0.3,
+			y = 0.22,
+			rot = -15,
+			band = 0.3,
+			seconds = 0.4,
+		},
+		{
+			type = "sfx",
+			t = 11.5,
+			text = Strings.later("¡CRASH!"),
+			x = 0.3,
+			y = 0.7,
+			rot = -15,
+			band = 0.4,
+			seconds = 0.5,
+		},
+		{
+			type = "sfx",
+			t = 12.95,
+			text = Strings.later("¡BUM!"),
+			x = 0.7,
+			y = 0.7,
+			rot = 12,
+			band = 0.4,
+			seconds = 0.5,
+		},
+		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.8 },
+	},
+}
+
+local CAUDILLO_SPEC: BossLayerSpec = {
+	panels = {
+		{ "diagLeft", "halftone", nil },
+		{ "diagRight", "speed", 0.2 },
+		{ "wide", "flat", 0.25 },
+		{ "diagLeft", "halftone", 0.25 },
+		{ "wide", "flat", 0.25 },
+		{ "diagRight", "halftone", 0.2 },
+		{ "diagLeft", "speed", 0.2 },
+		{ "diagRight", "speed", 0.2 },
+	},
+	reel = {
+		{ "reelDiagR", "flat", nil, nil, 28 },
+		{ "reelTop", "halftone", 7, 0.6, nil },
+		{ "reelSlant", "flat", nil, nil, 22 },
+		{ "reelDiagL", "halftone", nil, nil, 24 },
+		{ "reelTop", "halftone", nil, nil, 22 },
+		{ "reelSlant", "speed", nil, nil, 14 },
+		{ "reelDiagR", "speed", nil, nil, 24 },
+	},
+	finale = FINALE_CUTS,
+	comicText = {
+		{ type = "narration", t = 0.2, corner = "TL", seconds = 2.2 },
+		{ type = "sfx", t = 2.65, text = Strings.later("¡ROAAAR!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
+		{ type = "bubble", t = 2.9, actor = "boss", seconds = 0.7 },
+		{ type = "bubble", t = 3.55, actor = "mago", text = Strings.later("¡Fuego!"), seconds = 0.65 },
+		{ type = "sfx", t = 4.05, text = Strings.later("¡FUM!"), x = 0.72, y = 0.3, rot = 10, size = 0.17 },
+		{ type = "bubble", t = 4.3, actor = "guerrero", text = Strings.later("¡Que vengan!"), seconds = 0.8 },
+		{ type = "sfx", t = 6.85, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
+		{ type = "sfx", t = 9.45, text = Strings.later("¡WHOOSH!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
+		{ type = "sfx", t = 10.55, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "sfx", t = 12.95, text = Strings.later("¡BUM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
+		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.9 },
+	},
+	reelText = {
+		{ type = "narration", t = 0.15, corner = "BL", seconds = 2.0 },
+		{
+			type = "sfx",
+			t = 2.65,
+			text = Strings.later("¡ROAAAR!"),
+			x = 0.5,
+			y = 0.78,
+			rot = -12,
+			band = 0.6,
+			seconds = 0.9,
+		},
+		{ type = "bubble", t = 2.95, actor = "boss", seconds = 0.7, side = "right" },
+		{ type = "bubble", t = 3.6, actor = "mago", text = Strings.later("¡Fuego!"), seconds = 0.65 },
+		{
+			type = "sfx",
+			t = 4.1,
+			text = Strings.later("¡FUM!"),
+			x = 0.7,
+			y = 0.7,
+			rot = 15,
+			band = 0.3,
+			seconds = 0.4,
+		},
+		{
+			type = "bubble",
+			t = 4.3,
+			actor = "guerrero",
+			text = Strings.later("¡Que vengan!"),
+			seconds = 0.8,
+			side = "left",
+		},
+		{
+			type = "sfx",
+			t = 6.85,
+			text = Strings.later("¡CRASH!"),
+			x = 0.3,
+			y = 0.7,
+			rot = -15,
+			band = 0.4,
+			seconds = 0.5,
+		},
+		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
+		{
+			type = "sfx",
+			t = 9.45,
+			text = Strings.later("¡WHOOSH!"),
+			x = 0.3,
+			y = 0.22,
+			rot = -15,
+			band = 0.3,
+			seconds = 0.4,
+		},
+		{
+			type = "sfx",
+			t = 10.55,
+			text = Strings.later("¡CRASH!"),
+			x = 0.3,
+			y = 0.7,
+			rot = -15,
+			band = 0.4,
+			seconds = 0.5,
+		},
+		{
+			type = "sfx",
+			t = 12.95,
+			text = Strings.later("¡BUM!"),
+			x = 0.7,
+			y = 0.7,
+			rot = 12,
+			band = 0.4,
+			seconds = 0.5,
+		},
+		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.8 },
+	},
+}
+
+local function bossLayers(ctx: Context, plan: { PlanShot }, spec: BossLayerSpec): (EventList, { ReelPlan }, EventList)
+	local base = if ctx.colors then ctx.colors[1] else Color3.new(1, 1, 1)
+	local cream = if ctx.colors then ctx.colors[2] else Color3.new(1, 1, 1)
+	local narration = ctx.narration or ""
+	local quote = ctx.quote or ""
+	local white = Color3.new(1, 1, 1)
+
+	local comic: EventList = {}
+	for index, panel in spec.panels do
+		table.insert(comic, {
+			t = plan[index].t0,
+			kind = "panel",
+			shape = panel[1],
+			bg = { style = panel[2], colors = { base, cream } },
+			seconds = panel[3],
+		})
+	end
+	for _, entry in spec.comicText do
+		if entry.type == "narration" then
+			table.insert(comic, {
+				t = entry.t,
+				kind = "bubble",
+				balloon = "narration",
+				corner = entry.corner,
+				text = narration,
+				seconds = entry.seconds,
+			})
+		elseif entry.type == "sfx" then
+			table.insert(comic, {
+				t = entry.t,
+				kind = "sfx",
+				text = entry.text,
+				pos = { entry.x, entry.y },
+				rot = entry.rot,
+				size = entry.size,
+				color = white,
+				seconds = 1.1,
+			})
+		else
+			table.insert(comic, {
+				t = entry.t,
+				kind = "bubble",
+				balloon = "speech",
+				actor = entry.actor,
+				text = entry.text or quote,
+				seconds = entry.seconds,
+			})
+		end
+	end
+
+	local reel: { ReelPlan } = {}
+	for index, cut in spec.reel do
+		local p = plan[index]
+		table.insert(reel, {
+			t0 = p.t0,
+			t1 = p.t1,
+			shape = cut[1],
+			bg = cut[2],
+			cam = p.cam,
+			camB = p.camB,
+			subject = p.look,
+			subjectB = p.lookB,
+			h = cut[3],
+			fill = cut[4],
+			width = cut[5],
+		})
+	end
+	-- El último plano (cierre) son dos cortes: la caída del jefe y, con la cola del reel, la tripulación celebrando.
+	local last = plan[#spec.panels]
+	for index, cut in spec.finale do
+		table.insert(reel, {
+			t0 = cut.t0 or last.t0,
+			t1 = if cut.t1 == "end" then ctx.total + (ctx.reelTail or 0) else cut.t1,
+			shape = cut.shape,
+			bg = cut.bg,
+			cam = cut.cam or last.cam,
+			camB = if index == 1 then last.camB else nil,
+			subject = cut.subject,
+			h = cut.h,
+			fill = cut.fill,
+			width = cut.width,
+			f = cut.f,
+		})
+	end
+
+	local reelEvents: EventList = {}
+	for _, entry in spec.reelText do
+		if entry.type == "narration" then
+			table.insert(reelEvents, {
+				t = entry.t,
+				kind = "bubble",
+				balloon = "narration",
+				corner = entry.corner,
+				text = narration,
+				seconds = entry.seconds,
+			})
+		elseif entry.type == "sfx" then
+			table.insert(reelEvents, {
+				t = entry.t,
+				kind = "sfx",
+				text = entry.text,
+				pos = { entry.x, entry.y },
+				rot = entry.rot,
+				size = 0.4,
+				bandMax = entry.band,
+				color = white,
+				seconds = entry.seconds,
+			})
+		else
+			table.insert(reelEvents, {
+				t = entry.t,
+				kind = "bubble",
+				balloon = "speech",
+				actor = entry.actor,
+				text = entry.text or quote,
+				seconds = entry.seconds,
+				side = entry.side,
+			})
+		end
+	end
+	return comic, reel, reelEvents
+end
+
 -- Orangután del Manglar: dispara el cazador y el mago, el jefe ataca al guerrero (que esquiva), las lianas atrapan al
 -- cazador, el guerrero salta y las rompe, el médico lo cura y el contraataque remata al jefe.
 -- Efectos grandes de AbilityShow (no más de 2 vivos ni 2 inicios a menos de 0,4 s): Rompehuesos 7,5 a 8,9 · Curación 7,95
@@ -501,7 +924,8 @@ function BossChoreo.orangutan(ctx: Context): Choreo
 	table.insert(plan, shot(9.4, 10.4, { 22, 8, -12 }, { "abs", 0, 6, 0 }, 46, { 20, 9, -12 }))
 	table.insert(plan, shot(10.4, 12.0, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
 	table.insert(plan, closingShot(ctx.total))
-	return { events = s.events, plan = plan }
+	local comic, reel, reelEvents = bossLayers(ctx, plan, ORANGUTAN_SPEC)
+	return { events = s.events, plan = plan, comic = comic, reel = reel, reelEvents = reelEvents }
 end
 
 -- Posición en el segundo `t` de un recorrido de varios tramos (puntos y segundos de llegada a cada uno).
@@ -635,12 +1059,18 @@ function BossChoreo.caudillo(ctx: Context): Choreo
 	-- Planos (los de bossPlan() con los tiempos de este guion).
 	local plan = openingShots(3.5)
 	table.insert(plan, shot(3.5, 5.2, { 22, 8, -12 }, { "mid", "C", 4 }, 50, { 20, 9, -12 }))
-	table.insert(plan, shot(5.2, 7.3, { 26, 6, 6 }, { "mid", "C", 4 }, 52))
-	table.insert(plan, shot(7.3, 9.4, { 22, 8, -12 }, { "abs", 3, 3, -10 }, 48, { 20, 9, -12 }))
+	-- 5,2 a 7,3: a 6 st de altura el terreno tapaba al cazador a la cámara durante 2 s (medido el 15-11); a 11 st no.
+	table.insert(plan, shot(5.2, 7.3, { 26, 11, 6 }, { "mid", "C", 4 }, 52))
+	-- 7,3 a 9,4: con la mirada en (3, 3, -10) la cámara cabeceaba 9° hacia arriba y el tercio de arriba era cielo (la
+	-- tripulación en X 0,70, Y 0,70; medido el 15-11). La altura de un punto «abs» va sobre la rejilla de terreno de
+	-- Cinematics (TERRAIN_GRIDS), que ahí queda ~147,4 (el suelo real, 143 a 147): a (-2,5, 1, -13,7) la mirada cae a
+	-- unos 148 y el cabeceo es ~2°; con altura 5 seguía mirando 10° hacia arriba.
+	table.insert(plan, shot(7.3, 9.4, { 22, 8, -12 }, { "abs", -2.5, 1, -13.7 }, 48, { 20, 9, -12 }))
 	table.insert(plan, shot(9.4, 10.5, { -20, 3.4, -6 }, { "mid", "guerrero", 3.5 }, 52))
 	table.insert(plan, shot(10.5, 12.0, { 22, 9, 0 }, { "mid", "C", 3 }, 58))
 	table.insert(plan, closingShot(ctx.total))
-	return { events = s.events, plan = plan }
+	local comic, reel, reelEvents = bossLayers(ctx, plan, CAUDILLO_SPEC)
+	return { events = s.events, plan = plan, comic = comic, reel = reel, reelEvents = reelEvents }
 end
 
 -- Gorila Albino: la cueva está a oscuras y la única luz es la del guion. Entran con antorchas (guerrero, mago y médico); el

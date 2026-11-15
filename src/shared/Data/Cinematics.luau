@@ -1322,21 +1322,6 @@ type PlanShot = {
 	lookB: Look?, -- mirada al final (por defecto, la misma)
 	fov: number,
 }
--- Un corte del reel: lo mismo, con su ventana (ver ReelCut) y el tamaño de la acción.
-type ReelPlan = {
-	t0: number,
-	t1: number,
-	shape: string,
-	bg: string,
-	cam: Cam,
-	camB: Cam?,
-	subject: Look,
-	subjectB: Look?,
-	h: number?,
-	fill: number?,
-	width: number?,
-	f: number?,
-}
 type BossBattle = {
 	centre: { number }, -- C = (x, z) en el marco del jefe: el mago está ahí y los demás, en BOSS_CREW_OFFSETS
 	colors: { Color3 }, -- { color del jefe, crema } para los paneles del cómic
@@ -1347,7 +1332,6 @@ type BossBattle = {
 	plan: { PlanShot },
 	choreo: string?, -- "orangutan" | "caudillo" | "albino" | "ceniza": la coreografía propia de la versión normal (BossChoreo); sin ella, la común
 	torches: { string }?, -- maniquíes que llevan antorcha encendida (Actors: torch = true); el guion los apaga y enciende
-	reel: { ReelPlan }?, -- cortes del reel; sin ellos el jefe solo tiene la versión normal
 	hour: number?, -- hora del día de la escena (por defecto, Kit.DUSK_HOUR)
 	exposure: number?, -- exposición de la cámara (por defecto, 0,42)
 	brightness: number?, -- brillo de la luz de la escena (por defecto, 1,8)
@@ -1393,155 +1377,6 @@ local function bossPlan(): { PlanShot }
 	}
 end
 
--- Los cortes del reel (uno por plano normal, o más finos): cámara de los planos de arriba y sujeto en el centro de la
--- acción, con la ventana y el tamaño de cada uno (h y fill como en battleReelCuts; `width` si se quiere una anchura fija).
-local function bossReelPlan(): { ReelPlan }
-	return {
-		-- Gancho: el jefe, grande, desde el costado.
-		{
-			t0 = 0,
-			t1 = 1.4,
-			shape = "reelTall",
-			bg = "speed",
-			cam = { 26, 7, 8 },
-			subject = { "abs", 0, 6, 0 },
-			width = 14,
-		},
-		-- La tripulación y el jefe al fondo.
-		{
-			t0 = 1.4,
-			t1 = 2.6,
-			shape = "reelDiagR",
-			bg = "flat",
-			cam = { 26, 6, 6 },
-			subject = { "mid", "C", 3.5 },
-			width = 28,
-		},
-		-- Rugido del jefe.
-		{
-			t0 = 2.6,
-			t1 = 3.7,
-			shape = "reelTop",
-			bg = "halftone",
-			cam = { 18, 10, -10 },
-			subject = { "abs", 0, 9, 0 },
-			h = 7,
-			fill = 0.6,
-		},
-		-- Grito de guerra del guerrero.
-		{
-			t0 = 3.7,
-			t1 = 4.7,
-			shape = "reelSlant",
-			bg = "flat",
-			cam = { -14, 6, 14 },
-			subject = { "crew", "guerrero", 3.5 },
-			width = 11,
-		},
-		-- El cazador apunta y dispara.
-		{
-			t0 = 4.7,
-			t1 = 5.6,
-			shape = "reelDiagL",
-			bg = "halftone",
-			cam = { -22, 5, 5 },
-			subject = { "crew", "cazador", 3.5 },
-			width = 12,
-		},
-		-- Bola de fuego del mago hacia el jefe.
-		{
-			t0 = 5.6,
-			t1 = 6.6,
-			shape = "reelTall",
-			bg = "flat",
-			cam = { 26, 6, 6 },
-			subject = { "crew", "mago", 3.5 },
-			width = 22,
-		},
-		-- Habilidad del jefe.
-		{
-			t0 = 6.6,
-			t1 = 8.0,
-			shape = "reelSlant",
-			bg = "speed",
-			cam = { 22, 8, -12 },
-			camB = { 20, 9, -12 },
-			subject = { "abs", 0, 5, 0 },
-			h = 12,
-			fill = 0.55,
-		},
-		-- Nova de hielo.
-		{
-			t0 = 8.0,
-			t1 = 9.0,
-			shape = "reelBottom",
-			bg = "halftone",
-			cam = { -20, 5, 2 },
-			subject = { "abs", -2, 3, -6 },
-			width = 16,
-		},
-		-- Curación en área y Lluvia de flechas.
-		{
-			t0 = 9.0,
-			t1 = 10.4,
-			shape = "reelTop",
-			bg = "halftone",
-			cam = { 22, 9, 0 },
-			subject = { "mid", "C", 3 },
-			width = 26,
-		},
-		-- Embestida y Rompehuesos.
-		{
-			t0 = 10.4,
-			t1 = 12.0,
-			shape = "reelDiagR",
-			bg = "speed",
-			cam = { -20, 3.4, -6 },
-			subject = { "mid", "guerrero", 3.5 },
-			width = 24,
-		},
-		-- Meteoro y muerte del jefe: la ventana alta enseña también el cielo por donde baja.
-		{
-			t0 = 12.0,
-			t1 = 13.2,
-			shape = "reelTall",
-			bg = "speed",
-			cam = { 22, 8, -10 },
-			subject = { "abs", 0, 6, 0 },
-			h = 14,
-			fill = 0.5,
-			f = 0.55,
-		},
-		-- La tripulación celebra y el cartel de cierre.
-		{
-			t0 = 13.2,
-			t1 = BATTLE_SECONDS + REEL_TAIL_SECONDS,
-			shape = "reelTop",
-			bg = "halftone",
-			cam = { 22, 7, -2 },
-			subject = { "crew", "mago", 3.5 },
-			width = 22,
-			f = 0.2,
-		},
-	}
-end
-
--- Cámaras propias del Orangután: en el manglar los troncos y las copas tapaban dos planos. Posiciones medidas en
--- Studio (rayos contra todo lo que no es Terrain; desplazamientos respecto a C = (-9, -24)): para el guerrero, desde
--- (12, 4, -22) en el marco del jefe (21, 4, 2 desde C; el (8, 6, -10) también estaba despejado en el rayo, pero un tronco cercano se veía delante), y para el punto medio, desde (12, 4, -14) (21, 4, 10 desde C).
-local function orangutanPlan(): { PlanShot }
-	local plan = bossPlan()
-	plan[3].cam = { 21, 4, 2 }
-	return plan
-end
-
-local function orangutanReel(): { ReelPlan }
-	local reel = bossReelPlan()
-	reel[2].cam = { 21, 4, 10 }
-	reel[4].cam = { 21, 4, 2 }
-	return reel
-end
-
 local BOSS_BATTLES: { [string]: BossBattle } = {
 	OrangutanDelManglar = {
 		centre = { -9, -24 },
@@ -1550,9 +1385,8 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		quote = Strings.later("¡Fuera de mi manglar!"),
 		skill = "stomp",
 		wait = { Vector3.new(0, 0, 0), Vector3.new(-12, -0.3, -24) },
-		plan = orangutanPlan(),
+		plan = bossPlan(),
 		choreo = "orangutan",
-		reel = orangutanReel(),
 	},
 	ChimpanceCaudillo = {
 		centre = { 0, -18 },
@@ -1563,7 +1397,6 @@ local BOSS_BATTLES: { [string]: BossBattle } = {
 		wait = { Vector3.new(0, 0, 0), Vector3.new(0, -7.1, -18) },
 		plan = bossPlan(),
 		choreo = "caudillo",
-		reel = bossReelPlan(),
 	},
 	GorilaDeCeniza = {
 		centre = { 0, -18 },
@@ -1653,10 +1486,9 @@ local function bossShots(bossId: string, battle: BossBattle, planShots: { PlanSh
 	return shots
 end
 
-local function bossReelCuts(bossId: string, battle: BossBattle): { ReelCut }
+local function bossReelCuts(bossId: string, battle: BossBattle, plans: { BossChoreo.ReelPlan }): { ReelCut }
 	local cuts: { ReelCut } = {}
-	assert(battle.reel, `El jefe {bossId} no tiene reel`)
-	for _, plan in battle.reel do
+	for _, plan in plans do
 		table.insert(cuts, {
 			t0 = plan.t0,
 			t1 = plan.t1,
@@ -1694,132 +1526,11 @@ local function bossBattleActors(bossId: string, battle: BossBattle): { [string]:
 	return actors
 end
 
--- Los eventos de la batalla contra el jefe, iguales en las tres versiones (ver la línea de tiempo más arriba).
-local function bossBattleAction(battle: BossBattle): EventList
-	local events: EventList = {}
-	local add, anim, skill = Kit.actionWriters(events)
-	local function bossAct(t: number, action: string)
-		add({ t = t, kind = "bossAct", server = true, action = action })
-	end
-	local function crewMove(t: number, name: string, x: number, z: number, seconds: number, easing: Enum.EasingStyle?)
-		add({
-			t = t,
-			kind = "move",
-			actor = name,
-			pos = Vector3.new(x, 0, z), -- la Y sale del suelo (snap)
-			yaw = yawToBoss(x, z),
-			seconds = seconds,
-			easing = easing,
-		})
-	end
-
-	add({ t = 2.5, kind = "bossRoar", server = true })
-	-- Grito de guerra del guerrero.
-	anim(3.0, "guerrero", "WarCry", 1.4)
-	skill(3.05, "WarCry", "guerrero", nil, { seconds = 1.4 })
-	-- El cazador dispara (la flecha sale 0,16 s después del gesto) y el mago lanza la Bola de fuego.
-	anim(4.0, "cazador", "AimBow", 1.8)
-	anim(4.55, "cazador", "Arrow", 0.7)
-	skill(4.7, "MultiShot", "cazador", "boss", nil)
-	bossAct(4.95, "Hurt")
-	anim(5.3, "mago", "AimSpell", 1.4)
-	anim(5.6, "mago", "Spell", 0.6)
-	skill(5.72, "Fireball", "mago", "boss", nil)
-	bossAct(6.0, "Hurt")
-	-- Habilidad del jefe (pisotón o lluvia de rocas): solo visual.
-	add({ t = 6.4, kind = "bossSkill", server = true, skill = battle.skill })
-	-- El mago congela al jefe con la Nova de hielo.
-	anim(7.6, "mago", "CastArea", 1.0)
-	skill(7.8, "FrostNova", "mago", "boss", { radius = 12 })
-	skill(7.95, "Frozen", "mago", "boss", { seconds = 1.5 })
-	-- El médico cura en área; el cazador, Lluvia de flechas sobre el jefe (1,2 s: no hay tres efectos grandes a la vez).
-	anim(8.9, "medico", "CastArea", 1.1)
-	skill(9.0, "AreaHeal", "medico", nil, nil)
-	anim(9.1, "cazador", "AimBow", 1.3)
-	anim(9.55, "cazador", "Arrow", 0.7)
-	skill(9.7, "ArrowRain", "cazador", Vector3.new(0, 0, -2), { radius = 10, seconds = 1.2 })
-	bossAct(9.95, "Hurt")
-	-- Remate: Embestida del guerrero hasta el jefe y Rompehuesos (el golpe cae 0,25 s después del gesto).
-	anim(10.4, "guerrero", "Charge", 0.7)
-	crewMove(10.45, "guerrero", 0, -11, 0.55, Enum.EasingStyle.Quad)
-	skill(10.45, "Charge", "guerrero", nil, { seconds = 0.7 })
-	anim(11.2, "guerrero", "Smash", 0.8)
-	skill(11.45, "Smash", "guerrero", "boss", nil)
-	bossAct(11.6, "Hurt")
-	-- El guerrero vuelve a su sitio, el mago prepara el Meteoro (cae en MeteorDelay) y el jefe se va con su «¡puf!».
-	local homeX, homeZ = crewSpot(battle, "guerrero")
-	crewMove(12.0, "guerrero", homeX, homeZ, 0.5)
-	anim(12.0, "mago", "CastArea", 1.0)
-	skill(12.2, "Meteor", "mago", "boss", { radius = 8 })
-	for _, member in CREW do
-		anim(12.6, member.name, "Cheer", 1.4)
-	end
-	bossAct(13.05, "Die")
-	return events
-end
-
--- Capa cómic de la variante «comic» (sin banda): un panel por plano, narración, frases, onomatopeyas.
-local function addBossComic(events: EventList, battle: BossBattle)
-	local base, cream = battle.colors[1], battle.colors[2]
-	local panel, bubble, sfx = comicWriters(events, base, cream)
-	panel(0, "diagLeft", "halftone")
-	table.insert(events, {
-		t = 0.2,
-		kind = "bubble",
-		balloon = "narration",
-		corner = "TL",
-		text = battle.narration,
-		seconds = 2.2,
-	})
-	panel(2.6, "diagRight", "speed", 0.2)
-	sfx(2.65, Strings.later("¡ROAAAR!"), 0.22, 0.22, -8, 0.2)
-	bubble(2.9, "boss", battle.quote, 0.9)
-	panel(3.8, "wide", "flat", 0.25) -- el guerrero entero (en tallSlant quedaba en el borde)
-	bubble(4.0, "guerrero", Strings.later("¡Que vengan!"), 0.8)
-	panel(4.8, "diagLeft", "halftone", 0.25)
-	bubble(5.9, "mago", Strings.later("¡Fuego!"), 0.7)
-	sfx(6.15, Strings.later("¡FUM!"), 0.72, 0.3, 10, 0.17) -- la bola de fuego da en el jefe
-	panel(6.6, "diagLeft", "speed", 0.2)
-	panel(8.0, "diagRight", "halftone", 0.2)
-	panel(9.0, "wide", "flat", 0.25)
-	bubble(9.2, "medico", Strings.later("¡Aguanten!"), 1.0)
-	panel(10.4, "diagLeft", "speed", 0.2)
-	sfx(10.5, Strings.later("¡WHOOSH!"), 0.28, 0.3, -12, 0.18)
-	sfx(11.5, Strings.later("¡CRASH!"), 0.3, 0.25, -6, 0.22)
-	panel(12.0, "diagRight", "speed", 0.2)
-	sfx(12.95, Strings.later("¡BUM!"), 0.7, 0.3, 10, 0.2)
-	bubble(13.2, "cazador", Strings.later("¡Lo logramos!"), 0.9)
-end
-
--- Capa cómic del reel: el modo reel, una ventana por corte y las frases dentro de la banda.
-local function addBossReelComic(events: EventList, cuts: { ReelCut }, battle: BossBattle)
-	addReelPanels(events, cuts, battle.colors[1], battle.colors[2])
-	local bubble, sfx = reelWriters(events)
-	table.insert(events, {
-		t = 0.15,
-		kind = "bubble",
-		balloon = "narration",
-		corner = "BL",
-		text = battle.narration,
-		seconds = 2.0,
-	})
-	sfx(2.65, Strings.later("¡ROAAAR!"), 0.5, 0.78, -12, 0.6, 0.9) -- abajo, sobre los puntos: arriba va la frase del jefe
-	bubble(2.95, "boss", battle.quote, 0.7, "right")
-	bubble(3.85, "guerrero", Strings.later("¡Que vengan!"), 0.8, "left")
-	bubble(5.8, "mago", Strings.later("¡Fuego!"), 0.7)
-	sfx(7.3, Strings.later("¡FUM!"), 0.7, 0.7, 15, 0.3, 0.4)
-	bubble(9.2, "medico", Strings.later("¡Aguanten!"), 0.9)
-	sfx(10.5, Strings.later("¡WHOOSH!"), 0.3, 0.22, -15, 0.3, 0.4)
-	sfx(11.5, Strings.later("¡CRASH!"), 0.3, 0.7, -15, 0.4, 0.5)
-	sfx(12.95, Strings.later("¡BUM!"), 0.7, 0.7, 12, 0.4, 0.5)
-	bubble(13.5, "cazador", Strings.later("¡Lo logramos!"), 0.8)
-	addReelTitle(events, 13.4, 0.76) -- sobre los puntos de la ventana de arriba, no sobre la tripulación
-end
-
 -- La batalla contra "bossId" en su versión normal, "comic" o "reel" (mismas acciones y tiempos; cámaras y capa cómic
 -- cambian). Audiencia Self, sin congelar, saltable y con la hora del anochecer, como las de G5a.
 local function bossBattleScene(bossId: string, variant: string): Scene
 	local battle = BOSS_BATTLES[bossId]
+	assert(battle and battle.choreo, `El jefe {bossId} no tiene coreografía`)
 	local reel = variant == "reel"
 	local events: EventList = battleLight()
 	-- El jefe está más lejos de la cámara que los monos de la playa y su pelaje es oscuro: más exposición y más luz.
@@ -1835,22 +1546,22 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 		end
 	end
 	table.insert(events, { t = 0, kind = "bloom", intensity = 0.25, threshold = 3 })
-	-- La versión normal con coreografía propia (G14a) saca de BossChoreo los eventos y los planos; las demás, la común.
-	local choreo: BossChoreo.Choreo? = nil
-	if variant == "normal" and battle.choreo then
-		choreo = BossChoreo.build(battle.choreo, {
-			bossId = bossId,
-			bossName = Bosses[bossId].name,
-			crewSpot = function(name: string): (number, number)
-				return crewSpot(battle, name)
-			end,
-			total = BATTLE_SECONDS,
-			torches = battle.torches,
-		})
-	end
+	local choreo = BossChoreo.build(battle.choreo, {
+		bossId = bossId,
+		bossName = Bosses[bossId].name,
+		crewSpot = function(name: string): (number, number)
+			return crewSpot(battle, name)
+		end,
+		total = BATTLE_SECONDS,
+		torches = battle.torches,
+		reelTail = REEL_TAIL_SECONDS,
+		colors = battle.colors,
+		narration = battle.narration,
+		quote = battle.quote,
+	})
 	-- Un guion con luz propia (la cueva del Albino) pone la suya: se quita la que sigue a la cámara de battleLight() y se deja
 	-- la exposición de la entrada y dimLights.
-	if choreo and choreo.ownLight then
+	if choreo.ownLight then
 		local kept: EventList = {}
 		for _, event in events do
 			if event.kind ~= "light" then
@@ -1859,19 +1570,24 @@ local function bossBattleScene(bossId: string, variant: string): Scene
 		end
 		events = kept
 	end
-	local actionEvents = if choreo then choreo.events else bossBattleAction(battle)
-	for _, event in actionEvents do
+	for _, event in choreo.events do
 		table.insert(events, event)
 	end
 	local camera: { { t: number, pos: Vector3, look: Vector3, fov: number? } }
 	if reel then
-		local cuts = bossReelCuts(bossId, battle)
+		local cuts = bossReelCuts(bossId, battle, assert(choreo.reel, `El jefe {bossId} no tiene reel`))
 		camera = cutShots(battleReelShots(cuts))
-		addBossReelComic(events, cuts, battle)
+		addReelPanels(events, cuts, battle.colors[1], battle.colors[2])
+		for _, event in choreo.reelEvents or {} do
+			table.insert(events, event)
+		end
+		addReelTitle(events, 13.4, 0.76) -- sobre los puntos de la ventana de arriba, no sobre la tripulación
 	else
-		camera = cutShots(bossShots(bossId, battle, if choreo then choreo.plan else battle.plan))
+		camera = cutShots(bossShots(bossId, battle, choreo.plan))
 		if variant == "comic" then
-			addBossComic(events, battle)
+			for _, event in choreo.comic or {} do
+				table.insert(events, event)
+			end
 		else
 			table.insert(events, { t = 0, kind = "letterbox" })
 		end

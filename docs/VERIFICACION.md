@@ -7926,8 +7926,163 @@ Tercera vuelta (vídeos `22-36-46.mkv` Ceniza y `22-37-10.mkv` Albino, hojas en 
    ✅ Se ve la tripulación y la púa a un lado, sin pared azul a pantalla completa. Pendiente de gusto: si la losa del tercio izquierdo a 8,6 s estorba, se mueve esa cámara un poco a la derecha o se abre el FOV.
 3. [x] Albino, cambio de luz de la penumbra a las antorchas (8,45 a 8,75 s): es del guion (el resoplido apaga las antorchas a 5,6 s y el mago las reenciende a 8,7), ahora con una luz intermedia a 8,45 y exposición en dos pasos.
    ✅ La vuelta de la luz se nota como un encendido, no como un salto, y el bloque de hielo del Congelado (9,2 s) conserva el detalle en vez de salir blanco. (Visto: el bloque se ve claro pero con detalle; algo de blanco en los trozos de hielo de la derecha.)
-4. [ ] Orangután y Caudillo con el Bloom bajo y las partículas a la mitad (cambio común a las cuatro batallas de jefe, solo medido en Ceniza y Albino).
-   ✅ Sin cabezas ni armaduras blancas y sin que los efectos (rocas, lianas) se queden apagados.
+4. [x] Orangután y Caudillo con el Bloom bajo y las partículas a la mitad (cambio común a las cuatro batallas de jefe, solo medido en Ceniza y Albino).
+   ✅ Sin cabezas ni armaduras blancas y sin que los efectos (rocas, lianas) se queden apagados. (Visto el 14-11 en `22-46-42.mkv` Orangután y `22-47-11.mkv` Caudillo, hojas en `build/videos/b4t/`, 2 fps: ninguna cabeza ni armadura quemada; se ven las lianas, el bloque de hielo, las zonas rojas, la silueta roja de la telegrafía, las líneas del arco, el cristal azul y el K.O. Dos detalles aparte en §202.)
+
+## 202. Fase 25: detalles vistos en las batallas del Orangután y el Caudillo (14-11-2026)
+
+Vistos en `build/videos/b4t/` (hojas a 2 fps). El punto 1 queda visto en vídeo el 15-11-2026 (versiones normales `2026-11-15 12-24-14.mkv` del Orangután y `12-24-39.mkv` del Caudillo, hojas en `build/videos/b6a` y `b6b`). El punto 2 tiene causa y arreglo del 15-11-2026 (sin commit): arreglado y medido, **falta verlo en vídeo** (punto 3). Pasos de cámara de los dos jefes en §205 y §207.4.
+- Punto 1 (cuadro de día): la tarjeta de carga se quitaba antes de `Sequencer.play` y la hora de la escena entraba con una rampa de 0,4 s. Ahora `SceneLight` pone `hour` con salto instantáneo (`setClock(scene.hour, 0)`) y `CinematicClient` quita la tarjeta un cuadro después de empezar la escena. Medido en Play: a los 0,02 s la hora ya es 18,80 (antes de la escena, 5,6 a 6,2) y la tarjeta sigue opaca hasta ~0,25 s.
+- Punto 2 (losa): no se pudo reproducir con certeza. Medido con rayos cámara-cabeza: en el plano de 5,2 a 7,3 s del Caudillo el terreno tapaba al Cazador ~2 s (cámara a 6 st); la cámara pasa a 11 st y con ella 0 de 100 muestras tapadas, ≥ 13,4 st de los actores y ≥ 8,1 st sobre el suelo. En los planos de 7,3 a 10,1 s ningún rayo da un tapón (la vista central da cielo o la tripulación). La causa de la losa se halló después y no era un tapón de rayo: ver el punto 2 de abajo.
+
+1. [x] Primer cuadro de la escena con el cielo de día. En los dos vídeos el primer cuadro tras la pantalla de carga sale con cielo azul y luz de día, y a 0,5 s ya es de noche. (Visto el 15-11-2026 en `2026-11-15 12-24-14.mkv` (Orangután) y `12-24-39.mkv` (Caudillo), versión normal: el primer cuadro tras la carga ya es de noche en los dos. Cerrado en vídeo.)
+   ✅ Si es el cuadro que el motor muestra antes de aplicar la luz de la escena, hay que aplicarla antes de abrir el telón; si queda en el montaje final, se corta ese primer cuadro.
+2. [ ] Caudillo, losa violeta oscura de 7,3 a 9,4 s. Visto el 14-11 hacia los 12 a 13 s del vídeo y el 15-11 en la versión normal (`12-24-39.mkv`) de 7,3 a ~8,5 s de la escena: cielo oscuro con la silueta de una montaña y la tripulación solo en la esquina inferior izquierda. **Causa y arreglo (15-11-2026, sin commit): arreglado y medido; falta verlo en vídeo (punto 3).** La causa no era un tapón (ni terreno ni roca del jefe), sino el cabeceo de la cámara: el plano subía +9° a +10° desde una loma, con los cuatro actores en X≈0,70 e Y≈0,70 (tercio de arriba, cielo). La mirada `{"abs",3,3,-10}` de `BossChoreo.caudillo` pasa a `{"abs",-2.5,1,-13.7}`. Trampa: la altura de un punto `abs` de una mirada va sobre la rejilla de `TERRAIN_GRIDS` (`Data/Cinematics`, `terrainY`), que ahí da ~147,4 frente a un suelo real de 143 a 147; con altura 5 el cabeceo seguía en 10°, con altura 1 baja a ~2° (trampa (x) del Handoff de PLAN). Medido en Play (normal, Caudillo, plano de 7,1 a 9,0 s): 4 de 4 actores dentro del cuadro, X e Y medios 0,56 y 0,55 (antes 0,70 y 0,70), cabeceo 3,6° a 1,8° (antes 9° a 10°), FOV 48 y cámara a ≥ 18,4 st de cualquier actor y a 8,1 st sobre el Terrain. El método para calcular planos así sin repetir Play es la trampa (y) del mismo Handoff.
+   ✅ Se ve la tripulación en el centro del cuadro de 7,3 a 9,4 s y no hay cielo vacío ni losa violeta. Lo que se vea en el vídeo se anota en el punto 3.
+3. [ ] En vídeo: regrabar el Caudillo (versión normal) y mirar de 7,3 a 9,4 s.
+   ✅ Se ve la tripulación en el centro del cuadro y no hay cielo vacío. Si queda vacío, anotar el segundo y el plano, y volver a medir el cabeceo en Play.
+
+## 203. Fase 25: calidades Baja y Media de la batalla del Gorila Albino (14-11-2026)
+
+Medido en Play en el Studio de la Isla (14-11, un jugador, sin copia del perfil: el intento de copiar `u_<id>` a `PlayerData_v1_backups` falló en Edit; la prueba no tocó progreso, Ámbar, compras ni cosméticos). El ajuste se cambió con el atributo `Settings` del jugador en el cliente, sin `SaveSettings`, y `FxQuality.get()` devolvió «Low» y «Medium»; quedó restaurado a «High». Las capturas del Studio salieron en blanco ese día, así que **no se ha visto a ojo** cómo se leen el rugido y la púa con menos piezas.
+
+Medido: `CinematicBossFx` del Albino llega a 26 piezas en Baja (rugido 10; púa 26 al caer y 16 después) y a 80 en Media (rugido 30; púa 80 y baja a 39), dentro de los topes 40 y 90, sin avisos de recorte de `BossFx`. En modo edición, con `BossFx.play` suelto, la púa de Baja da 16 piezas y el rugido 10; ninguna de las 10 del rugido era visible (transparencia ≥ 0,95) a 1,15 s (Media 20 de 30, Alta 20 de 60).
+
+Aviso que no es de `BossFx`: `AbilityShow` recorta las habilidades de los actores por su propio tope (`Config.Budgets.Vfx`, costes «a ojo»). En las cuatro batallas de cada pasada (no solo el Albino) salieron avisos «no sale»: con Baja, AreaHeal, Frozen, MultiShot, Charge, Lightning, Fireball y Smash, y ArrowRain y Meteor por la calidad; con Media, Frozen, ArrowRain, AreaHeal, MultiShot y Fireball (92 a 112 piezas contra un tope de 90). La Nova, el bloque de hielo, la lluvia de flechas y el Meteoro del contraataque del Albino son justo de esas habilidades.
+
+**Arreglo (15-11-2026):** los eventos de `BossChoreo.skill` de FrostNova, Frozen, ArrowRain, AreaHeal y Meteor llevan `key = true` y `AbilityShow.launch` los deja salir aunque pasen del tope de piezas o de grandes (la calidad mínima y el hueco entre grandes se respetan). Los costes de `SPECS` se dejaron: leyendo `AbilityFxController`, ArrowRain son ~19 piezas más las flechas, FrostNova ~20 y Frozen 8 a 17, cerca de lo estimado (la medición aislada con `require` del MCP no valía: copia sin arrancar). Medido en Play (Studio de la Isla, 4 batallas por calidad): en Media ya no sale ningún aviso de Frozen, ArrowRain ni AreaHeal (solo `Charge`, el rastro de la embestida, 2 veces); en Baja siguen Meteor y ArrowRain por calidad (salen sus fallbacks Lightning y MultiShot, que es lo previsto) y se recortan Smash, MultiShot, Fireball y Charge, que no son de la historia. Sin ver a ojo: las capturas del Studio no se pidieron.
+
+1. [ ] Albino en Baja (en el juego o con el ajuste en «Baja»), de 5,4 a 8,6 s.
+   ✅ Se ve el anillo del rugido sobre la sala (en edición sus 10 piezas salían invisibles a 1,15 s) y la púa se lee como una púa de cristal con 16 piezas.
+2. [ ] Albino en Baja y en Media, de 9 a 12,6 s (contraataque y remate).
+   ✅ Se entiende el contraataque aunque salgan menos efectos: la Nova de hielo y la lluvia de flechas se notan o, si se recortan, el golpe y la barra siguen contando la misma historia. Si se ve «vacío», anota qué habilidad falta y se mira su coste en `AbilityShow`.
+3. [ ] Teléfono real con la calidad Baja y con la Media (ya en §184.3.3).
+   ✅ Las antorchas, el rugido y la púa se leen.
+
+## 204. Fase 25: efectos clave de las batallas de jefe en Baja y Media (15-11-2026)
+
+Cambio de `AbilityShow` y `BossChoreo.skill` del §203 (evento `key`). Solo se ve en vídeo.
+
+1. [ ] Albino, Orangután, Caudillo y Ceniza con el ajuste «Media», de 9 a 12,6 s (contraataque y remate).
+   ✅ Se ven la Nova, el bloque de hielo, la lluvia de flechas y el Meteoro; la sala no se llena hasta tapar a la tripulación ni al jefe. Si se ve cargada, anotar qué efecto y bajar su tamaño en vez de quitar `key`.
+2. [ ] Lo mismo con «Baja».
+   ✅ Salen la Nova, el hielo y la cura; en lugar de la lluvia sale una ráfaga de flechas y en lugar del Meteoro un rayo, y el contraataque se entiende.
+3. [ ] En Media, la embestida del Guerrero (`Charge`) puede salir sin rastro (se recorta por el tope).
+   ✅ Aceptable si el movimiento se lee; si se echa en falta, marcarla `key` en el guion de esa batalla.
+
+## 205. Fase 25: arranque de las escenas y plano del Caudillo (15-11-2026)
+
+Cambios: `SceneLight` (hora instantánea), `CinematicClient` (tarjeta de carga un cuadro más tarde) y `BossChoreo.caudillo` (cámara del plano de 5,2 a 7,3 s a 11 st de altura). El arranque afecta a **todas** las escenas con campo `hour`, no solo a las batallas.
+
+1. [x] Regrabar el Orangután y el Caudillo y mirar el primer cuadro tras la carga. (Visto el 15-11-2026 en la versión normal, §202.1.)
+   ✅ El primer cuadro ya es de noche (o negro que se aclara), sin cielo azul, y las franjas y la barra del jefe entran sin salto.
+2. [ ] Mirar otras escenas con `hour` (`CineSurvival`, `CineNight`, `CineEndless`, `CineArrival`, `CineVoyage`, `CineFlyover`) en su primer segundo.
+   ✅ Ninguna enseña un cuadro con la hora real ni se queda en negro más de 0,5 s; el fundido de la tarjeta sigue siendo de 0,4 s.
+3. [ ] Caudillo, de 5 a 7,3 s de la escena.
+   ✅ Se ve al Cazador (antes lo tapaba el terreno) y el plano no queda demasiado alto ni vacío.
+4. [ ] Caudillo, de 7 a 11 s: buscar la losa violeta oscura de §202.2. (Vista en vídeo el 15-11 hasta ~8,5 s; arreglada y medida en Play, pendiente de ver en vídeo: §202.3.)
+   ✅ No aparece. Si aparece, anotar el segundo exacto del vídeo y el plano: los rayos no la encontraron.
+
+## 206. Fase 25: cómic y reel del Orangután con la coreografía nueva (15-11-2026)
+
+Cambio: las variantes `comic` y `reel` de la batalla del Orangután usan `BossChoreo.orangutan` (eventos, planos, capa de cómic `comic`, cortes `reel` y `reelEvents`, derivados de sus 8 planos) en lugar de la coreografía común. El Caudillo sigue con la vieja (siguiente tanda). Los textos son los de siempre: no hay frases nuevas ni CSV de Creator Hub. «¡Fuego!» ya no sale en el Orangután.
+
+Probado en Play (Studio de la Isla, un jugador): el cómic dura 14,7 s y el reel 15,7 s (con la cola), 0 errores y 0 avisos de script; la barra del jefe sale en su sitio (515, 51; 531×42) y sin solaparse con «Saltar». Nada visual se juzgó en el Studio (las capturas del MCP no dibujan la escena en vivo).
+
+### 206.1 En vídeo (el usuario graba el cómic y el reel del Orangután)
+
+1. [ ] Cómic del Orangután entero (14,7 s): los paneles cambian con los planos.
+   ✅ Cada panel aparece con el plano de su momento, sin paneles vacíos ni repetidos.
+2. [ ] Rótulos del cómic: ¡ROAAAR! en el rugido (2,65 s), ¡Que vengan! (4,0), ¡Aguanten! (8,0), ¡WHOOSH! (10,5), ¡CRASH! en el Rompehuesos (11,5), ¡BUM! (12,95) y ¡Lo logramos! (13,2).
+   ✅ Cada rótulo sale en su momento, sin cortarse ni tapar a los actores.
+3. [ ] ¡FUM! en el golpe crítico de 3,95 s (el sfx está a 4,05 s): comprobar la sincronía.
+   ✅ El golpe y el sonido coinciden; si el sonido va tarde, anotar cuánto y ajustar el sfx.
+4. [ ] La barra del jefe también visible en el cómic, aunque no lleva franjas.
+   ✅ Se decide: si estorba (tapa un panel o al jefe) se oculta en el cómic; si queda bien, se deja. Anotar la decisión.
+5. [ ] Reel del Orangután (15,7 s): nueve cortes con sus ventanas y fondos por plano.
+   ✅ Cada corte muestra su plano con el fondo y la ventana de su momento, sin negros inesperados.
+6. [ ] Reel: barra del jefe en su banda, números de daño dentro de la banda, bocadillos sobre las caras sin tapar y cartel de cierre.
+   ✅ La barra no pisa a los actores, los números quedan dentro de su banda, ningún bocadillo tapa una cara y el cartel de cierre se lee entero.
+
+### 206.2 Decisión de cámara (marcas del arnés comunes al cómic, al reel y a la versión normal)
+
+Las marcas salen de los mismos planos del guion, así que cambiar uno cambia también la versión normal y habría que regrabarla. El arnés mide unos 0,3 s por delante de los planos del guion.
+
+7. [ ] Cazador a 6,2-6,4 st a ~6,6 s del arnés (plano de las lianas, «muy cerca»).
+   ✅ Se decide: o se acepta como primer plano a propósito y se anota en el informe, o se aleja la cámara y se regraba la versión normal.
+8. [ ] Guerrero a 8,6-8,8 st a 7,6 s del arnés.
+   ✅ Mismo criterio que el paso 7.
+9. [ ] Médico a 8,3 st a 3,6 s del arnés.
+   ✅ Mismo criterio que el paso 7.
+10. [ ] Cámara a 2,8-3,1 st sobre el suelo hacia 4,9 s, y por debajo de 4,5 st de 3,6 a 11,7 s.
+   ✅ Se decide si el plano bajo es a propósito (se anota) o se sube la cámara y se regraba la versión normal.
+11. [ ] Tronco `Mapa.Vegetacion.Mangle.Trunk` delante del Guerrero hacia 10-11 s (un solo muestreo de 0,1 s).
+   ✅ Si en vídeo el tronco tapa al Guerrero de forma apreciable, se mueve la cámara de ese plano; si no se nota, se da por bueno. Los demás tapones (el cuerpo del propio Orangután sobre las cabezas del Médico y el Cazador, a 0-1, 2-3 y 9-10 s) son esperables; el terreno no tapa a nadie.
+
+### 206.3 Falsos positivos del arnés (confirmar a ojo)
+
+12. [ ] Los cuatro actores anclados: el arnés los marca «flotando» (0,5-0,65 st sobre el Terrain), «deslizando» (4,7 st/s) y «fuera» de pantalla en varios planos.
+   ✅ A ojo no flotan, no resbalan y no salen de pantalla; si alguno sí, anotar el plano y el segundo.
+13. [ ] Marcas «gui» de textos que se pisan (cómic, de 3,7 a 11,4 s) y de un texto sobre el Médico (13,0 a 13,5 s).
+   ✅ Los textos del cómic no se pisan en vídeo y el texto no tapa la cara del Médico; si se pisan, anotar cuáles.
+14. [ ] Reel: marca «Name» sobre el Guerrero (13,0 a 14,5 s) y «Text» sobre el Cazador (11,4 a 14,5 s).
+   ✅ Se confirma si son números de daño o bocadillos; si tapan al Guerrero o al Cazador, anotar el plano.
+
+## 207. Fase 25: cómic y reel del Caudillo con la coreografía nueva (15-11-2026)
+
+Cambio: `BossChoreo` generaliza el helper del cómic y del reel a `bossLayers(ctx, plan, spec)`, que toma specs de datos (`ORANGUTAN_SPEC`, `CAUDILLO_SPEC`, y `FINALE_CUTS` para los cortes comunes). Las variantes `comic` y `reel` de la batalla del Caudillo usan `BossChoreo.caudillo`, que devuelve `comic`, `reel` y `reelEvents`. `Cinematics.luau` no cambió en esta tanda. Los textos son los de siempre: no hay frases nuevas ni CSV de Creator Hub. El «¡Fuego!» del mago sí sale en el Caudillo (3,55 s en el cómic y 3,6 s en el reel).
+
+Probado en Play (Studio de la Isla, un jugador): Orangután sin cambios (cómic 14,53 s y reel 15,48 s medidos de ON a OFF de la gui «Cinematic»), Caudillo cómic 14,29 s y reel 15,33 s, 0 errores y 0 avisos de script en las cuatro, barra del jefe fija en (515, 51) 531×42 sin solaparse con «Saltar», sin marcas `banda`. El arnés mide unos 0,3 s por delante del guion y unos 1,3 s más desde que existen los actores.
+
+Método: justo tras abrir el Play, un lanzamiento de `CineBossBattle*` en los primeros ~3 s se corta solo y cuenta para el contador de jefes. Esperar ~18 s antes de lanzar la escena que se va a probar.
+
+### 207.1 En vídeo (el usuario graba el cómic y el reel del Caudillo)
+
+15. [ ] Cómic del Caudillo entero (14,29 s): los paneles cambian con los planos.
+   ✅ Cada panel aparece con el plano de su momento, sin paneles vacíos ni repetidos.
+16. [ ] Rótulos de 2,65 a 4,3 s: ¡ROAAAR! (2,65), la frase del jefe (2,9), ¡Fuego! del mago (3,55) y ¡Que vengan! del guerrero (4,3). Salen casi seguidos: comprobar que no se pisan. Además ¡FUM! en el golpe crítico de 4,0 s (sfx a 4,05 s).
+   ✅ Cada rótulo sale en su momento, sin cortarse ni tapar a los actores, y los de 3,55 y 4,3 s no se pisan. El golpe y el sonido coinciden; si el sonido va tarde, anotar cuánto.
+17. [ ] Rótulos de 6,85 a 13,2 s: ¡CRASH! de la roca de la ola 2 sobre el Médico (6,85); ¡Aguanten! (8,4, con la cura de 8,3 a 8,4 s; comprobar que el Médico sale en el plano de 7,3 a 9,4 s); ¡WHOOSH! (9,45); ¡CRASH! del Rompehuesos (10,55, con su golpe crítico de 10,2 a 10,3 s; el plano cambia a 10,5, comprobar que el rótulo se ve); ¡BUM! (12,95) y ¡Lo logramos! (13,2).
+   ✅ Cada rótulo sale en su momento, sin cortarse ni tapar a los actores.
+18. [ ] Reel del Caudillo: ocho planos con nueve cortes.
+   ✅ Cada corte muestra su plano con el fondo y la ventana de su momento, sin negros inesperados.
+19. [ ] Reel: barra del jefe en su banda, números de daño dentro de la banda, bocadillos sin tapar caras y cartel de cierre.
+   ✅ La barra no pisa a los actores, los números quedan dentro de su banda, ningún bocadillo tapa una cara y el cartel de cierre se lee entero.
+20. [ ] Reel: marcas «Name» sobre el Guerrero (13,1 a 14,6 s) y «Text» sobre el Médico (4,2 a 14,6 s). Son nuevas respecto al cómic.
+   ✅ Se confirma qué texto es (número de daño o bocadillo); si tapa al Guerrero o al Médico, anotar el plano.
+
+### 207.2 Decisión de cámara (marcas del arnés compartidas con la versión normal)
+
+Las marcas `camcerca` y `camalta` salen de los mismos planos de la coreografía, así que cambiar uno cambia también la versión normal y habría que regrabarla. Misma decisión que §206.2.
+
+21. [ ] Cazador a 7,0 a 7,5 st hacia 9,2 a 10,2 s del arnés.
+   ✅ Se decide: o se acepta como plano a propósito y se anota en el informe, o se aleja la cámara y se regraba la versión normal.
+22. [ ] Médico a 8,7 st hacia 2,3 a 3,2 s del arnés.
+   ✅ Mismo criterio que el paso 21.
+23. [ ] Guerrero a 9,6 a 10,1 st hacia 5,0 a 7,0 s del arnés.
+   ✅ Mismo criterio que el paso 21.
+24. [ ] Cámara a 3,2 a 3,3 st sobre el suelo hacia 9,1 a 10,2 s del arnés (plano de 9,4 a 10,5 s, cámara `{-20, 3.4, -6}`).
+   ✅ Se decide si el plano bajo es a propósito (se anota) o se sube la cámara y se regraba la versión normal.
+
+### 207.3 A confirmar (tapones, marcas sin identificar y falsos positivos)
+
+25. [ ] Tapones de rayo: otros actores tapan al Cazador y al Mago durante varios segundos; el terreno tapa al Cazador solo en una muestra, al principio; el jefe no tapa a nadie.
+   ✅ Los tapones de otros actores son esperables. Si el Cazador o el Mago desaparecen de algún plano en vídeo, anotar el segundo.
+26. [ ] Marca «sinbanda: Text» (26 muestras en el cómic y 18 en el reel), sin identificar.
+   ✅ En vídeo se ve qué texto la provoca (número de daño, bocadillo o rótulo) y si sale fuera de su banda. Si no se ve nada, se anota.
+27. [ ] Falsos positivos del arnés: los cuatro actores «flotando» 0,4 a 1,8 st sobre el Terrain (el Cazador, 1,8 st), «deslizando» a ~4,9 st/s, «fuera» de pantalla y «atraviesa» del Cazador con `Mapa.Recursos.Roca.Rock` a t=0.
+   ✅ A ojo no flotan, no resbalan, no salen de pantalla y no atraviesan la roca. Si alguno sí, anotar el plano y el segundo.
+
+Código viejo, **hecha el 15-11-2026 (sin commit)**: se borraron `orangutanReel`, `orangutanPlan`, `bossReelPlan`, `addBossComic`, `addBossReelComic`, `bossBattleAction`, el tipo local `ReelPlan` y los campos `reel` de `BossBattle` y de los dos jefes. `bossBattleScene` pide coreografía con un `assert` («El jefe {bossId} no tiene coreografía») y `bossReelCuts(bossId, battle, plans)` recibe siempre la lista de `choreo.reel`; el Orangután usa `plan = bossPlan()` como los demás (el campo `plan` sigue en el tipo, que lo usan Ceniza y Albino). Líneas `local` de nivel superior en `Cinematics.luau`: 285 → 279. Verificado en Play (tres Play, cada orden con Orangután y Caudillo): normal 14,38 s y 14,40 s; cómic 14,35 s y 14,35 s; reel 15,38 s y 15,36 s; 0 errores y 0 avisos de script. Esas duraciones no se han cruzado con las de §206 y §207 (se midieron antes). Sigue sin verse en vídeo el cómic y el reel de los dos jefes (§206.1 y §207.1).
+
+### 207.4 Decisión de cámara del Orangután (observación D de la tanda del 15-11)
+
+Vídeo normal del Orangután del 15-11 (`2026-11-15 12-24-14.mkv`, hojas en `build/videos/b6a`, 2 fps): todo se ve bien salvo el plano de las lianas. El Caudillo normal de ese mismo día (`12-24-39.mkv`, hojas en `build/videos/b6b`) tiene la losa de §202.2. Como las marcas salen de los mismos planos que la versión normal, cualquier cambio de cámara obliga a regrabarla (criterio de §206.2). Los vídeos de cómic y reel de los dos jefes aún no están grabados.
+
+28. [ ] Orangután, plano de las lianas (5,2 a 7,9 s, cámara `{-20, 5, 2}`): en el vídeo sale oscuro, con troncos delante y el Cazador pequeño en el borde. Medido en Play: cámara a 4,9 st del suelo, cabeceo −10,6° y a 12,1 st del Cazador.
+   ✅ Se decide: o se acepta como plano a propósito (se anota en el informe), o se acerca o se sube la cámara, se mide con el arnés y se regraba la versión normal.
+29. [ ] Orangután, plano de 7,9 a 9,4 s (cámara `{22, 9, 0}`, FOV 58): la tripulación pegada al borde derecho (X medio 0,85; el Médico en X 0,91 a 0,94) con cabeceo −2,3°. En el vídeo normal no se marcó como defecto; la medida sí lo señala.
+   ✅ Se decide si se reencuadra (mirada hacia el centro de la tripulación) y se regraba la versión normal, o se deja así a propósito. Mismo criterio que el paso 28.
 
 ## Cuando termines
 

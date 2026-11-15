@@ -44,7 +44,10 @@
 -- Tope de efectos: cada efecto declara un coste estimado (piezas y emisores vivos) y una duración; AbilityShow no deja
 -- empezar uno si la suma pasa de Config.Budgets.Vfx de la calidad (FxQuality), si ya hay MAX_HEAVY grandes a la vez
 -- o, para los grandes, retrasa el efecto hasta que pasen MIN_HEAVY_GAP segundos del anterior. En calidad baja los más
--- caros (ArrowRain, Meteor) se sustituyen por su «fallback» (más barato). Los costes son a ojo, sin medir.
+-- caros (ArrowRain, Meteor) se sustituyen por su «fallback» (más barato). Los costes son estimados (revisados contra
+-- el código de AbilityFxController el 15-11-2026: ArrowRain ~19 piezas + flechas, FrostNova ~20, Frozen ~8 a 17).
+-- Un evento con key = true (los de la historia de una batalla de jefe, ver BossChoreo.skill) se salta el tope de
+-- piezas y de grandes; solo respeta la calidad mínima y el hueco entre grandes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -424,7 +427,9 @@ local function launch(
 			heavy += 1
 		end
 	end
-	if cost + spec.cost > Config.Budgets.Vfx[quality] or (spec.heavy and heavy >= MAX_HEAVY) then
+	-- Un efecto «key» (event.key) cuenta la historia de la escena: sale aunque pase del tope, y los demás se recortan
+	-- por él. La calidad mínima (minQuality) sí se respeta.
+	if not event.key and (cost + spec.cost > Config.Budgets.Vfx[quality] or (spec.heavy and heavy >= MAX_HEAVY)) then
 		fallback(`tope de efectos, calidad {quality}: {cost + spec.cost} piezas, {heavy} grandes`)
 		return
 	end

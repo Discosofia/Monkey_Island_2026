@@ -22,6 +22,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local AbilityShow = require(script.Parent.AbilityShow)
@@ -375,7 +376,6 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 	HudHider.hide(if gui then { gui } else nil)
 	PetFollowers.setHidden(true)
 	setControls(false)
-	releaseHold(0.4)
 
 	local finished = false
 	local function onFinished(completed: boolean)
@@ -428,6 +428,13 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 	)
 	entry = { id = id, handle = handle, stoppedByServer = false, isLocal = isLocal }
 	active = entry
+
+	-- La tarjeta de carga se quita un cuadro después de empezar la escena: LightingController ya dibuja la hora de la
+	-- escena y las franjas ya van entrando (antes salía un cuadro de día al abrir el telón; VERIFICACION §202.1).
+	task.spawn(function()
+		RunService.Heartbeat:Wait()
+		releaseHold(0.4)
+	end)
 
 	-- Botón Saltar (abajo a la derecha, dentro del ScreenGui de la cinemática: se borra solo al terminar).
 	local noSkip = (scene :: any).noSkip == true

@@ -231,9 +231,10 @@ function SceneLight.install(sequencer: any)
 			if scene.noBlur == true then
 				disableBlur()
 			end
-			-- Campo hour de la escena: equivale a un evento clock a t = 0.
+			-- Campo hour de la escena: equivale a un evento clock a t = 0, pero instantáneo (seconds = 0): la escena
+			-- empieza detrás de la tarjeta de carga y una rampa dejaba ver un cuadro con la hora real.
 			if typeof(scene.hour) == "number" then
-				setClock(scene.hour, nil)
+				setClock(scene.hour, 0)
 			end
 			-- Campo redMoonOff: la luna normal aunque el evento en vivo de la luna roja esté en marcha.
 			if scene.redMoonOff == true then
