@@ -7939,7 +7939,7 @@ Vistos en `build/videos/b4t/` (hojas a 2 fps). El punto 1 queda visto en vídeo 
    ✅ Si es el cuadro que el motor muestra antes de aplicar la luz de la escena, hay que aplicarla antes de abrir el telón; si queda en el montaje final, se corta ese primer cuadro.
 2. [ ] Caudillo, losa violeta oscura de 7,3 a 9,4 s. Visto el 14-11 hacia los 12 a 13 s del vídeo y el 15-11 en la versión normal (`12-24-39.mkv`) de 7,3 a ~8,5 s de la escena: cielo oscuro con la silueta de una montaña y la tripulación solo en la esquina inferior izquierda. **Causa y arreglo (15-11-2026, sin commit): arreglado y medido; falta verlo en vídeo (punto 3).** La causa no era un tapón (ni terreno ni roca del jefe), sino el cabeceo de la cámara: el plano subía +9° a +10° desde una loma, con los cuatro actores en X≈0,70 e Y≈0,70 (tercio de arriba, cielo). La mirada `{"abs",3,3,-10}` de `BossChoreo.caudillo` pasa a `{"abs",-2.5,1,-13.7}`. Trampa: la altura de un punto `abs` de una mirada va sobre la rejilla de `TERRAIN_GRIDS` (`Data/Cinematics`, `terrainY`), que ahí da ~147,4 frente a un suelo real de 143 a 147; con altura 5 el cabeceo seguía en 10°, con altura 1 baja a ~2° (trampa (x) del Handoff de PLAN). Medido en Play (normal, Caudillo, plano de 7,1 a 9,0 s): 4 de 4 actores dentro del cuadro, X e Y medios 0,56 y 0,55 (antes 0,70 y 0,70), cabeceo 3,6° a 1,8° (antes 9° a 10°), FOV 48 y cámara a ≥ 18,4 st de cualquier actor y a 8,1 st sobre el Terrain. El método para calcular planos así sin repetir Play es la trampa (y) del mismo Handoff.
    ✅ Se ve la tripulación en el centro del cuadro de 7,3 a 9,4 s y no hay cielo vacío ni losa violeta. Lo que se vea en el vídeo se anota en el punto 3.
-3. [ ] En vídeo: regrabar el Caudillo (versión normal) y mirar de 7,3 a 9,4 s.
+3. [x] En vídeo: regrabar el Caudillo (versión normal) y mirar de 7,3 a 9,4 s. (Ver §208: el plano cambió el 18-11. Visto en `2026-11-18 12-51-26.mkv`: sin losa ni cielo vacío.)
    ✅ Se ve la tripulación en el centro del cuadro y no hay cielo vacío. Si queda vacío, anotar el segundo y el plano, y volver a medir el cabeceo en Play.
 
 ## 203. Fase 25: calidades Baja y Media de la batalla del Gorila Albino (14-11-2026)
@@ -8008,15 +8008,15 @@ Probado en Play (Studio de la Isla, un jugador): el cómic dura 14,7 s y el reel
 
 Las marcas salen de los mismos planos del guion, así que cambiar uno cambia también la versión normal y habría que regrabarla. El arnés mide unos 0,3 s por delante de los planos del guion.
 
-7. [ ] Cazador a 6,2-6,4 st a ~6,6 s del arnés (plano de las lianas, «muy cerca»).
+7. [x] Cazador a 6,2-6,4 st a ~6,6 s del arnés (plano de las lianas, «muy cerca»). (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide: o se acepta como primer plano a propósito y se anota en el informe, o se aleja la cámara y se regraba la versión normal.
-8. [ ] Guerrero a 8,6-8,8 st a 7,6 s del arnés.
+8. [x] Guerrero a 8,6-8,8 st a 7,6 s del arnés. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Mismo criterio que el paso 7.
-9. [ ] Médico a 8,3 st a 3,6 s del arnés.
+9. [x] Médico a 8,3 st a 3,6 s del arnés. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Mismo criterio que el paso 7.
-10. [ ] Cámara a 2,8-3,1 st sobre el suelo hacia 4,9 s, y por debajo de 4,5 st de 3,6 a 11,7 s.
+10. [x] Cámara a 2,8-3,1 st sobre el suelo hacia 4,9 s, y por debajo de 4,5 st de 3,6 a 11,7 s. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide si el plano bajo es a propósito (se anota) o se sube la cámara y se regraba la versión normal.
-11. [ ] Tronco `Mapa.Vegetacion.Mangle.Trunk` delante del Guerrero hacia 10-11 s (un solo muestreo de 0,1 s).
+11. [x] Tronco `Mapa.Vegetacion.Mangle.Trunk` delante del Guerrero hacia 10-11 s (un solo muestreo de 0,1 s). (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Si en vídeo el tronco tapa al Guerrero de forma apreciable, se mueve la cámara de ese plano; si no se nota, se da por bueno. Los demás tapones (el cuerpo del propio Orangután sobre las cabezas del Médico y el Cazador, a 0-1, 2-3 y 9-10 s) son esperables; el terreno no tapa a nadie.
 
 ### 206.3 Falsos positivos del arnés (confirmar a ojo)
@@ -8055,13 +8055,13 @@ Método: justo tras abrir el Play, un lanzamiento de `CineBossBattle*` en los pr
 
 Las marcas `camcerca` y `camalta` salen de los mismos planos de la coreografía, así que cambiar uno cambia también la versión normal y habría que regrabarla. Misma decisión que §206.2.
 
-21. [ ] Cazador a 7,0 a 7,5 st hacia 9,2 a 10,2 s del arnés.
+21. [x] Cazador a 7,0 a 7,5 st hacia 9,2 a 10,2 s del arnés. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide: o se acepta como plano a propósito y se anota en el informe, o se aleja la cámara y se regraba la versión normal.
-22. [ ] Médico a 8,7 st hacia 2,3 a 3,2 s del arnés.
+22. [x] Médico a 8,7 st hacia 2,3 a 3,2 s del arnés. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Mismo criterio que el paso 21.
-23. [ ] Guerrero a 9,6 a 10,1 st hacia 5,0 a 7,0 s del arnés.
+23. [x] Guerrero a 9,6 a 10,1 st hacia 5,0 a 7,0 s del arnés. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Mismo criterio que el paso 21.
-24. [ ] Cámara a 3,2 a 3,3 st sobre el suelo hacia 9,1 a 10,2 s del arnés (plano de 9,4 a 10,5 s, cámara `{-20, 3.4, -6}`).
+24. [x] Cámara a 3,2 a 3,3 st sobre el suelo hacia 9,1 a 10,2 s del arnés (plano de 9,4 a 10,5 s, cámara `{-20, 3.4, -6}`). (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide si el plano bajo es a propósito (se anota) o se sube la cámara y se regraba la versión normal.
 
 ### 207.3 A confirmar (tapones, marcas sin identificar y falsos positivos)
@@ -8079,10 +8079,68 @@ Código viejo, **hecha el 15-11-2026 (sin commit)**: se borraron `orangutanReel`
 
 Vídeo normal del Orangután del 15-11 (`2026-11-15 12-24-14.mkv`, hojas en `build/videos/b6a`, 2 fps): todo se ve bien salvo el plano de las lianas. El Caudillo normal de ese mismo día (`12-24-39.mkv`, hojas en `build/videos/b6b`) tiene la losa de §202.2. Como las marcas salen de los mismos planos que la versión normal, cualquier cambio de cámara obliga a regrabarla (criterio de §206.2). Los vídeos de cómic y reel de los dos jefes aún no están grabados.
 
-28. [ ] Orangután, plano de las lianas (5,2 a 7,9 s, cámara `{-20, 5, 2}`): en el vídeo sale oscuro, con troncos delante y el Cazador pequeño en el borde. Medido en Play: cámara a 4,9 st del suelo, cabeceo −10,6° y a 12,1 st del Cazador.
+28. [x] Orangután, plano de las lianas (5,2 a 7,9 s, cámara `{-20, 5, 2}`): en el vídeo sale oscuro, con troncos delante y el Cazador pequeño en el borde. Medido en Play: cámara a 4,9 st del suelo, cabeceo −10,6° y a 12,1 st del Cazador. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide: o se acepta como plano a propósito (se anota en el informe), o se acerca o se sube la cámara, se mide con el arnés y se regraba la versión normal.
-29. [ ] Orangután, plano de 7,9 a 9,4 s (cámara `{22, 9, 0}`, FOV 58): la tripulación pegada al borde derecho (X medio 0,85; el Médico en X 0,91 a 0,94) con cabeceo −2,3°. En el vídeo normal no se marcó como defecto; la medida sí lo señala.
+29. [x] Orangután, plano de 7,9 a 9,4 s (cámara `{22, 9, 0}`, FOV 58): la tripulación pegada al borde derecho (X medio 0,85; el Médico en X 0,91 a 0,94) con cabeceo −2,3°. En el vídeo normal no se marcó como defecto; la medida sí lo señala. (Decidido el 18-11-2026: cámara cambiada, ver §208.)
    ✅ Se decide si se reencuadra (mirada hacia el centro de la tripulación) y se regraba la versión normal, o se deja así a propósito. Mismo criterio que el paso 28.
+
+## 208. Fase 25: cámaras nuevas de las batallas del Orangután y el Caudillo (18-11-2026)
+
+Cambio (sin commit): `BossChoreo.orangutan` y `BossChoreo.caudillo` tienen sus 8 planos propios. Ya no usan `openingShots` ni `closingShot`, que siguen para el Albino. Los planos se calcularon sobre las posiciones grabadas en Play (cámara y actores cada 0,1 s) con la rejilla `TERRAIN_GRIDS`, con estas metas: nadie a menos de 12 st de la cámara, cámara a ≥ 6 st del suelo de la rejilla, cabezas por debajo de 0,15 del cuadro, pies por encima de 0,86 y el jefe por debajo de su barra (≥ 0,18).
+
+- Orangután: plano general (FOV 64); rugido con la tripulación entera a la derecha, 3,9 s; lianas (contraplano desde detrás de la tripulación: el jefe arriba al centro, las lianas hasta el cazador y el salto del guerrero), 7,9 s; Nova desde el otro lado y más lejos, 10,4 s; y cierre.
+- Caudillo (rehecho a petición del usuario: el jefe salía pegado al borde de arriba, con la cabeza a 0,17-0,24, y en contrapicado): cámaras a 8-24 st sobre la rejilla, a nivel o desde arriba (cabeceo 0° a -9°), FOV 64 salvo el rugido (46). Rugido en primer plano de la cara sin la tripulación; Rompehuesos (9,4 s) desde el otro lado, con la tripulación a la izquierda y el jefe a la derecha. El precio: la tripulación sale más pequeña (a 20-30 st).
+
+Medido en Play el 18-11 (un jugador, versión normal, cortes detectados por saltos de cámara; los tiempos de muestra van unos 0,3 s por delante del guion): en los 16 planos nadie a menos de 12 st, la cámara a ≥ 5,2 st del Terrain, cabezas ≥ 0,17, pies ≤ 0,87 y rayos reales cámara-cabeza sin ningún tapón (ni troncos del manglar ni terreno).
+
+Antes: Médico a 8 st en el rugido de los dos; cámara a 3,1 st (Orangután 3,9 y 10,4 s) y 3,4 st (Caudillo 9,4 s); tripulación cortada por abajo o por la derecha en el rugido, la Nova y el cierre; y la cabeza del Caudillo bajo la franja de 7,3 a 9,4 s.
+
+Segunda medida en Play (18-11, tras rehacer el Caudillo y corregir el plano general del Orangután): Orangután general con el jefe entero (X 0,26) y la tripulación en X 0,60-0,88; Caudillo, en sus 8 planos, cabeza del jefe a 0,25-0,34, cabeceo 0° a -9°, pies ≤ 0,87, nadie a menos de 14 st, cámara a 8-22 st del Terrain y ningún tapón de rayo. El cómic y el reel salen de los mismos planos y no se midieron. Perfil: el Studio de la Isla tiene desactivado el acceso a las API, así que no hubo copia ni escritura del perfil.
+
+Tercera vuelta (18-11, tras ver los seis vídeos de las 12-05, 12-06 y 12-08, hojas en `build/videos/b7_1` a `b7_3`):
+- Caudillo: el penacho subía hasta 0,10-0,15 del cuadro (la medida anterior tomaba la pieza `Head`) y la tripulación salía pequeña. Ahora cada plano tiene su sujeto (general y cierre: el jefe; 3,5 s: mago y guerrero desde el lado del jefe; 5,2 s: la tripulación de espaldas con el jefe al fondo; 7,3 s: el guerrero subiendo; 9,4 s: Rompehuesos por detrás del jefe; 10,5 s: el remate) y los demás salen enteros o fuera, nunca cortados. Medido con el borde de arriba del modelo (penacho incluido) en Play: el jefe por debajo de 0,21-0,27 en los planos normales, cabeceo +1° a -16° (sin contrapicado). Tres planos (general, 3,5 y 9,4 s) se corrigieron después con rayos reales contra rocas y terreno (antes una roca tapaba al guerrero a 9,4 s y la cresta al médico en el general), calculados sobre las posiciones grabadas y sin una cuarta medida en Play.
+- Orangután, lianas: la cámara de (-7, 7, -18) quedaba junto a un mangle (tronco en el tercio izquierdo). Ahora (5, 6, -16), a nivel, sin vegetación en primer término (comprobado con las piezas de `Mapa.Vegetacion` y `Mapa.Recursos` a menos de 18 st).
+- Textos propios de cada jefe en el cómic y el reel (antes los mismos en los dos): Orangután ¡UAAAGH!, ¡A por él!, ¡PAF!, ¡Te tengo!, ¡FIUUU!, ¡CRAC!, ¡KABUM!, ¡El manglar es libre!; Caudillo ¡GRAAAH!, ¡Subamos!, ¡PUM!, ¡CATAPLÁN!, ¡Resistan!, ¡ZUUUM!, ¡CRUNCH!, ¡BOOM!, ¡La cima es nuestra!. 17 frases nuevas con inglés en `Data/Strings/Content.luau` (falta subirlas a Creator Hub al cerrar). En el cómic del Orangután ¡PAF! pasa al lado del jefe (pisaba «¡A por él!») y el bocadillo del Caudillo va al lado de su cara (`side`, tapaba la barra del jefe).
+- Reel: cada corte tiene su sujeto (el jefe, el guerrero, el cazador o el médico) en lugar de la mirada del plano, que caía en el suelo vacío. Medido en Play: cómic 14,6 s y reel 15,5 s de los dos jefes, todos los textos nuevos en pantalla, en el reel algún actor en la banda central en 28 de 29 muestras, 0 errores y 0 avisos.
+
+### 208.1 En vídeo (el usuario graba seis vídeos: CineBossBattle, CineBossBattleComic y CineBossBattleReel, uno del Orangután y otro del Caudillo)
+
+30. [x] Orangután normal, plano general. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: el jefe entero a la izquierda.)
+   ✅ El jefe entero a la izquierda del cuadro, sin cortes.
+31. [x] Orangután normal, rugido (hasta 3,9 s). (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: tripulación entera a la derecha.)
+   ✅ La tripulación en primer término y a la derecha, sin cortes.
+32. [x] Orangután normal, plano de las lianas (5,2 a 7,9 s). (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: se leen la jaula, el cazador y el salto; el jefe queda casi tapado detrás del médico, aceptado así por el usuario.)
+   ✅ Se lee el jefe, las lianas hasta el cazador y el salto del guerrero, sin jaula oscura a pantalla completa.
+33. [x] Orangután normal, de 7,9 a 9,4 s. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
+   ✅ La tripulación entera en el cuadro.
+34. [x] Orangután normal, Nova (9,4 a 10,4 s) y cierre. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
+   ✅ En la Nova la tripulación a la derecha y el jefe a la izquierda; en el cierre, la tripulación entera.
+35. [x] Caudillo normal, rugido (2,5 a 3,5 s). (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: primer plano de la cara; el penacho llega cerca de la barra, aceptado por el usuario.)
+   ✅ Primer plano de la cara del jefe, sin la tripulación en el cuadro y sin contrapicado.
+36. [x] Caudillo normal, todos los planos: el jefe con el penacho entero y lejos del borde de arriba, la cámara a nivel o desde arriba, y en cada plano su sujeto grande.
+   ✅ El penacho no toca la barra del jefe, ningún plano mira hacia arriba y nadie sale cortado (o entero o fuera). Si la tripulación queda demasiado pequeña, anotar el plano.
+37. [x] Caudillo normal, de 7,3 a 9,4 s. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: sin losa ni cielo vacío.)
+   ✅ La tripulación centrada y sin losa ni cielo vacío. Sustituye al paso 3 de §202.
+38. [x] Caudillo normal, de 9,4 a 10,5 s. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`: Rompehuesos por detrás del jefe, el jefe en el centro.)
+   ✅ El Rompehuesos del guerrero se ve, con la tripulación entera a la izquierda y el jefe a la derecha.
+39. [x] Caudillo normal, de 10,5 s al cierre. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
+   ✅ Ningún pie cortado.
+40. [x] Cortes: ninguno salta entre dos cámaras casi iguales (en especial el Caudillo de 10,5 s al cierre, con cámaras a 12 st una de otra).
+   ✅ Cada corte se lee como un cambio de plano con sentido. Si uno parece un salto de cámara, anotar el segundo.
+41. [x] Cómic y reel de los dos jefes. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
+   ✅ Los paneles y cortes siguen a los planos nuevos, sin paneles vacíos. El resto, en §206.1 y §207.1 (con los textos nuevos de §208 en lugar de los de allí).
+42. [x] Reel de los dos jefes: cada corte enseña a su sujeto (el jefe, el guerrero, el cazador o el médico).
+   ✅ Ningún corte de la banda vertical sale con solo suelo o cielo.
+43. [x] Textos propios: cada jefe dice los suyos y ninguno se pisa (en especial ¡PAF! y «¡A por él!» del Orangután a 4,0 s) ni tapa la barra del jefe (bocadillo del Caudillo a 2,9 s).
+   ✅ Los textos se leen enteros, en su momento y sin taparse entre sí.
+44. [x] Orangután, lianas: ningún tronco ni hoja en primer término. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
+   ✅ Se ven el jefe, las lianas hasta el cazador y el salto del guerrero sin nada delante.
+45. [ ] Cómic del Caudillo, a 4,05 s: «¡PUM!» pasó arriba a la izquierda (en los vídeos del 18-11 pisaba el bocadillo «¡Subamos!»). Cambio posterior a la última grabación.
+   ✅ «¡PUM!» y «¡Subamos!» se leen enteros, sin tocarse.
+46. [ ] Reel del Caudillo, corte de 3,5 a 5,2 s: ahora centrado en el guerrero con 13 st de ancho (antes 18 sobre un punto de la ladera, con la tripulación pequeña arriba). Cambio posterior a la última grabación.
+   ✅ El guerrero se ve grande con su «¡Subamos!» y no sobra ladera vacía.
+
+Albino: sin cambios (sigue con la apertura y el cierre comunes); no hay nada que mirar.
 
 ## Cuando termines
 

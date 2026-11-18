@@ -475,7 +475,9 @@ type FinaleCut = {
 }
 type BossLayerSpec = {
 	panels: { { any } }, -- cómic, por plano: forma, fondo y segundos
-	reel: { { any } }, -- reel, por plano: forma, fondo, h, fill, width
+	-- reel, por plano: forma, fondo, h, fill, width y, opcionales, sujeto y cámara propios del corte (la banda 9:16 se
+	-- centra en el sujeto; sin él, en la mirada del plano, que puede caer en el suelo vacío entre la tripulación y el jefe)
+	reel: { { any } },
 	finale: { FinaleCut }, -- los cortes del último plano del reel
 	comicText: { TextEntry },
 	reelText: { TextEntry },
@@ -506,34 +508,35 @@ local ORANGUTAN_SPEC: BossLayerSpec = {
 		{ "diagLeft", "speed", 0.2 },
 		{ "diagRight", "speed", 0.2 },
 	},
+	-- Cada corte con su sujeto (18-11): con la mirada del plano la banda caía en el suelo vacío entre todos.
 	reel = {
-		{ "reelDiagR", "flat", nil, nil, 28 },
-		{ "reelTop", "halftone", 7, 0.6, nil },
-		{ "reelSlant", "flat", nil, nil, 16 },
-		{ "reelDiagL", "halftone", nil, nil, 12 },
-		{ "reelTop", "halftone", nil, nil, 26 },
-		{ "reelSlant", "speed", 12, 0.55, nil },
-		{ "reelDiagR", "speed", nil, nil, 24 },
+		{ "reelDiagR", "flat", nil, nil, 20, { "abs", 0, 6, 0 } }, -- el jefe, con la narración
+		{ "reelTop", "halftone", 7, 0.6, nil }, -- rugido: la mirada del plano ya es su cara
+		{ "reelSlant", "flat", nil, nil, 13, { "crew", "guerrero", 3 } }, -- ¡A por él!
+		{ "reelDiagL", "halftone", nil, nil, 14, { "crew", "cazador", 3 } }, -- las lianas
+		{ "reelTop", "halftone", nil, nil, 14, { "crew", "medico", 3 } }, -- ¡Te tengo!
+		{ "reelSlant", "speed", nil, nil, 22, { "abs", 0, 6, 0 } }, -- el jefe congelado
+		{ "reelDiagR", "speed", nil, nil, 18, { "abs", 0, 4, -4 } }, -- Embestida y Rompehuesos contra el jefe
 	},
 	finale = FINALE_CUTS,
 	comicText = {
 		{ type = "narration", t = 0.2, corner = "TL", seconds = 2.2 },
-		{ type = "sfx", t = 2.65, text = Strings.later("¡ROAAAR!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
+		{ type = "sfx", t = 2.65, text = Strings.later("¡UAAAGH!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
 		{ type = "bubble", t = 2.9, actor = "boss", seconds = 0.9 },
-		{ type = "bubble", t = 4.0, actor = "guerrero", text = Strings.later("¡Que vengan!"), seconds = 0.8 },
-		{ type = "sfx", t = 4.05, text = Strings.later("¡FUM!"), x = 0.72, y = 0.3, rot = 10, size = 0.17 },
-		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 1.0 },
-		{ type = "sfx", t = 10.5, text = Strings.later("¡WHOOSH!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
-		{ type = "sfx", t = 11.5, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
-		{ type = "sfx", t = 12.95, text = Strings.later("¡BUM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
-		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.9 },
+		{ type = "bubble", t = 4.0, actor = "guerrero", text = Strings.later("¡A por él!"), seconds = 0.8 },
+		{ type = "sfx", t = 4.05, text = Strings.later("¡PAF!"), x = 0.3, y = 0.22, rot = 10, size = 0.17 },
+		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Te tengo!"), seconds = 1.0 },
+		{ type = "sfx", t = 10.5, text = Strings.later("¡FIUUU!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
+		{ type = "sfx", t = 11.5, text = Strings.later("¡CRAC!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "sfx", t = 12.95, text = Strings.later("¡KABUM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
+		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡El manglar es libre!"), seconds = 0.9 },
 	},
 	reelText = {
 		{ type = "narration", t = 0.15, corner = "BL", seconds = 2.0 },
 		{
 			type = "sfx",
 			t = 2.65,
-			text = Strings.later("¡ROAAAR!"),
+			text = Strings.later("¡UAAAGH!"),
 			x = 0.5,
 			y = 0.78,
 			rot = -12,
@@ -545,25 +548,25 @@ local ORANGUTAN_SPEC: BossLayerSpec = {
 			type = "bubble",
 			t = 4.0,
 			actor = "guerrero",
-			text = Strings.later("¡Que vengan!"),
+			text = Strings.later("¡A por él!"),
 			seconds = 0.8,
 			side = "left",
 		},
 		{
 			type = "sfx",
 			t = 4.1,
-			text = Strings.later("¡FUM!"),
+			text = Strings.later("¡PAF!"),
 			x = 0.7,
 			y = 0.7,
 			rot = 15,
 			band = 0.3,
 			seconds = 0.4,
 		},
-		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
+		{ type = "bubble", t = 8.0, actor = "medico", text = Strings.later("¡Te tengo!"), seconds = 0.9 },
 		{
 			type = "sfx",
 			t = 10.5,
-			text = Strings.later("¡WHOOSH!"),
+			text = Strings.later("¡FIUUU!"),
 			x = 0.3,
 			y = 0.22,
 			rot = -15,
@@ -573,7 +576,7 @@ local ORANGUTAN_SPEC: BossLayerSpec = {
 		{
 			type = "sfx",
 			t = 11.5,
-			text = Strings.later("¡CRASH!"),
+			text = Strings.later("¡CRAC!"),
 			x = 0.3,
 			y = 0.7,
 			rot = -15,
@@ -583,14 +586,14 @@ local ORANGUTAN_SPEC: BossLayerSpec = {
 		{
 			type = "sfx",
 			t = 12.95,
-			text = Strings.later("¡BUM!"),
+			text = Strings.later("¡KABUM!"),
 			x = 0.7,
 			y = 0.7,
 			rot = 12,
 			band = 0.4,
 			seconds = 0.5,
 		},
-		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.8 },
+		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡El manglar es libre!"), seconds = 0.8 },
 	},
 }
 
@@ -605,36 +608,38 @@ local CAUDILLO_SPEC: BossLayerSpec = {
 		{ "diagLeft", "speed", 0.2 },
 		{ "diagRight", "speed", 0.2 },
 	},
+	-- Cada corte con su sujeto (18-11), como el Orangután.
 	reel = {
-		{ "reelDiagR", "flat", nil, nil, 28 },
-		{ "reelTop", "halftone", 7, 0.6, nil },
-		{ "reelSlant", "flat", nil, nil, 22 },
-		{ "reelDiagL", "halftone", nil, nil, 24 },
-		{ "reelTop", "halftone", nil, nil, 22 },
-		{ "reelSlant", "speed", nil, nil, 14 },
-		{ "reelDiagR", "speed", nil, nil, 24 },
+		{ "reelDiagR", "flat", nil, nil, 20, { "abs", 0, 6, 0 } }, -- el jefe en su cumbre
+		{ "reelTop", "halftone", 7, 0.6, nil }, -- rugido: la mirada del plano ya es su cara
+		{ "reelSlant", "flat", nil, nil, 13, { "crew", "guerrero", 3 } }, -- ¡Subamos! (con 18 st sobraba ladera)
+		{ "reelDiagL", "halftone", nil, nil, 14, { "crew", "medico", 3 } }, -- la roca sobre el médico
+		{ "reelTop", "halftone", nil, nil, 20, { "abs", 7, 3, -10 } }, -- el guerrero sube en zigzag
+		{ "reelSlant", "speed", nil, nil, 18, { "abs", 1.5, 4, -5 } }, -- Rompehuesos contra el jefe
+		{ "reelDiagR", "speed", nil, nil, 20, { "abs", 0, 6, 0 } }, -- el jefe recibe el remate
 	},
 	finale = FINALE_CUTS,
 	comicText = {
 		{ type = "narration", t = 0.2, corner = "TL", seconds = 2.2 },
-		{ type = "sfx", t = 2.65, text = Strings.later("¡ROAAAR!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
-		{ type = "bubble", t = 2.9, actor = "boss", seconds = 0.7 },
+		{ type = "sfx", t = 2.65, text = Strings.later("¡GRAAAH!"), x = 0.22, y = 0.22, rot = -8, size = 0.2 },
+		{ type = "bubble", t = 2.9, actor = "boss", seconds = 0.7, side = "right" },
 		{ type = "bubble", t = 3.55, actor = "mago", text = Strings.later("¡Fuego!"), seconds = 0.65 },
-		{ type = "sfx", t = 4.05, text = Strings.later("¡FUM!"), x = 0.72, y = 0.3, rot = 10, size = 0.17 },
-		{ type = "bubble", t = 4.3, actor = "guerrero", text = Strings.later("¡Que vengan!"), seconds = 0.8 },
-		{ type = "sfx", t = 6.85, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
-		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
-		{ type = "sfx", t = 9.45, text = Strings.later("¡WHOOSH!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
-		{ type = "sfx", t = 10.55, text = Strings.later("¡CRASH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
-		{ type = "sfx", t = 12.95, text = Strings.later("¡BUM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
-		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.9 },
+		-- ¡PUM! arriba a la izquierda: a la derecha pisaba el bocadillo «¡Subamos!» (vídeo del 18-11).
+		{ type = "sfx", t = 4.05, text = Strings.later("¡PUM!"), x = 0.28, y = 0.22, rot = -10, size = 0.17 },
+		{ type = "bubble", t = 4.3, actor = "guerrero", text = Strings.later("¡Subamos!"), seconds = 0.8 },
+		{ type = "sfx", t = 6.85, text = Strings.later("¡CATAPLÁN!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Resistan!"), seconds = 0.9 },
+		{ type = "sfx", t = 9.45, text = Strings.later("¡ZUUUM!"), x = 0.28, y = 0.3, rot = -12, size = 0.18 },
+		{ type = "sfx", t = 10.55, text = Strings.later("¡CRUNCH!"), x = 0.3, y = 0.25, rot = -6, size = 0.22 },
+		{ type = "sfx", t = 12.95, text = Strings.later("¡BOOM!"), x = 0.7, y = 0.3, rot = 10, size = 0.2 },
+		{ type = "bubble", t = 13.2, actor = "cazador", text = Strings.later("¡La cima es nuestra!"), seconds = 0.9 },
 	},
 	reelText = {
 		{ type = "narration", t = 0.15, corner = "BL", seconds = 2.0 },
 		{
 			type = "sfx",
 			t = 2.65,
-			text = Strings.later("¡ROAAAR!"),
+			text = Strings.later("¡GRAAAH!"),
 			x = 0.5,
 			y = 0.78,
 			rot = -12,
@@ -646,7 +651,7 @@ local CAUDILLO_SPEC: BossLayerSpec = {
 		{
 			type = "sfx",
 			t = 4.1,
-			text = Strings.later("¡FUM!"),
+			text = Strings.later("¡PUM!"),
 			x = 0.7,
 			y = 0.7,
 			rot = 15,
@@ -657,25 +662,25 @@ local CAUDILLO_SPEC: BossLayerSpec = {
 			type = "bubble",
 			t = 4.3,
 			actor = "guerrero",
-			text = Strings.later("¡Que vengan!"),
+			text = Strings.later("¡Subamos!"),
 			seconds = 0.8,
 			side = "left",
 		},
 		{
 			type = "sfx",
 			t = 6.85,
-			text = Strings.later("¡CRASH!"),
+			text = Strings.later("¡CATAPLÁN!"),
 			x = 0.3,
 			y = 0.7,
 			rot = -15,
 			band = 0.4,
 			seconds = 0.5,
 		},
-		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Aguanten!"), seconds = 0.9 },
+		{ type = "bubble", t = 8.4, actor = "medico", text = Strings.later("¡Resistan!"), seconds = 0.9 },
 		{
 			type = "sfx",
 			t = 9.45,
-			text = Strings.later("¡WHOOSH!"),
+			text = Strings.later("¡ZUUUM!"),
 			x = 0.3,
 			y = 0.22,
 			rot = -15,
@@ -685,7 +690,7 @@ local CAUDILLO_SPEC: BossLayerSpec = {
 		{
 			type = "sfx",
 			t = 10.55,
-			text = Strings.later("¡CRASH!"),
+			text = Strings.later("¡CRUNCH!"),
 			x = 0.3,
 			y = 0.7,
 			rot = -15,
@@ -695,14 +700,14 @@ local CAUDILLO_SPEC: BossLayerSpec = {
 		{
 			type = "sfx",
 			t = 12.95,
-			text = Strings.later("¡BUM!"),
+			text = Strings.later("¡BOOM!"),
 			x = 0.7,
 			y = 0.7,
 			rot = 12,
 			band = 0.4,
 			seconds = 0.5,
 		},
-		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡Lo logramos!"), seconds = 0.8 },
+		{ type = "bubble", t = 13.5, actor = "cazador", text = Strings.later("¡La cima es nuestra!"), seconds = 0.8 },
 	},
 }
 
@@ -752,6 +757,7 @@ local function bossLayers(ctx: Context, plan: { PlanShot }, spec: BossLayerSpec)
 				actor = entry.actor,
 				text = entry.text or quote,
 				seconds = entry.seconds,
+				side = entry.side,
 			})
 		end
 	end
@@ -764,10 +770,10 @@ local function bossLayers(ctx: Context, plan: { PlanShot }, spec: BossLayerSpec)
 			t1 = p.t1,
 			shape = cut[1],
 			bg = cut[2],
-			cam = p.cam,
-			camB = p.camB,
-			subject = p.look,
-			subjectB = p.lookB,
+			cam = cut[7] or p.cam,
+			camB = if cut[7] then nil else p.camB,
+			subject = cut[6] or p.look,
+			subjectB = if cut[6] then nil else p.lookB,
 			h = cut[3],
 			fill = cut[4],
 			width = cut[5],
@@ -916,14 +922,27 @@ function BossChoreo.orangutan(ctx: Context): Choreo
 	s.bar(13.0, 0.06, 0, 0.25)
 	s.add(BossChoreo.bossAct(13.05, "Die"))
 
-	-- Planos. El tercero (el guerrero) conserva el ajuste del Orangután: en el manglar los troncos tapaban el otro.
-	local plan = openingShots(3.9)
-	table.insert(plan, shot(3.9, 5.2, { 22.5, 4, 2 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, shot(5.2, 7.9, { -20, 5, 2 }, { "crew", "cazador", 3 }, 52))
-	table.insert(plan, shot(7.9, 9.4, { 22, 9, 0 }, { "mid", "C", 3 }, 58))
-	table.insert(plan, shot(9.4, 10.4, { 22, 8, -12 }, { "abs", 0, 6, 0 }, 46, { 20, 9, -12 }))
-	table.insert(plan, shot(10.4, 12.0, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, closingShot(ctx.total))
+	-- Planos propios (18-11): calculados sobre las posiciones grabadas en Play para que nadie quede a menos de 12 st de la
+	-- cámara, la cámara a 6 st o más del suelo, las cabezas por debajo de 0,15 del cuadro (la barra del jefe) y los pies
+	-- por encima de 0,86. Antes: el médico a 8 st en el rugido, la cámara a 3,1 st de 3,9 a 5,2 y de 10,4 a 12, y la
+	-- tripulación cortada por la derecha en el rugido, la Nova y el cierre.
+	local plan = {
+		-- General: FOV 64 y mirada hacia el jefe (con 52 quedaba cortado en el borde izquierdo, X 0,09).
+		shot(0, 2.5, { 29, 8, 8 }, { "abs", -3, 4.2, -15 }, 64),
+		-- Rugido, a la cara del jefe; la tripulación entera en primer término a la derecha.
+		shot(2.5, 3.9, { 17, 10, -16 }, { "abs", -0.1, 6.4, -3 }, 46),
+		shot(3.9, 5.2, { 25, 8, 0 }, { "abs", -3.7, 3, -12.5 }, 52),
+		-- 5,2 a 7,9 (lianas): contraplano desde detrás de la tripulación; el jefe arriba al centro, las lianas bajan hasta
+		-- el cazador (derecha) y el guerrero corre y salta de izquierda a derecha. Antes, a 12 st y de lado, la jaula de
+		-- lianas llenaba el cuadro y el jefe quedaba fuera (vídeo del 15-11).
+		-- (18-11, segunda vuelta) La cámara de (-7, 7, -18) quedaba junto a un mangle: el tronco tapaba el tercio izquierdo.
+		shot(5.2, 7.9, { 5, 6, -16 }, { "abs", -10, 4, -14 }, 64),
+		shot(7.9, 9.4, { 17, 10, -12 }, { "abs", -7.9, 1.2, -19.7 }, 52),
+		-- Nova y Lluvia, desde más lejos y al otro lado que el plano anterior (a 4 st, el corte saltaba).
+		shot(9.4, 10.4, { 29, 10, 4 }, { "abs", -4.2, 4.6, -13.6 }, 52),
+		shot(10.4, 12.0, { -23, 6, -8 }, { "abs", -4.1, 2.1, -13.4 }, 52),
+		shot(12.0, ctx.total, { 21, 6, -8 }, { "abs", -5.7, 3.7, -17.8 }, 52),
+	}
 	local comic, reel, reelEvents = bossLayers(ctx, plan, ORANGUTAN_SPEC)
 	return { events = s.events, plan = plan, comic = comic, reel = reel, reelEvents = reelEvents }
 end
@@ -1056,19 +1075,28 @@ function BossChoreo.caudillo(ctx: Context): Choreo
 	s.bar(13.0, 0.02, 0, 0.25)
 	s.add(BossChoreo.bossAct(13.05, "Die"))
 
-	-- Planos (los de bossPlan() con los tiempos de este guion).
-	local plan = openingShots(3.5)
-	table.insert(plan, shot(3.5, 5.2, { 22, 8, -12 }, { "mid", "C", 4 }, 50, { 20, 9, -12 }))
-	-- 5,2 a 7,3: a 6 st de altura el terreno tapaba al cazador a la cámara durante 2 s (medido el 15-11); a 11 st no.
-	table.insert(plan, shot(5.2, 7.3, { 26, 11, 6 }, { "mid", "C", 4 }, 52))
-	-- 7,3 a 9,4: con la mirada en (3, 3, -10) la cámara cabeceaba 9° hacia arriba y el tercio de arriba era cielo (la
-	-- tripulación en X 0,70, Y 0,70; medido el 15-11). La altura de un punto «abs» va sobre la rejilla de terreno de
-	-- Cinematics (TERRAIN_GRIDS), que ahí queda ~147,4 (el suelo real, 143 a 147): a (-2,5, 1, -13,7) la mirada cae a
-	-- unos 148 y el cabeceo es ~2°; con altura 5 seguía mirando 10° hacia arriba.
-	table.insert(plan, shot(7.3, 9.4, { 22, 8, -12 }, { "abs", -2.5, 1, -13.7 }, 48, { 20, 9, -12 }))
-	table.insert(plan, shot(9.4, 10.5, { -20, 3.4, -6 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, shot(10.5, 12.0, { 22, 9, 0 }, { "mid", "C", 3 }, 58))
-	table.insert(plan, closingShot(ctx.total))
+	-- Planos propios (18-11), calculados sobre las posiciones grabadas en Play. La tripulación está más abajo que el jefe
+	-- (ladera), así que no caben todos enteros con el jefe a media altura: cada plano tiene su sujeto y los demás salen
+	-- enteros o fuera del cuadro, nunca cortados. Metas (medidas con el borde de arriba del modelo, el penacho incluido):
+	-- el jefe por debajo de 0,22 del cuadro, sin contrapicado (cabeceo +2° a -16°), nadie a menos de 12 st y ningún
+	-- árbol en primer término; comprobado con rayos reales contra rocas y terreno.
+	local plan = {
+		-- General: por detrás y por encima del jefe, con la tripulación subiendo abajo.
+		shot(0, 2.5, { -28, 20, 34 }, { "abs", 0, 5, 0 }, 58),
+		-- Rugido: la cara del jefe desde arriba, sin la tripulación.
+		shot(2.5, 3.5, { 16, 20, 2 }, { "abs", 0.4, 8, -3 }, 46),
+		-- ¡Fuego! y ¡Subamos!: el mago y el guerrero desde el lado del jefe, ladera abajo.
+		shot(3.5, 5.2, { 12, 6, 18 }, { "abs", 4, 2, -17 }, 52),
+		-- La ola de rocas: la tripulación de espaldas y el jefe arriba, al fondo.
+		shot(5.2, 7.3, { -12, 12, -34 }, { "abs", 0, 3, -16 }, 58),
+		-- El guerrero sube en zigzag hacia el jefe.
+		shot(7.3, 9.4, { 40, 20, -2 }, { "abs", 6, 3, -8 }, 58),
+		-- Rompehuesos, por detrás del jefe (desde (-20, 12, 34) una roca tapaba al guerrero).
+		shot(9.4, 10.5, { -32, 16, 22 }, { "abs", 1, 5, -3 }, 58),
+		-- El cazador y el mago rematan desde abajo.
+		shot(10.5, 12.0, { 32, 16, -14 }, { "abs", 0, 3, -10 }, 58),
+		shot(12.0, ctx.total, { -32, 12, 18 }, { "abs", 0, 4, -4 }, 58),
+	}
 	local comic, reel, reelEvents = bossLayers(ctx, plan, CAUDILLO_SPEC)
 	return { events = s.events, plan = plan, comic = comic, reel = reel, reelEvents = reelEvents }
 end
