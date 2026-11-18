@@ -67,7 +67,7 @@ Herramientas principales: `list_roblox_studios`, `get_studio_state`, `execute_lu
   ```
   Un módulo que requiere `Settings` o `Remotes` se cuelga en modo edición.
 - **En Play, el `require` del MCP es otra copia** con su propio estado. Para cambiar el juego, dispara los remotos desde el cliente: `Remotes.DebugCommand:FireServer("GrantCosmetic", id)`.
-- **Play escribe el perfil real del usuario.** Antes de probar compras o progreso, pide permiso.
+- **Play escribe el perfil real del usuario.** Antes de probar compras o progreso, pide permiso. El MCP no puede leer ni escribir los DataStore: la copia del perfil la hace el usuario por la barra de comandos.
 - **Cámara:** `screen_capture` con cámara deja la cámara en `Scriptable`. El último paso es siempre `workspace.CurrentCamera.CameraType = Enum.CameraType.Fixed`.
 - **No ves imágenes.** `screen_capture` no te sirve para revisar. Revisa con números (tamaños, número de piezas, posiciones, informes) y pide al usuario que mire la captura.
 - En el código que mandes por MCP, los nombres con "ñ" van con `FindFirstChild("MuñecosDePractica")`.

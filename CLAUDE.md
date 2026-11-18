@@ -94,7 +94,7 @@ print(require(m).informe()); m:Destroy()
 
 - **Caché de `require`:** la barra de comandos y el MCP reutilizan módulos ya cargados. Para ver un cambio, clona el módulo (o la carpeta `Shared`) y haz `require` del clon. Un módulo que requiere `Settings` o `Remotes` se cuelga en modo edición, porque espera a los remotos.
 - **En Play, el `require` del MCP es otra copia** con su propio estado. Para tocar el estado del juego, dispara los remotos desde el cliente (`Remotes.DebugCommand:FireServer("GrantCosmetic", id)`, `Remotes.EquipCosmetic`).
-- **Play en Studio escribe el perfil real del usuario** (`PlayerData_v1`, clave `u_<userId>`). Haz copia en `PlayerData_v1_backups` antes de probar y restáurala después.
+- **Play en Studio escribe el perfil real del usuario** (`PlayerData_v1`, clave `u_<userId>`). Haz copia en `PlayerData_v1_backups` antes de probar y restáurala después. El MCP no tiene acceso a los DataStore (`502 Access forbidden`), así que la copia y la restauración las hace el usuario pegando un script en la barra de comandos.
 - **Cámara:** `screen_capture` con cámara deja la cámara de edición en `Scriptable`, y eso se guarda en el place. Ponla en `Fixed` como último paso.
 - **Clics del MCP:** los clics por coordenadas fallan por el inset. Usa `instance_path`, renombrando antes los padres repetidos (`Frame.Frame`). En el código que se manda por MCP, los nombres con "ñ" van por `FindFirstChild("MuñecosDePractica")`.
 - **Rojo:** no recarga en caliente los cambios de los `*.project.json` y se desconecta al reabrir el place. La captura de Studio en Play no dibuja los `BillboardGui` del mundo.

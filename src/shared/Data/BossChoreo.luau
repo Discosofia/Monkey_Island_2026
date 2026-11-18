@@ -425,21 +425,6 @@ local function newWriter(ctx: Context): Writer
 	}
 end
 
--- Los planos que comparten los dos guiones (los de bossPlan() de Data/Cinematics).
-local function openingShots(roarEnd: number): { PlanShot }
-	return {
-		-- Plano general desde el costado.
-		shot(0, 2.5, { 26, 7, 8 }, { "mid", "C", 5 }, 56, { 26, 6, 2 }, { "mid", "C", 5 }),
-		-- Rugido del jefe, a su cara.
-		shot(2.5, roarEnd, { 18, 10, -10 }, { "abs", 0, 9, 0 }, 46, { 17, 10, -9 }),
-	}
-end
-
--- Meteoro, muerte del jefe y celebración.
-local function closingShot(total: number): PlanShot
-	return shot(12.0, total, { 22, 8, -10 }, { "abs", 0, 7, 0 }, 55, { 22, 10, -10 }, { "abs", 0, 7, -6 })
-end
-
 -- Capa cómic, cortes del reel y capa del reel de un jefe, derivados de sus planos (`plan`: 8, uno por tiempo del guion)
 -- para que sigan a la cámara si se retoca un plano. Cada jefe pone su `BossLayerSpec` (datos); los textos son los de
 -- siempre (Strings.later). Entradas de texto: `narration` (usa ctx.narration), `sfx` (onomatopeya) y `bubble` (globo; sin
@@ -1244,19 +1229,35 @@ function BossChoreo.albino(ctx: Context): Choreo
 	s.add(exposure(8.75, 0.3))
 	s.add(followLight(8.75, warm, 0.7, 60, nil))
 
-	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí).
-	local plan = openingShots(3.6)
-	table.insert(plan, shot(3.6, 5.4, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, shot(5.4, 6.4, { 0, 8, -16 }, { "abs", 0, 6, 0 }, 56))
-	-- Desde atrás a la IZQUIERDA y más alto (antes { 20, 5, -6 }, a 11 st del médico, y en el vídeo del 14-11 22:25 con
-	-- { 16, 7, -22 } seguía tapando): la púa de cristal de 6,8 s sube junto al médico (a la derecha, x = +7 a +9) y dura hasta
-	-- ~9,4; cualquier cámara a la derecha la tiene entre ella y el jefe, y bajo la luz cálida de 8,75 sale blanca. La izquierda
-	-- (el cazador, a x = -8) no tiene ninguna.
-	table.insert(plan, shot(6.4, 8.6, { -16, 7, -22 }, { "mid", "C", 3 }, 54))
-	table.insert(plan, shot(8.6, 9.4, { -4, 3.4, -15.5 }, { "crew", "mago", 3 }, 50))
-	table.insert(plan, shot(9.4, 10.4, { 22, 8, -12 }, { "abs", 0, 6, 0 }, 46, { 20, 9, -12 }))
-	table.insert(plan, shot(10.4, 12.0, { -23, 3.4, -7 }, { "mid", "guerrero", 3.5 }, 52))
-	table.insert(plan, closingShot(ctx.total))
+	-- Planos propios (18-11-2026, calculados con tools/cine_planos.luau sobre la escena grabada): un sujeto por plano, el
+	-- borde de arriba del jefe (caja entera, no la Head) a ≥ 0,21 del cuadro, la cámara mirando hacia arriba ≤ 4° y a ≥ 12 st
+	-- de todos. Antes usaba los planos comunes: el jefe salía cortado por arriba (hasta -0,12) y la cámara a 9 st del médico.
+	-- El jefe mira a -Z: sus planos van con la cámara en z ≤ -8 del marco del jefe (de cara o de perfil, nunca de espaldas).
+	local plan = {
+		-- La tripulación entra con las antorchas, de espaldas; el jefe entero al fondo.
+		shot(0, 2.5, { 4, 5, -34 }, { "abs", 0.7, 4.8, -22.6 }, 46),
+		-- Disparan el cazador y el mago, desde la izquierda.
+		shot(2.5, 3.6, { -16, 5, -14 }, { "abs", -4, 4.5, -18.5 }, 64),
+		-- El guerrero corre, esquiva y pega, por encima del hombro de la tripulación (desde la derecha, { 16, 5, -14 }, la
+		-- cámara quedaba a 11 st del médico).
+		shot(3.6, 5.4, { 4, 5, -22 }, { "abs", 4.6, 4.7, -8.9 }, 64),
+		-- El resoplido, de tres cuartos por delante (de perfil, { -40, 7, 10 }, se le veía el lomo y no la cara; vídeo del
+		-- 18-11 15:27).
+		shot(5.4, 6.4, { -26, 7, -10 }, { "abs", 0, 9, -1.5 }, 46),
+		-- El médico esquiva la púa, desde detrás de la tripulación (la púa sube a su derecha, x = +7 a +9: con la cámara a la
+		-- derecha quedaba entre ella y el jefe y salía blanca).
+		shot(6.4, 8.6, { 0, 5, -26 }, { "abs", 6.4, 4.7, -21.8 }, 52),
+		-- El mago reenciende las antorchas, desde la izquierda y de lejos.
+		shot(8.6, 9.4, { -32, 7, -6 }, { "abs", 0, 4.7, -19.5 }, 64), -- a 5 st quedaba a 3,3 del suelo real
+		-- El jefe congelado bajo la Nova y la Lluvia, de cara y muy por encima de la tripulación (a { 4, 15, -6 } la cámara
+		-- pasaba a 8 st del mago).
+		-- Más lejos y más abierto que { 0, 19, -10 } a 52: el bloque de hielo del Congelado llenaba el cuadro.
+		shot(9.4, 10.4, { 0, 19, -16 }, { "abs", 0, 11.4, -1.6 }, 64),
+		-- Embestida y Rompehuesos del guerrero, desde detrás de la tripulación.
+		shot(10.4, 12.0, { -4, 5, -26 }, { "abs", 1.6, 4.6, -7.3 }, 52),
+		-- Meteoro, caída del jefe y celebración: de perfil por la derecha (el resoplido era por la izquierda).
+		shot(12.0, ctx.total, { 32, 9, 10 }, { "abs", 0, 9.9, -1.5 }, 58),
+	}
 	return { events = s.events, plan = plan, ownLight = true }
 end
 
@@ -1396,21 +1397,31 @@ function BossChoreo.ceniza(ctx: Context): Choreo
 	s.bar(13.0, 0.04, 0, 0.25)
 	s.add(BossChoreo.bossAct(13.05, "Die"))
 
-	-- Planos (medidos en el Studio de la Isla, ninguno a menos de 12 studs de un maniquí). El Gorila de Ceniza (escala 3,625,
-	-- sobre una cresta más alta que la tripulación) es el más alto: con las miradas comunes la cabeza quedaba bajo la franja negra
-	-- en cinco planos (fracción del cuadro 0,02 a 0,08, y -0,06 en el de 10,6 s). Las miradas suben 1,5 a 5,9 studs (inclinar
-	-- 4 a 13 grados, sin tocar el FOV) hasta dejar la cabeza a 0,16 o más; los planos de 2,5 a 5,6 s y el cierre ya cabían.
+	-- Planos propios (18-11-2026, calculados con tools/cine_planos.luau sobre la escena grabada). El Gorila de Ceniza está en
+	-- una cresta ~10 st por encima de la tripulación: con los planos anteriores la cámara miraba hasta 31° hacia arriba y el
+	-- jefe salía cortado por arriba (hasta -0,19, medido por la caja entera). Ahora la cámara mira hacia arriba ≤ 4°: en los
+	-- planos de la tripulación el jefe queda fuera, y en los suyos la cámara sube a 19 st (de cara o de perfil, z ≤ -8 del
+	-- marco del jefe). Los lados se alternan plano a plano; el cierre vuelve al ángulo del aullido.
 	local plan = {
-		shot(0, 2.5, { 26, 7, 8 }, { "mid", "C", 8.2 }, 56, { 26, 6, 2 }, { "mid", "C", 8.2 }),
-		shot(2.5, 3.8, { 18, 10, -10 }, { "abs", 0, 9, 0 }, 46, { 17, 10, -9 }),
-		shot(3.8, 5.6, { 0, 5, -14 }, { "abs", 0, 8, 4 }, 58),
-		-- FOV +6 en 5,6 y 9,6 s (vídeo del 14-11 22:25: con la cabeza a 0,14 a 0,17 aún tocaba la barra del jefe, que ocupa
-		-- hasta ~0,17 del cuadro): más ancho, la cabeza baja a ~0,19 y la tripulación no sube de 0,9.
-		shot(5.6, 7.4, { -14, 5, -12 }, { "crew", "cazador", 4.5 }, 58),
-		shot(7.4, 9.6, { 22, 8, -12 }, { "abs", 3, 5.8, -10 }, 48, { 20, 9, -12 }),
-		shot(9.6, 10.6, { -20, 3.4, -6 }, { "mid", "guerrero", 5.4 }, 58),
-		shot(10.6, 12.0, { 22, 9, 0 }, { "mid", "C", 8.9 }, 58),
-		closingShot(ctx.total),
+		-- Llegada de la tripulación, desde la derecha.
+		shot(0, 2.5, { 32, 6.5, 6 }, { "abs", 0.7, 5, -22.5 }, 46), -- a 5 st quedaba a 4,3 del suelo real
+		-- El aullido y las grietas: el jefe de cara, desde arriba a la izquierda.
+		shot(2.5, 3.8, { -28, 19, 10 }, { "abs", -0.1, 11.2, -2.5 }, 58),
+		-- Ola 1: el salto del guerrero, desde arriba a la derecha.
+		shot(3.8, 5.6, { 24, 19, -6 }, { "abs", 6.6, 2.9, -17.2 }, 46),
+		-- Ola 2: el cazador derribado y el salto del mago, desde la izquierda.
+		-- (Vídeo del 18-11 15:27: en estos tres planos la cabeza del jefe tocaba su barra. El primero sube la cámara y mira
+		-- más abajo, y el jefe sale por arriba; los otros dos suben la cámara 6 st y la mirada 3 para bajarlo sin
+		-- contrapicado.)
+		shot(5.6, 7.4, { -28, 12, -10 }, { "abs", -3.9, 0.7, -20.6 }, 46),
+		-- Ola 3: el zigzag del guerrero entre las bombas, plano general desde la derecha.
+		shot(7.4, 9.6, { 40, 25, -2 }, { "abs", 5.7, 8, -8.1 }, 64),
+		-- Embestida y Rompehuesos crítico, desde la izquierda.
+		shot(9.6, 10.6, { -28, 31, -10 }, { "abs", 2.5, 10.5, -6.6 }, 64), -- a 25/7,5 la cabeza quedaba a ~0,2, bajo la barra
+		-- El cazador y el mago rematan, desde arriba a la derecha.
+		shot(10.6, 12.0, { 8, 19, -26 }, { "abs", -2.5, 1.5, -26.1 }, 46),
+		-- Muerte del jefe y estallido de lava, de cara.
+		shot(12.0, ctx.total, { -28, 19, 10 }, { "abs", 0, 10.9, -2 }, 58),
 	}
 	return { events = s.events, plan = plan }
 end

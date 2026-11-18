@@ -679,20 +679,32 @@ local function moveActor(actor: Model, event: Sequencer.Event, ctx: Sequencer.Co
 		end
 	end
 
+	-- Un movimiento nuevo cancela el anterior del mismo actor: el tween va por el reloj real y puede acabar unos cuadros
+	-- después en el reloj de la escena; si sigue vivo, devuelve al actor a su sitio viejo tras un `put` de corte (Survival,
+	-- 2,5 s, vídeo del 18-11: 4 cuadros con el avatar junto a la cámara nueva).
+	local tweens = ctx._tweens
+	if not tweens then
+		tweens = {}
+		ctx._tweens = tweens
+	end
+	for index = #tweens, 1, -1 do
+		local old = tweens[index]
+		if old.actor == actor then
+			table.remove(tweens, index)
+			old.tween:Cancel()
+			old.value:Destroy()
+		end
+	end
+
 	local seconds: number = event.seconds or 0
 	if instant or seconds <= 0 then
 		actor:PivotTo(to)
 		return
 	end
 	local value = Instance.new("NumberValue")
-	local tweens = ctx._tweens
-	if not tweens then
-		tweens = {}
-		ctx._tweens = tweens
-	end
 	local info = TweenInfo.new(seconds, event.easing or Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 	local tween = TweenService:Create(value, info, { Value = 1 })
-	local entry = { tween = tween, value = value }
+	local entry = { tween = tween, value = value, actor = actor }
 	table.insert(tweens, entry)
 	value.Changed:Connect(function(alpha: number)
 		if actor.Parent then

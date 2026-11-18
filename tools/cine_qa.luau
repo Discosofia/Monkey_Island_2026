@@ -24,7 +24,12 @@
 --                «muy cerca» por debajo de OPTS.camHard (9) y «cámara dentro» si la atraviesa. El detalle da el mínimo y su hora.
 --   camalta      (A8) la cámara queda a menos de OPTS.camHeight studs (4,5) sobre el suelo (rayo hacia abajo; el agua no cuenta).
 --                Por debajo de ~3 st la hierba tapa el plano.
+--   jefealto     (z1) el borde de arriba del jefe de plató (atributo Boss; las piezas visibles del cuerpo, no la Head) queda
+--                a menos de OPTS.bossTop (0,21) del alto del cuadro mientras alguna pieza sale en pantalla (negativo: cortado).
+--   contrapicado la cámara mira hacia arriba más de OPTS.maxPitch grados (4) con el jefe en pantalla.
 --   luz          aproximaciones de negro y quemado (ver abajo)
+-- Con OPTS.track = true guarda además `track`: cada 0,1 s { t, cámara xyz, mirada xyz, FOV, { actor = xyz }, borde y centro
+-- de la caja del jefe } para calcular planos sin repetir Play (método z4 del Handoff del 18-11-2026).
 --
 -- LÍMITES, dichos claros: (1) desde el motor no se leen los píxeles, así que «negro» es el velo `Fade` casi opaco y
 -- «quemado» es Lighting/ColorCorrection/Bloom extremos; la luminancia real se juzga en las capturas. (2) El
@@ -49,6 +54,9 @@ local OPTS = {
 	camNear = 12, -- studs: por debajo, camcerca (regla D1)
 	camHard = 9, -- studs: por debajo, «muy cerca»
 	camHeight = 4.5, -- studs sobre el suelo: por debajo, camalta
+	bossTop = 0.21, -- fracción del cuadro: el borde de arriba del jefe más arriba que esto es jefealto (trampa z1)
+	maxPitch = 4, -- grados: la cámara mirando hacia arriba más que esto, con el jefe en pantalla, es contrapicado
+	track = false, -- true: guarda cada 0,1 s cámara, mirada, FOV, actores y caja del jefe en `track` (método z4)
 }
 
 local FLOOR_TOL = 0.3
@@ -535,6 +543,58 @@ local function cameraCheck(t)
 					end
 				end
 			end
+			if visible and m:GetAttribute("Boss") ~= nil then
+				-- z1: borde de arriba del cuerpo (penacho, hombros), pieza a pieza: las esquinas de la caja entera de un gorila
+				-- con los brazos abiertos suben muy por encima de la cabeza, y una sola esquina en pantalla lo daba por «cortado».
+				-- Solo el cuerpo: los efectos que cuelgan del modelo (anillo del resoplido, bombas, avisos) no cuentan. Piezas a
+				-- menos de 18 st de la raíz y de menos de 30 st de diagonal (en Ceniza una bomba junto a la cámara daba -57).
+				local root = m.PrimaryPart or m:FindFirstChild("HumanoidRootPart")
+				local rootPos = if root and root:IsA("BasePart") then root.Position else cf.Position
+				local topY, onScreen = math.huge, false
+				for _, part in m:GetDescendants() do
+					if
+						part:IsA("BasePart")
+						and part.Transparency < 0.9
+						and (part.Position - rootPos).Magnitude < 18
+						and part.Size.Magnitude < 30
+					then
+						local pcf, ph = part.CFrame, part.Size / 2
+						for sx = -1, 1, 2 do
+							for sy = -1, 1, 2 do
+								for sz = -1, 1, 2 do
+									local p = camera:WorldToViewportPoint(pcf:PointToWorldSpace(ph * Vector3.new(sx, sy, sz)))
+									if p.Z > 0 then
+										topY = math.min(topY, p.Y)
+										-- «en pantalla» es entre las franjas negras: lo que cae bajo la de arriba no se ve
+									local band = BANDS.TOP * viewport.Y
+									if p.X >= 0 and p.X <= viewport.X and p.Y >= band and p.Y <= viewport.Y - band then
+											onScreen = true
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				local frac = topY / viewport.Y
+				if onScreen and frac < OPTS.bossTop then
+					flag("jefealto", m.Name, "", t)
+					local e = state.flags["jefealto|" .. m.Name]
+					if not e.min or frac < e.min then
+						e.min = frac
+						e.detail = string.format("borde de arriba a %.2f del cuadro a t=%.1f (pide ≥ %.2f)", frac, t, OPTS.bossTop)
+					end
+				end
+				local pitch = math.deg(math.asin(math.clamp(camCF.LookVector.Y, -1, 1)))
+				if onScreen and pitch > OPTS.maxPitch then
+					flag("contrapicado", m.Name, "", t)
+					local e = state.flags["contrapicado|" .. m.Name]
+					if not e.max or pitch > e.max then
+						e.max = pitch
+						e.detail = string.format("cámara %.1f° hacia arriba a t=%.1f (pide ≤ %d°)", pitch, t, OPTS.maxPitch)
+					end
+				end
+			end
 			if visible then
 				if not cam.minDist or dist < cam.minDist then
 					cam.minDist, cam.minDistWho, cam.minDistT = math.floor(dist * 10) / 10, m.Name, math.floor(t * 10) / 10
@@ -568,10 +628,48 @@ task.spawn(function()
 	end
 	local t0 = os.clock()
 	state.cam = {}
+	local function r1(v)
+		return math.floor(v * 10 + 0.5) / 10
+	end
+	local nextTrack = 0
+	local function trackStep(t)
+		if t < nextTrack or camera.CameraType ~= Enum.CameraType.Scriptable then
+			return
+		end
+		nextTrack = t + 0.1
+		state.track = state.track or {}
+		local cf = camera.CFrame
+		local lv = cf.LookVector
+		local entry = {
+			t = r1(t),
+			cam = { r1(cf.X), r1(cf.Y), r1(cf.Z) },
+			look = { math.floor(lv.X * 1000 + 0.5) / 1000, math.floor(lv.Y * 1000 + 0.5) / 1000, math.floor(lv.Z * 1000 + 0.5) / 1000 },
+			fov = r1(camera.FieldOfView),
+			actors = {},
+		}
+		for _, m in camSubjects do
+			if m.Parent then
+				if m:GetAttribute("Boss") ~= nil then
+					local bcf, size = m:GetBoundingBox()
+					entry.boss = { r1(bcf.X), r1(bcf.Y), r1(bcf.Z), r1(bcf.Y + size.Y / 2) }
+				else
+					local p = m:GetPivot().Position
+					entry.actors[m.Name] = { r1(p.X), r1(p.Y), r1(p.Z) }
+				end
+			end
+		end
+		table.insert(state.track, entry)
+	end
 	local camConn = RunService.RenderStepped:Connect(function()
 		local ok, err = pcall(cameraCheck, os.clock() - t0)
 		if not ok then
 			state.camError = tostring(err)
+		end
+		if OPTS.track then
+			local okT, errT = pcall(trackStep, os.clock() - t0)
+			if not okT then
+				state.trackError = tostring(errT)
+			end
 		end
 	end)
 	local quiet = 0

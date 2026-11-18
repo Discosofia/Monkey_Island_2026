@@ -7866,8 +7866,10 @@ El vídeo del 14-11 18:29 enseñó cabezas y pies cortados en varios planos; se 
    ✅ El Cazador sale más grande que en el vídeo del 14-11 de las 17:51 y sigue en cuadro durante el empuje.
 6. [x] Captions de 9,3 y 14,8 s (duran 1,7 y 1,4 s).
    ✅ Se alcanzan a leer; si se quedan cortos, sube `seconds` y mueve el plano que sigue.
-7. [ ] Corte de 2,5 s (grúa → lateral del hacha). En el vídeo del 14-11 20:03, 4 cuadros a 60 fps (~0,07 s) con el avatar enorme y cortado por el borde izquierdo justo después del corte, y luego a su tamaño normal. Medido en Play (Studio a 15 fps, cámara y actores por cuadro): cámara y avatar cambian en el mismo cuadro y el avatar queda a 16,2 st; no se reproduce, causa sin hallar (¿raycast de `snap` con el terreno del bosque aún sin cargar?).
+7. [x] Corte de 2,5 s (grúa → lateral del hacha). En el vídeo del 14-11 20:03, 4 cuadros a 60 fps (~0,07 s) con el avatar enorme y cortado por el borde izquierdo justo después del corte, y luego a su tamaño normal. Medido en Play (Studio a 15 fps, cámara y actores por cuadro): cámara y avatar cambian en el mismo cuadro y el avatar queda a 16,2 st; no se reproduce, causa sin hallar (¿raycast de `snap` con el terreno del bosque aún sin cargar?).
    ✅ Regrabar `Survival` y mirar el cuadro a cuadro de 2,6 a 2,9 s del vídeo: avatar a su tamaño desde el primer cuadro del plano 2.
+
+> Vídeo `2026-11-18 15-26-33.mkv`: cerrado (Actors.moveActor cancela el tween anterior; CameraPath no curva los tramos quietos).
 
 ### 198.2 Con fotogramas quietos
 
@@ -8135,12 +8137,39 @@ Tercera vuelta (18-11, tras ver los seis vídeos de las 12-05, 12-06 y 12-08, ho
    ✅ Los textos se leen enteros, en su momento y sin taparse entre sí.
 44. [x] Orangután, lianas: ningún tronco ni hoja en primer término. (Visto el 18-11-2026 en `2026-11-18 12-51-26.mkv`, 12-52-47 y 12-54-17, hojas en `build/videos/b8_1` a `b8_3`.)
    ✅ Se ven el jefe, las lianas hasta el cazador y el salto del guerrero sin nada delante.
-45. [ ] Cómic del Caudillo, a 4,05 s: «¡PUM!» pasó arriba a la izquierda (en los vídeos del 18-11 pisaba el bocadillo «¡Subamos!»). Cambio posterior a la última grabación.
+45. [x] Cómic del Caudillo, a 4,05 s: «¡PUM!» pasó arriba a la izquierda (en los vídeos del 18-11 pisaba el bocadillo «¡Subamos!»). Cambio posterior a la última grabación. (18-11-2026: el usuario dio la cinemática por aprobada sin regrabar el cómic ni el reel del Caudillo; cerrado sin vídeo.)
    ✅ «¡PUM!» y «¡Subamos!» se leen enteros, sin tocarse.
-46. [ ] Reel del Caudillo, corte de 3,5 a 5,2 s: ahora centrado en el guerrero con 13 st de ancho (antes 18 sobre un punto de la ladera, con la tripulación pequeña arriba). Cambio posterior a la última grabación.
+46. [x] Reel del Caudillo, corte de 3,5 a 5,2 s: ahora centrado en el guerrero con 13 st de ancho (antes 18 sobre un punto de la ladera, con la tripulación pequeña arriba). Cambio posterior a la última grabación. (18-11-2026: el usuario dio la cinemática por aprobada sin regrabar el cómic ni el reel del Caudillo; cerrado sin vídeo.)
    ✅ El guerrero se ve grande con su «¡Subamos!» y no sobra ladera vacía.
 
 Albino: sin cambios (sigue con la apertura y el cierre comunes); no hay nada que mirar.
+
+## 209. Fase 25 B5: planos propios del Albino y de Ceniza y arreglos de corte del motor (18-11-2026)
+
+Cambio (sin commit): `BossChoreo.albino` y `BossChoreo.ceniza` tienen sus planos propios (9 y 8), con un sujeto por plano, la cámara del jefe de cara o de tres cuartos (nunca de espaldas) y los lados alternos. Se borran `openingShots` y `closingShot`, que ya nadie usa. Dos arreglos de motor que afectan a todas las escenas: `Actors.moveActor` cancela el tween en marcha de un actor cuando llega un `move` nuevo, y `CameraPath.segment` no curva los tramos cuyos extremos están en la misma posición (ni la mirada). Los vídeos `15-27-34`, `15-33-23` y `15-37-45` (Albino y Ceniza) se miraron: sin contrapicado ni cámara baja, nada quemado en la luz. Lo que sigue sin probar, abajo.
+
+### 209.1 En vídeo, otras escenas (cambios de motor de `Actors.moveActor` y `CameraPath.segment`)
+
+1. [ ] Vídeo de `CineMounts`: la panorámica hacia 16,3 s, cuando la cámara termina el tramo quieto.
+   ✅ El plano se ve igual de bien que antes, sin la deriva de unos 5 st.
+2. [ ] Vídeos de `CineNight`, `CineEndless`, `CineLab`, `CineShipwreck` (el corte de 1,05 s del Naufragio, `Rescue`) y `CineBallgame`: cada corte, en 60 fps o en hoja a 2 fps con el corte ampliado.
+   ✅ Ningún cuadro con el plano abierto ni con un actor fuera de sitio justo antes o después de un corte.
+3. [ ] Vídeo de las batallas del Orangután y del Caudillo (`CineBossBattle`): saltos, esquivas, caídas y carreras encadenadas.
+   ✅ Los movimientos siguen suaves, sin saltos al empezar un tramo.
+
+### 209.2 Con el arnés corregido
+
+4. [ ] Pasa `tools/cine_qa.luau` por el Orangután y por el Caudillo, en Play, con el arnés que ya tiene el filtro de efectos y el de franjas. La pasada de hoy, con el arnés anterior, dio: Orangután `jefealto` 0,07 (t=3,7), `contrapicado` 14,7° (t=13,1) y `camcerca` del Médico a 9,0 st; Caudillo `camcerca` del propio jefe a 7,6 st (t=3,6) y del Guerrero a 10,4 st.
+   ✅ Cada marca que quede se justifica en `report.md` como plano a propósito, o se corrige con `tools/cine_planos.luau` (grabar con `track = true`, copiar a `CineQA_<bossId>` y elegir candidato).
+
+### 209.3 Conocido, sin arreglar (no es de este bloque)
+
+5. [ ] Batalla del Albino, de 4,7 a 10,5 s: mira en vídeo si el guerrero atraviesa la roca `Workspace.Mapa.Obsidiana.Obsidiana.Rock` (la marca del arnés es `atraviesa`).
+   ✅ En vídeo no se nota, o se mueve el guerrero o la roca.
+
+### 209.4 Cómic y reel del Albino y de Ceniza
+
+No hay cómic ni reel del Albino ni de Ceniza (solo existen los del Orangután y el Caudillo). Los planos nuevos son la base para hacerlos en otro bloque. Sin prueba todavía, así que no hay casillas en esta subsección.
 
 ## Cuando termines
 

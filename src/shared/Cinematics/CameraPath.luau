@@ -38,9 +38,14 @@ local function segment(points: { Point }, i: number, f: number): (Vector3, Vecto
 	local n = #points
 	local a, b = points[math.max(i - 1, 1)], points[math.min(i + 2, n)]
 	local p1, p2 = points[i], points[i + 1]
-	local pos = catmull(a.pos, p1.pos, p2.pos, b.pos, f)
-	local look = catmull(a.look, p1.look, p2.look, b.look, f)
 	local fov1, fov2 = fovOf(points, i), fovOf(points, i + 1)
+	-- Tramo quieto (los dos extremos iguales, como los que pone CinematicKit.cutShots junto a un corte): sin spline. Con
+	-- ella, el vecino del otro lado del corte (a 140 st en Survival) curvaba la cámara hasta 10 st en esos 0,03 s y se
+	-- veían 2-4 cuadros con el plano abierto antes del corte (vídeo del 18-11, 2,47 a 2,5 s).
+	-- La posición y la mirada se fijan por separado: una panorámica (cámara quieta que gira) tampoco mueve la cámara
+	-- (en Mounts, a 16,3 s, la spline la desplazaba 5 st).
+	local pos = if (p1.pos - p2.pos).Magnitude < 1e-3 then p1.pos else catmull(a.pos, p1.pos, p2.pos, b.pos, f)
+	local look = if (p1.look - p2.look).Magnitude < 1e-3 then p1.look else catmull(a.look, p1.look, p2.look, b.look, f)
 	return pos, look, fov1 + (fov2 - fov1) * f
 end
 

@@ -21,7 +21,7 @@ Eres el probador del proyecto en Roblox Studio. La sesión principal (Opus) te d
   local r = require(m).informe(opciones, propuesta); m:Destroy(); return r
   ```
   Devuelve entera la sección "Alertas" y solo las cifras que te pidieron. El resto del informe, no.
-- **Perfil real:** Play escribe `PlayerData_v1` (clave `u_<userId>`). Antes de un Play que toque progreso, Ámbar, compras o cosméticos, copia la clave a `PlayerData_v1_backups`. Al terminar, restáurala. Di en la respuesta que lo hiciste.
+- **Perfil real:** Play escribe `PlayerData_v1` (clave `u_<userId>`). Antes de un Play que toque progreso, Ámbar, compras o cosméticos, tiene que haber copia de la clave en `PlayerData_v1_backups`. El MCP no tiene acceso a los DataStore (`502 Access forbidden`): no intentes copiar ni restaurar; si falta la copia, dilo a la sesión principal, que se la pide al usuario (barra de comandos).
 - **En Play, el `require` del MCP es otra copia.** Para cambiar el estado del juego, dispara los remotos desde el cliente (`Remotes.DebugCommand:FireServer(...)`, `Remotes.EquipCosmetic`…).
 - **Clics:** nunca por coordenadas. Usa `instance_path`. Si hay padres con el mismo nombre, renómbralos antes.
 - Los nombres con "ñ" van por `FindFirstChild("MuñecosDePractica")`.
