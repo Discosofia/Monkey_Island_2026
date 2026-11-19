@@ -8232,8 +8232,8 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
 
 ### 211.5 Regenerar el borrador (dependencias)
 
-10. [ ] Antes de dar el tráiler por cerrado, confirma que los cambios de `tools/video/short.py` (`"ancho": true` y `zona_ancho`, es decir `recorte_ancho`) están subidos al repo.
-    ✅ Sin esos cambios, `trailer-g17.json` no funciona: `short.py` no reconoce `ancho` ni `zona_ancho`. Hoy solo están en el árbol de trabajo.
+10. [x] Antes de dar el tráiler por cerrado, confirma que los cambios de `tools/video/short.py` (`"ancho": true` y `zona_ancho`, es decir `recorte_ancho`) están subidos al repo.
+    ✅ Sin esos cambios, `trailer-g17.json` no funciona: `short.py` no reconoce `ancho` ni `zona_ancho`. (Subidos el 19-11-2026 en `b4f3efa`.)
 11. [ ] Para regenerar los borradores hacen falta las tres tomas de `build/videos/g17/geomA` (Survival 15-26-33, Albino 15-27-34 y Ceniza 15-37-45, pasadas a la disposición del 19-11). El comando está en `trailer.md`.
     ✅ Con `build/videos/g17/geomA` presente, `python -I tools/video/short.py docs/videos/shorts/trailer-g17.json` crea los dos borradores sin error. Sin esas tomas, el JSON apunta a rutas que no existen.
 
