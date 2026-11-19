@@ -12,6 +12,6 @@ El agente escribe el guion y el borrador de CapCut con scripts; el usuario lo ab
 6. Con CapCut cerrado, `short.py docs/videos/shorts/<id>.json` crea `<id>-<es|en>-vN` y lo copia a CapCut (cortes, textos, pista `voz`, música local con licencia, Studio en silencio).
 7. Entrega `publicacion.md` (título, descripción, etiquetas) y anota en `docs/VERIFICACION.md` los pasos del usuario (retoque, objetivo 5 min).
 
-El usuario genera la voz desde la pista `voz` (+16 dB), añade filtro y música si no hay local (-10 dB), y exporta a 1080×1920 (o 1920×1080), 30 fps. El agente no puede poner filtro ni voz por script.
+El usuario genera la voz desde la pista `voz` (+16 dB) y luego oculta esa pista de texto, añade filtro y música si no hay local (-10 dB), y exporta a 1080×1920 (o 1920×1080), 30 fps. El agente no puede poner filtro ni voz por script.
 
 Trampas: las tomas de `O:/` traen la barra de Studio, el Admin y avisos del juego que tapan la acción (mira siempre la hoja); solo se miran hojas pequeñas; `pycapcut==0.0.4` con CapCut 9.7; la marca Pro de `pycapcut` no es fiable; todo en `build/`.

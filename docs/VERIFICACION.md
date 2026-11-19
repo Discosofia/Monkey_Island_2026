@@ -8202,9 +8202,11 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
 
 ### 211.1 En CapCut 9.7.1 (abrir y revisar)
 
-1. [ ] Abre `trailer-g17-es-v1` en CapCut 9.7.1 (la versión no está probada; el borrador se hizo en 9.7.0).
-   ✅ Abre sin error, se ven los 43 cortes, la duración es de unos 100 s y el lienzo de 1920×1080.
-2. [ ] Abre `trailer-g17-en-v1` y revisa lo mismo que en el paso 1.
+> Revisión del 19-11-2026 de `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-es-v1.mp4` (hoja de un cuadro cada 2 s en `build/videos/g17/export/hoja.jpg` y medida del audio con ffmpeg): 1920×1080, 30 fps, 100,0 s, sin marca de agua y con audio; rótulos, jefes, PvP, rescate y portada en su sitio. Fallos: el audio satura (pico +0,8 dB, -11,6 LUFS), la pista `voz` se ve como subtítulo amarillo y pisa los subtítulos de las escenas, y el tercer corte del Naufragio (~6,5-8,5 s, toma 23-25 s) queda casi negro tras el rayo (aceptado por el usuario: es la tormenta). Falta exportar la versión EN.
+
+1. [x] Abre `trailer-g17-es-v1` en CapCut 9.7.1 (la versión no está probada; el borrador se hizo en 9.7.0).
+   ✅ Abre sin error, se ven los 43 cortes, la duración es de unos 100 s y el lienzo de 1920×1080. (Abierto por el usuario el 19-11; exportado a 100,0 s.)
+2. [x] Abre `trailer-g17-en-v1` y revisa lo mismo que en el paso 1. (Abierto por el usuario el 19-11.)
    ✅ Mismos 43 cortes y misma duración, sin cortes que falten ni clips en rojo (sin medios perdidos).
 3. [ ] Mira el gancho: 0 a 2,5 s, el Caudillo con su rugido (68,2 s + 2,5 s de `2026-11-19 12-03-16`, que solo tiene 1 s de primer plano del rugido).
    ✅ Se entiende el rugido en 2,5 s. Si no vale, se elige otro corte del Caudillo, se cambia en el JSON y se anota aquí.
@@ -8221,7 +8223,9 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
 ### 211.3 Exportar y medir
 
 7. [ ] Exporta en 1920×1080, 30 fps, sin marca de agua, y reproduce el archivo.
-   ✅ El archivo sale a 1920×1080 y 30 fps, sin marca de agua, de unos 100 s (±1 s).
+   ✅ El archivo sale a 1920×1080 y 30 fps, sin marca de agua, de unos 100 s (±1 s). (ES: cumple el 19-11; falta el EN.)
+7b. [ ] Antes de reexportar: oculta o borra la pista de texto `voz` (ya convertida en voz) y baja el audio unos 3 dB o pon un limitador a -1 dB. Repite en el EN.
+   ✅ No se ve el subtítulo amarillo abajo; ffmpeg (`astats`) da un pico ≤ -1 dB y la sonoridad queda entre -14 y -12 LUFS.
 8. [ ] Mide los minutos de retoque desde que se abre el borrador hasta que sale el archivo exportado.
    ✅ Objetivo de 5 minutos o menos. Si pasa, anota aquí qué lo alargó y si conviene automatizarlo en `tools/video/short.py`.
 
