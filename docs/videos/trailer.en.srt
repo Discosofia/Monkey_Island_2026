@@ -1,61 +1,69 @@
 1
-00:00:00,300 --> 00:00:02,800
-They steal your food!
+00:00:00,200 --> 00:00:02,300
+Oops. He doesn't want friends.
 
 2
-00:00:03,300 --> 00:00:08,500
-You're shipwrecked on an island
-full of wild monkeys.
+00:00:02,700 --> 00:00:10,800
+Your ship sinks…
+and you wash up on an island full of monkeys.
 
 3
-00:00:09,300 --> 00:00:12,500
-Learn their ways…
+00:00:11,200 --> 00:00:16,800
+Pick a role: warrior, hunter,
+mage or medic.
 
 4
-00:00:16,300 --> 00:00:18,500
-Pick your role.
+00:00:17,200 --> 00:00:26,800
+Chop, eat, craft and build.
+The monkeys won't wait!
 
 5
-00:00:19,000 --> 00:00:23,500
-Play with up to five friends.
+00:00:27,200 --> 00:00:36,800
+At night the red moon rises…
+and they all come.
 
 6
-00:00:25,500 --> 00:00:29,000
-Fortify your camp.
+00:00:37,200 --> 00:00:41,800
+Four bosses. Zero mercy.
 
 7
-00:00:32,300 --> 00:00:37,000
-Survive nights
-that get fiercer.
+00:00:47,200 --> 00:00:51,800
+Freeze him!
 
 8
-00:00:40,300 --> 00:00:45,000
-Defeat the island's bosses.
+00:00:52,200 --> 00:00:56,800
+Lava? Of course!
 
 9
-00:00:49,300 --> 00:00:51,300
-Save eggs.
+00:00:57,200 --> 00:01:02,800
+Make furry friends…
 
 10
-00:00:51,800 --> 00:00:55,500
-Collect pets and mounts.
+00:01:03,200 --> 00:01:08,800
+…then ride them.
 
 11
-00:00:56,300 --> 00:00:58,800
-Rather fight?
+00:01:09,200 --> 00:01:16,800
+Love the island? Stay.
+Your plot grows every day.
 
 12
-00:00:59,200 --> 00:01:03,000
-Team PvP arenas.
+00:01:17,200 --> 00:01:21,800
+Rather beat your friends?
+Steal their flag…
 
 13
-00:01:04,300 --> 00:01:06,500
-Light the beacon.
+00:01:22,200 --> 00:01:25,800
+…sink the ball…
 
 14
-00:01:07,000 --> 00:01:09,500
-Escape the island.
+00:01:26,200 --> 00:01:30,800
+…or blast them in the lab.
 
 15
-00:01:10,300 --> 00:01:14,500
+00:01:31,200 --> 00:01:34,800
+Had enough? Call for rescue!
+
+16
+00:01:35,200 --> 00:01:39,800
 Bring your friends!

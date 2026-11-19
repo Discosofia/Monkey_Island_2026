@@ -1,61 +1,69 @@
 1
-00:00:00,300 --> 00:00:02,800
-¡Te roban la comida!
+00:00:00,200 --> 00:00:02,300
+¡Ups! Este no quiere amigos.
 
 2
-00:00:03,300 --> 00:00:08,500
-Naufragaste en una isla
-llena de monos salvajes.
+00:00:02,700 --> 00:00:10,800
+Tu barco se hunde…
+y acabas en una isla llena de monos.
 
 3
-00:00:09,300 --> 00:00:12,500
-Aprende sus costumbres…
+00:00:11,200 --> 00:00:16,800
+Elige rol: guerrero, cazador,
+mago o médico.
 
 4
-00:00:16,300 --> 00:00:18,500
-Elige tu rol.
+00:00:17,200 --> 00:00:26,800
+Tala, come, fabrica y construye.
+¡Los monos no esperan!
 
 5
-00:00:19,000 --> 00:00:23,500
-Juega con hasta cinco amigos.
+00:00:27,200 --> 00:00:36,800
+De noche sale la luna roja…
+y vienen todos.
 
 6
-00:00:25,500 --> 00:00:29,000
-Fortifica tu campamento.
+00:00:37,200 --> 00:00:41,800
+Cuatro jefes. Cero piedad.
 
 7
-00:00:32,300 --> 00:00:37,000
-Sobrevive noches
-cada vez más feroces.
+00:00:47,200 --> 00:00:51,800
+¡Congélalo!
 
 8
-00:00:40,300 --> 00:00:45,000
-Derrota a los jefes de la isla.
+00:00:52,200 --> 00:00:56,800
+¿Lava? ¡Pues claro!
 
 9
-00:00:49,300 --> 00:00:51,300
-Salva huevos.
+00:00:57,200 --> 00:01:02,800
+Haz amigos peludos…
 
 10
-00:00:51,800 --> 00:00:55,500
-Colecciona mascotas y monturas.
+00:01:03,200 --> 00:01:08,800
+…y súbete encima.
 
 11
-00:00:56,300 --> 00:00:58,800
-¿Prefieres pelear?
+00:01:09,200 --> 00:01:16,800
+¿Te gusta la isla? Quédate.
+Tu parcela crece cada día.
 
 12
-00:00:59,200 --> 00:01:03,000
-Arenas PvP por equipos.
+00:01:17,200 --> 00:01:21,800
+¿Prefieres ganar a tus amigos?
+Roba su bandera…
 
 13
-00:01:04,300 --> 00:01:06,500
-Enciende la baliza.
+00:01:22,200 --> 00:01:25,800
+…mete la pelota…
 
 14
-00:01:07,000 --> 00:01:09,500
-Escapa de la isla.
+00:01:26,200 --> 00:01:30,800
+…o dispárales en el laboratorio.
 
 15
-00:01:10,300 --> 00:01:14,500
+00:01:31,200 --> 00:01:34,800
+¿Te cansas? ¡Pide rescate!
+
+16
+00:01:35,200 --> 00:01:39,800
 ¡Ven con tus amigos!

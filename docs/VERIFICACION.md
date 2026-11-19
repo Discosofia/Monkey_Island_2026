@@ -8196,6 +8196,47 @@ Cambio (sin commit): `CameraPath.sampleTimed` trata como corte seco todo tramo d
 5. [ ] Arranque de las batallas de jefes: la espera de carga (`waitTerrain`) enseña el plano sin la luz de la escena.
    ✅ Para los jugadores, tapar con la tarjeta de carga hasta el primer cuadro real, probando el arranque en frío (CLAUDE.md avisa de la pantalla negra).
 
+## 211. Tráiler G17 en CapCut (19-11-2026)
+
+Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, llegada, supervivencia, noche, los 4 jefes, mascotas, monturas, modo infinito, PvP, rescate y portada). Guion en [trailer.md](videos/trailer.md), subtítulos `trailer.es.srt` y `trailer.en.srt`, cortes en `docs/videos/shorts/trailer-g17.json` (43 cortes) y borradores `trailer-g17-es-v1` y `trailer-g17-en-v1` instalados en CapCut 9.7.1.4203 (probado en 9.7.0.4153). Ficha de publicación en `build/videos/proyectos/trailer-g17/publicacion.md`. Los cortes salen sin sonido del juego: la única voz es la del texto a voz.
+
+### 211.1 En CapCut 9.7.1 (abrir y revisar)
+
+1. [ ] Abre `trailer-g17-es-v1` en CapCut 9.7.1 (la versión no está probada; el borrador se hizo en 9.7.0).
+   ✅ Abre sin error, se ven los 43 cortes, la duración es de unos 100 s y el lienzo de 1920×1080.
+2. [ ] Abre `trailer-g17-en-v1` y revisa lo mismo que en el paso 1.
+   ✅ Mismos 43 cortes y misma duración, sin cortes que falten ni clips en rojo (sin medios perdidos).
+3. [ ] Mira el gancho: 0 a 2,5 s, el Caudillo con su rugido (68,2 s + 2,5 s de `2026-11-19 12-03-16`, que solo tiene 1 s de primer plano del rugido).
+   ✅ Se entiende el rugido en 2,5 s. Si no vale, se elige otro corte del Caudillo, se cambia en el JSON y se anota aquí.
+
+### 211.2 Voz y música en CapCut
+
+4. [ ] Genera la voz desde la pista `voz` (texto a voz «Narrador» en ES y «hype guy» en EN), con +16 dB, y compara cada frase con su plano.
+   ✅ Cada frase cabe en su plano (a 2,5 palabras por segundo como mucho), sin cortarse ni pisar la siguiente, y coincide con el `.srt`.
+5. [ ] Añade música de la Biblioteca de audio de YouTube a -10 dB y un filtro suave en la pista de música. (Las tres pistas de `docs/videos/musica` no tienen fila de licencia en el repo: no se usan para esto.)
+   ✅ La música se oye bajo la voz sin taparla, sin cortes en el paso de planos y con la energía de la columna M de `trailer.md`.
+6. [ ] Escucha un corte del juego con la voz y la música en marcha.
+   ✅ No se oye audio del juego: el recorte del borrador lo quita y solo quedan voz y música.
+
+### 211.3 Exportar y medir
+
+7. [ ] Exporta en 1920×1080, 30 fps, sin marca de agua, y reproduce el archivo.
+   ✅ El archivo sale a 1920×1080 y 30 fps, sin marca de agua, de unos 100 s (±1 s).
+8. [ ] Mide los minutos de retoque desde que se abre el borrador hasta que sale el archivo exportado.
+   ✅ Objetivo de 5 minutos o menos. Si pasa, anota aquí qué lo alargó y si conviene automatizarlo en `tools/video/short.py`.
+
+### 211.4 Versión EN y textos del juego
+
+9. [ ] Mira `trailer-g17-en-v1` entero y decide si molestan los textos del juego en español que salen en las tomas (títulos y subtítulos de las escenas).
+   ✅ Decisión anotada aquí. Si molestan, se regraban las escenas con el Studio en inglés (tabla de la sección «Tomas usadas» de `trailer.md`) y se rehace la versión EN. Si no molestan, se publica así.
+
+### 211.5 Regenerar el borrador (dependencias)
+
+10. [ ] Antes de dar el tráiler por cerrado, confirma que los cambios de `tools/video/short.py` (`"ancho": true` y `zona_ancho`, es decir `recorte_ancho`) están subidos al repo.
+    ✅ Sin esos cambios, `trailer-g17.json` no funciona: `short.py` no reconoce `ancho` ni `zona_ancho`. Hoy solo están en el árbol de trabajo.
+11. [ ] Para regenerar los borradores hacen falta las tres tomas de `build/videos/g17/geomA` (Survival 15-26-33, Albino 15-27-34 y Ceniza 15-37-45, pasadas a la disposición del 19-11). El comando está en `trailer.md`.
+    ✅ Con `build/videos/g17/geomA` presente, `python -I tools/video/short.py docs/videos/shorts/trailer-g17.json` crea los dos borradores sin error. Sin esas tomas, el JSON apunta a rutas que no existen.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

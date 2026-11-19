@@ -1258,6 +1258,20 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
   8. La captura quieta de `Empalizada.GatePost` a 4,8 s sigue sin hacer (§194.1.2).
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 (Handoff de regrabar Night y Endless) y la skill `cinematicas-roblox`. Todo lo de las vueltas anteriores está sin commit en el árbol (no lo toques ni lo subas sin mi «aprobado»). Haz los 4 puntos de «Siguiente»: Night cierre (Gorila a un lado y cámara oblicua), Night horda (más luz), Endless cierre (mirada más baja) y Night choque (librar el poste). Pasa el arnés completo tras los cambios (Studio de la Isla) y deja las hojas de los vídeos nuevos en `build/videos`. Reglas: modo plan por bloque, commit solo con «aprobado», lo no probado a VERIFICACION.md.»
 
+**Handoff de G17 (19-11-2026)**
+- **Estado:** tráiler de ~100 s en 17 planos, orden «viaje del jugador» (ver «Decisiones del usuario» de G14): gancho con el rugido del Caudillo, Naufragio, Llegada, Supervivencia, Noche y Luna roja, los 4 jefes, Mascotas, Monturas, Modo infinito, PvP (Captura la bandera, Juego de pelota y Laboratorio), Rescate y portada. Tono divertido y rápido. Borradores `trailer-g17-es-v1` y `trailer-g17-en-v1` hechos e instalados en CapCut, sin montar ni exportar. Sin commit: falta el «aprobado».
+- **Archivos:** `docs/videos/trailer.md` (guion nuevo con «Tomas usadas»), `docs/videos/trailer.es.srt`, `docs/videos/trailer.en.srt`, `docs/videos/README.md` (fila del tráiler) y `docs/videos/shorts/trailer-g17.json`. `tools/video/short.py` tiene cambios del usuario sin subir (`recorte_ancho`, `ancho` y `zona_ancho`): el JSON no funciona sin ellos. No van en el commit de G17: `.vscode/settings.json`, `docs/LANZAMIENTO.md`, `tools/strings_subidas.txt` ni `tools/video/short.py`.
+- **Trampas:**
+  1. Dos disposiciones de Studio: las tomas del 18-11 (Survival 15-26-33, Albino 15-27-34 y Ceniza 15-37-45) tienen la imagen de y = 226 a 745; las del 19-11, de y = 240 a 842. Las tres se pasan con ffmpeg a `build/videos/g17/geomA/` (comando en `trailer.md`). `build/` no se sube, así que regenerar exige esas tomas.
+  2. `zona_ancho` va por guion, no por corte: el JSON lo declara una vez y los cortes con `"ancho": true` lo usan.
+  3. En la versión EN se aceptan por ahora los textos del juego en español (títulos y subtítulos de las escenas). Si molestan, hay que regrabar las escenas con el Studio en inglés (§211.4).
+  4. Los cortes salen sin audio del juego (el recorte lo quita): la voz y la música se añaden en CapCut.
+  5. CapCut instalado 9.7.1.4203; el script probó la 9.7.0.4153. Abrir en 9.7.1 es un paso de §211.
+  6. El gancho (68,2 s + 2,5 s de `2026-11-19 12-03-16`) solo tiene 1 s de primer plano del rugido: juzgarlo en §211.1.
+  7. La ficha de publicación (título, descripción y etiquetas ES/EN) está en `build/videos/proyectos/trailer-g17/publicacion.md`, fuera del repo.
+- **Pendiente:** §211 (11 pasos): abrir y revisar en CapCut 9.7.1, voz, música, exportar, medir el retoque (objetivo ≤ 5 min), decidir sobre los textos del juego en EN y cerrar las dependencias de `short.py`.
+- **Siguiente:** el usuario monta y exporta el tráiler en CapCut (§211). Después se decide si se publica tal cual o si se regraba la versión EN con el Studio en inglés. El commit y el push solo con «aprobado».
+
 **Handoff de la tanda del 19-11-2026 (§209 y §210: cortes secos, luz a tiempo y vistas del Lab) — subido en 11e55bc**
 - **Estado:** §209 cerrada. Los cortes de cámara ya son secos en todas las escenas, cómics y reels (`CameraPath.sampleTimed`: un tramo de 0,06 s o menos, o con `cut`, salta al plano nuevo al empezar el hueco). La hora y la luz que sigue a la cámara llegan en el mismo cuadro que el corte. Las vistas en primera persona del Lab ya no dejan huecos. El rugido y el cierre del Orangután tienen planos nuevos (`tools/cine_planos`). Todo regrabado y revisado en vídeo.
 - **Herramienta nueva:** `python tools/video/revisar_cortes.py --desde "AAAA-MM-DD HH:MM"` (o con rutas). Quita los cuadros repetidos, marca cortes, destellos y planos cortos, y deja en `build/cortes*` una hoja por vídeo con 9 cuadros a 60 fps de cada corte. Solo se miran las filas con aviso. Para los tránsitos de cámara es más rápido un barrido en Studio (modo edición, clon de `Shared`) de `CameraPath.sampleTimed` a 240 Hz sobre todas las escenas: un corte da un solo salto.
@@ -1485,7 +1499,7 @@ Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se ha
 **Decisiones del usuario (10-11-2026)**
 - Se hacen todas las candidatas salvo el campo de tiro.
 - Solo la variante normal, sin cómic, en las escenas nuevas de G14.
-- Orden del tráiler: el usuario lo fija como decisión; el orden concreto no está anotado aquí y hay que añadirlo antes de G17.
+- Orden del tráiler (19-11-2026): viaje del jugador: gancho con el rugido del Caudillo → Naufragio → Llegada → Supervivencia → Noche y Luna roja → 4 jefes (Orangután, Caudillo, Albino y Ceniza) → Mascotas → Monturas → Modo infinito → PvP (Captura la bandera, Juego de pelota y Laboratorio) → Rescate → portada. Duración ~100 s, tono divertido y rápido.
 - Una sesión por escena, en modo plan.
 
 | Grupo | Escena | Place | Base que se reutiliza | Estado |
@@ -1498,6 +1512,10 @@ Lista aprobada por el usuario como dirección. Cada punto se cierra cuando se ha
 | **G14f** | Pasarela de equipo: sets por grados y Míticos de los 4 roles | Por decidir | `Actors.spawnDummy`, `RewardModels` | ⏳ |
 | **G14g** | Desfile del bestiario con alfas | Isla | `CinematicMonkeyService`, `MonkeyModels` | ⏳ |
 | **G14h** | Evento del administrador gigante | Por decidir | `Config.GiantAdmin`, `abilityFx`, `CameraShake` | ⏳ |
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **G17** | Tráiler de ~100 s en 16:9, ES y EN, con las cinemáticas ya hechas (sin escenas nuevas; G14e-h quedan fuera). `docs/videos/trailer.md` (guion de 17 planos, sustituye al de 75 s, con «Tomas usadas»), `trailer.es.srt` y `trailer.en.srt` (16 líneas de voz), `docs/videos/shorts/trailer-g17.json` (43 cortes) y los borradores `trailer-g17-es-v1` y `trailer-g17-en-v1` en CapCut. Tomas regrabadas el 19-11: Llegada, Mascotas, Rescate y Captura la bandera. Voz de texto a voz de CapCut y música de la Biblioteca de YouTube, a cargo del usuario | — | 🔶 Borradores hechos; falta montar y exportar (VERIFICACION §211) |
 
 **G15 (provisional): escenas por regrabar o grabar**
 
