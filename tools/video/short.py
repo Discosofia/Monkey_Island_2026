@@ -37,6 +37,26 @@ TAM_TEXTO, TAM_CHICO, TAM_VOZ = 16.0, 8.0, 7.0
 REGISTRO_MUSICA = RAIZ / "docs" / "videos" / "musica" / "README.md"
 
 
+RECORTES = RAIZ / "build" / "videos" / "recortes"
+
+
+def recorte_ancho(guion: dict, corte: dict, nombre: str) -> Path:
+	"""Corte con `"ancho": true` (vertical u horizontal): la zona útil de su clase entera, sin recortar los lados.
+
+	CapCut no recorta el material desde este script, así que se saca con ffmpeg el trozo de la toma (solo la zona útil, sin audio) a
+	build/videos/recortes/ y el borrador usa ese archivo (`zona_ancho` del guion, [x0, x1, y0, y1] en fracción de la toma, cambia la zona útil, p. ej. para quitar las franjas de la cinemática): encaja a lo ancho del lienzo, con franjas negras arriba y abajo para el texto."""
+	x0, x1, y0, y1 = guion.get("zona_ancho") or comun.ZONAS[corte.get("clase")]
+	RECORTES.mkdir(parents=True, exist_ok=True)
+	salida = RECORTES / f"{guion['id']}-{nombre}.mp4"
+	filtro = f"crop=w=trunc(iw*{x1 - x0}/2)*2:h=trunc(ih*{y1 - y0}/2)*2:x=trunc(iw*{x0}):y=trunc(ih*{y0})"
+	orden = [buscar("ffmpeg"), "-v", "error", "-y", "-ss", f"{corte['desde']}", "-t", f"{corte['dura']}", "-i", ruta_toma(guion, corte),
+		"-vf", filtro, "-an", "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(salida)]
+	r = subprocess.run(orden, capture_output=True, text=True, encoding="utf-8", errors="replace")
+	if r.returncode != 0:
+		raise SystemExit(f"Falló el recorte {salida.name}: {r.stderr.strip()[:300]}")
+	return salida
+
+
 def capcut_abierto() -> bool:
 	salida = subprocess.run(["tasklist", "/FI", "IMAGENAME eq CapCut.exe"], capture_output=True, text=True).stdout
 	return "CapCut.exe" in salida
@@ -125,6 +145,10 @@ def vista(guion: dict, destino: Path) -> None:
 		salida = destino / f"corte-{i:02d}.jpg"
 		if c["toma"] == "portada":
 			orden = [ffmpeg, "-v", "error", "-y", "-i", str(PORTADA), "-frames:v", "1", "-vf", f"scale={sw}:-2,pad={sw}:{sh}:0:({sh}-ih)/2,{guia}"]
+		elif c.get("ancho"):
+			momento = c["dura"] / 2
+			orden = [ffmpeg, "-v", "error", "-y", "-ss", f"{momento:.3f}", "-i", str(recorte_ancho(guion, c, f"{i:02d}")), "-frames:v", "1", "-vf",
+				f"scale={sw}:-2,pad={sw}:{sh}:0:({sh}-ih)/2,{guia}"]
 		else:
 			cx, cy, _, _, w, h = recuadro(c, formato)
 			x0, y0 = cx * TOMA_W - w / 2, cy * TOMA_H - h / 2
@@ -173,8 +197,19 @@ def borrador(guion: dict, idioma: str, total: float) -> Path:
 		guionista.add_track(cc.TrackType.text, "voz")
 
 	t = 0.0
-	for c in guion["cortes"]:
-		if c["toma"] == "portada":
+	for i, c in enumerate(guion["cortes"], 1):
+		if c.get("ancho") and c["toma"] != "portada":
+			# la zona útil a lo ancho del lienzo (escala 1 de CapCut), ya recortada en un archivo aparte
+			vel = c.get("velocidad", 1.0)
+			salida = c["dura"] / vel
+			seg = cc.VideoSegment(
+				str(recorte_ancho(guion, c, f"{i:02d}")),
+				trange(f"{t:.4f}s", f"{salida:.4f}s"),
+				source_timerange=trange("0s", f"{c['dura']}s"),
+				volume=c.get("volumen", VOLUMEN_CLASE.get(c.get("clase"), 1.0)),
+			)
+			t += salida
+		elif c["toma"] == "portada":
 			# la portada entera cabe a lo ancho (en vertical, franjas negras arriba y abajo): recortarla a 9:16 cortaría el título
 			seg = cc.VideoSegment(str(PORTADA), trange(f"{t:.4f}s", f"{c['dura']}s"))
 			t += c["dura"]
