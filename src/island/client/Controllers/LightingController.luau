@@ -154,7 +154,7 @@ function LightingController:Start()
 	grade.Name = "DayCycleGrade"
 	grade.Parent = Lighting
 
-	RunService.Heartbeat:Connect(function(dt)
+	local function updateLighting(dt: number)
 		local state = MatchState.read()
 		if not state then
 			return
@@ -222,6 +222,13 @@ function LightingController:Start()
 		grade.Contrast = s.GradeContrast
 		grade.Saturation = s.GradeSaturation
 		grade.TintColor = s.GradeTint
+	end
+	RunService.Heartbeat:Connect(updateLighting)
+	-- Un salto de hora de una cinemática (evento clock en el mismo instante que un corte) se aplica ya, en el PreRender en que
+	-- lo lanza el Sequencer: con solo Heartbeat (que va tras el render) salía un cuadro con la cámara nueva y la luz del plano
+	-- anterior (saltos de día de Endless, vídeo del 19-11).
+	Lighting:GetAttributeChangedSignal(CINEMATIC_CLOCK_JUMP_ATTRIBUTE):Connect(function()
+		updateLighting(0)
 	end)
 end
 

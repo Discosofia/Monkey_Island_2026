@@ -914,8 +914,9 @@ function BossChoreo.orangutan(ctx: Context): Choreo
 	local plan = {
 		-- General: FOV 64 y mirada hacia el jefe (con 52 quedaba cortado en el borde izquierdo, X 0,09).
 		shot(0, 2.5, { 29, 8, 8 }, { "abs", -3, 4.2, -15 }, 64),
-		-- Rugido, a la cara del jefe; la tripulación entera en primer término a la derecha.
-		shot(2.5, 3.9, { 17, 10, -16 }, { "abs", -0.1, 6.4, -3 }, 46),
+		-- Rugido, a la cara del jefe, desde el lado contrario a los planos vecinos. (19-11) Antes { 17, 10, -16 } con la
+		-- mirada a 6,4: la cabeza se salía por arriba a 3,8 (jefealto -0,02); tools/cine_planos da borde 0,28 y cabeceo 3,6°.
+		shot(2.5, 3.9, { -19, 5, 16 }, { "abs", -0.1, 7.5, -1.3 }, 46),
 		shot(3.9, 5.2, { 25, 8, 0 }, { "abs", -3.7, 3, -12.5 }, 52),
 		-- 5,2 a 7,9 (lianas): contraplano desde detrás de la tripulación; el jefe arriba al centro, las lianas bajan hasta
 		-- el cazador (derecha) y el guerrero corre y salta de izquierda a derecha. Antes, a 12 st y de lado, la jaula de
@@ -926,7 +927,9 @@ function BossChoreo.orangutan(ctx: Context): Choreo
 		-- Nova y Lluvia, desde más lejos y al otro lado que el plano anterior (a 4 st, el corte saltaba).
 		shot(9.4, 10.4, { 29, 10, 4 }, { "abs", -4.2, 4.6, -13.6 }, 52),
 		shot(10.4, 12.0, { -23, 6, -8 }, { "abs", -4.1, 2.1, -13.4 }, 52),
-		shot(12.0, ctx.total, { 21, 6, -8 }, { "abs", -5.7, 3.7, -17.8 }, 52),
+		-- Cierre. (19-11) Antes { 21, 6, -8 } mirando a 3,7: contrapicado de 14,7° a 12,9; tools/cine_planos da borde 0,38 y
+		-- cabeceo 3,5°, a 28 st de todos.
+		shot(12.0, ctx.total, { 13, 7, 56 }, { "abs", -0.1, 8.9, -0.5 }, 46),
 	}
 	local comic, reel, reelEvents = bossLayers(ctx, plan, ORANGUTAN_SPEC)
 	return { events = s.events, plan = plan, comic = comic, reel = reel, reelEvents = reelEvents }

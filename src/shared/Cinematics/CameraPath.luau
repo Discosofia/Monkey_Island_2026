@@ -10,10 +10,12 @@ export type Point = {
 	look: Vector3,
 	fov: number?,
 	t: number?, -- segundos en la escena (solo en las escenas del Sequencer, ver sampleTimed)
+	cut: boolean?, -- primer punto de un plano tras un corte seco: el tramo que llega a él no se recorre (ver sampleTimed)
 }
 
 CameraPath.DEFAULT_FOV = 70
 local ORBIT_STEP = 15 -- grados entre punto y punto de la órbita
+local CUT_MAX = 0.06 -- un tramo de esta duración o menos se salta: es el hueco de un corte seco (ver sampleTimed)
 
 -- Catmull-Rom uniforme entre p1 y p2 (p0 y p3 son los vecinos).
 local function catmull(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: number): Vector3
@@ -91,7 +93,18 @@ function CameraPath.sampleTimed(points: { Point }, t: number): (Vector3, Vector3
 	while i < n - 1 and t >= (points[i + 1].t or 0) do
 		i += 1
 	end
+	-- Hueco de un corte seco (CUT_GAP entre dos planos de pushShot o montage): la cámara salta al plano nuevo al empezar el
+	-- hueco, sin recorrerlo. Antes se recorría como un tramo más y, a 60 fps, salían 3 cuadros con la cámara volando de un
+	-- plano al otro (vídeos del 19-11 de Mounts, Ballgame y Lab).
+	-- Cualquier tramo de CUT_MAX o menos es un corte, lo haya hecho quien lo haya hecho (cutShots, ballgameFollow, cómics,
+	-- reels): ningún movimiento de cámara a propósito dura menos de 4 cuadros.
 	local t1, t2 = points[i].t or 0, points[i + 1].t or 0
+	-- En el hueco se ve ya el plano nuevo: las escenas recolocan a los actores en el instante del corte (el principio del
+	-- hueco, `put(t0, …)`), y quedándose en el plano viejo se veían 3 cuadros de decorado vacío (la llama de Mounts, 19-11).
+	if points[i + 1].cut or t2 - t1 <= CUT_MAX then
+		local p = points[i + 1]
+		return p.pos, p.look, fovOf(points, i + 1)
+	end
 	local f = if t2 > t1 then (t - t1) / (t2 - t1) else 1
 	return segment(points, i, f)
 end
@@ -123,7 +136,7 @@ local function appendShot(camera: { Point }, t0: number, shotPoints: { Point }):
 	local n = #shotPoints
 	for i, p in shotPoints do
 		local t = t0 + (p.t or 0)
-		table.insert(camera, { t = t, pos = p.pos, look = p.look, fov = p.fov })
+		table.insert(camera, { t = t, pos = p.pos, look = p.look, fov = p.fov, cut = i == 1 or nil })
 		if i == 1 or i == n then
 			table.insert(camera, { t = t + CUT_REPEAT, pos = p.pos, look = p.look, fov = p.fov })
 		end

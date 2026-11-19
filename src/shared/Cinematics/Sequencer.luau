@@ -126,8 +126,13 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 	-- Cámara en el mundo (la escena la escribe relativa al anchor).
 	local points: { CameraPath.Point } = {}
 	for i, p in scene.camera or {} do
-		points[i] =
-			{ pos = anchor:PointToWorldSpace(p.pos), look = anchor:PointToWorldSpace(p.look), fov = p.fov, t = p.t }
+		points[i] = {
+			pos = anchor:PointToWorldSpace(p.pos),
+			look = anchor:PointToWorldSpace(p.look),
+			fov = p.fov,
+			t = p.t,
+			cut = p.cut,
+		}
 	end
 	local camera = Workspace.CurrentCamera
 	local useCamera = camera ~= nil and #points > 0

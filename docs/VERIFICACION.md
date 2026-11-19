@@ -8150,17 +8150,21 @@ Cambio (sin commit): `BossChoreo.albino` y `BossChoreo.ceniza` tienen sus planos
 
 ### 209.1 En vídeo, otras escenas (cambios de motor de `Actors.moveActor` y `CameraPath.segment`)
 
-1. [ ] Vídeo de `CineMounts`: la panorámica hacia 16,3 s, cuando la cámara termina el tramo quieto.
+1. [x] Vídeo de `CineMounts`: la panorámica hacia 16,3 s, cuando la cámara termina el tramo quieto.
    ✅ El plano se ve igual de bien que antes, sin la deriva de unos 5 st.
-2. [ ] Vídeos de `CineNight`, `CineEndless`, `CineLab`, `CineShipwreck` (el corte de 1,05 s del Naufragio, `Rescue`) y `CineBallgame`: cada corte, en 60 fps o en hoja a 2 fps con el corte ampliado.
+   Resultado (19-11-2026): hecho con el vídeo `2026-11-19 12-03-16`. Sin deriva y con todos los cortes secos.
+2. [x] Vídeos de `CineNight`, `CineEndless`, `CineLab`, `CineShipwreck` (el corte de 1,05 s del Naufragio, `Rescue`) y `CineBallgame`: cada corte, en 60 fps o en hoja a 2 fps con el corte ampliado.
    ✅ Ningún cuadro con el plano abierto ni con un actor fuera de sitio justo antes o después de un corte.
-3. [ ] Vídeo de las batallas del Orangután y del Caudillo (`CineBossBattle`): saltos, esquivas, caídas y carreras encadenadas.
+   Resultado (19-11-2026): hecho con `tools/video/revisar_cortes.py`. Night y Naufragio estaban limpios desde la primera pasada. Ballgame y Lab tenían tránsitos de cámara de 2 a 4 cuadros en los cortes; Endless, 1 cuadro de luz del día anterior. Arreglado y regrabado: Ballgame en `11-53-20` y Lab en `12-06-32`. Queda abierto el paso del Lab a las Alcantarillas (ver §210).
+3. [x] Vídeo de las batallas del Orangután y del Caudillo (`CineBossBattle`): saltos, esquivas, caídas y carreras encadenadas.
    ✅ Los movimientos siguen suaves, sin saltos al empezar un tramo.
+   Resultado (19-11-2026): hecho con los vídeos `11-30-39`, `11-51-17` y `12-03-16`. Movimientos suaves.
 
 ### 209.2 Con el arnés corregido
 
-4. [ ] Pasa `tools/cine_qa.luau` por el Orangután y por el Caudillo, en Play, con el arnés que ya tiene el filtro de efectos y el de franjas. La pasada de hoy, con el arnés anterior, dio: Orangután `jefealto` 0,07 (t=3,7), `contrapicado` 14,7° (t=13,1) y `camcerca` del Médico a 9,0 st; Caudillo `camcerca` del propio jefe a 7,6 st (t=3,6) y del Guerrero a 10,4 st.
+4. [x] Pasa `tools/cine_qa.luau` por el Orangután y por el Caudillo, en Play, con el arnés que ya tiene el filtro de efectos y el de franjas. La pasada de hoy, con el arnés anterior, dio: Orangután `jefealto` 0,07 (t=3,7), `contrapicado` 14,7° (t=13,1) y `camcerca` del Médico a 9,0 st; Caudillo `camcerca` del propio jefe a 7,6 st (t=3,6) y del Guerrero a 10,4 st.
    ✅ Cada marca que quede se justifica en `report.md` como plano a propósito, o se corrige con `tools/cine_planos.luau` (grabar con `track = true`, copiar a `CineQA_<bossId>` y elegir candidato).
+   Resultado (19-11-2026): hecho en Play. Con `tools/cine_planos.luau` se corrigieron dos planos del Orangután: el rugido (`jefealto` −0,02 → borde 0,28) y el cierre (contrapicado 14,7° → cabeceo 3,5°). Quedan como planos a propósito el `camcerca` del Médico (9,4 st, su curación), el del Cazador (11,7 st), el del Caudillo en su rugido (7,7 st, primer plano) y el del Guerrero (10,4 st, primer término del rugido). Las marcas de actores (suelo 0,4–0,6 st, deslizando, terreno) salen en los cuatro maniquíes por igual y no se ven en vídeo.
 
 ### 209.3 Conocido, sin arreglar (no es de este bloque)
 
@@ -8170,6 +8174,27 @@ Cambio (sin commit): `BossChoreo.albino` y `BossChoreo.ceniza` tienen sus planos
 ### 209.4 Cómic y reel del Albino y de Ceniza
 
 No hay cómic ni reel del Albino ni de Ceniza (solo existen los del Orangután y el Caudillo). Los planos nuevos son la base para hacerlos en otro bloque. Sin prueba todavía, así que no hay casillas en esta subsección.
+
+## 210. Cortes de cámara secos, luz a tiempo y vistas en primera persona (19-11-2026)
+
+Cambio (sin commit): `CameraPath.sampleTimed` trata como corte seco todo tramo de 0,06 s o menos, o cuyo punto final lleve `cut` (lo ponen `appendShot`, `pushShot`, `montage` y `ballgameFollow`). La cámara salta al plano nuevo al empezar el hueco, sin recorrerlo. Afecta a todas las escenas, cómics y reels: un barrido a 240 Hz en Studio no da dos saltos a menos de 0,1 s en ninguna escena. El `Sequencer` conserva `cut` al pasar los puntos al mundo. `LightingController` aplica un salto de hora de cinemática en el momento (`CinematicClockJump`) y no un cuadro después. `SceneLight` recoloca la luz que sigue a la cámara también en `ctx.frameHooks`, justo después de la cámara. Lab: las vistas en primera persona (`fpView`) se apagan en el mismo instante en que se enciende la siguiente o empieza el plano (huecos de 0,02 a 0,05 s). `BossChoreo`: dos planos nuevos del Orangután, el rugido y el cierre. Herramienta nueva: `tools/video/revisar_cortes.py`.
+
+### 210.1 En vídeo (revisar_cortes.py)
+
+1. [ ] Lab en el juego publicado (o en Studio a 60 fps): el paso a las Alcantarillas (14,5 s de la escena) y a la Azotea (29,5 s).
+   ✅ Como mucho un cuadro de cielo vacío al saltar la cámara 2000 st al mapa nuevo. Resultado (19-11-2026, vídeos `12-06-32` y `12-10-41`, Studio a unos 14 fps): un cuadro dibujado de cielo en los dos pasos. No es el streaming: volver a pedir la carga del mapa 3 s antes no cambió nada y se deshizo. En el tráiler se recorta; si se ve en el juego, tapar el salto con un cuadro negro en otro bloque.
+2. [x] Batalla del Orangután: el cierre (12 s de la escena) y el arranque.
+   ✅ El cierre, como mucho con 1 cuadro algo más oscuro tras el salto (el motor de luz de Roblox). El arranque, conocido: unos 3 cuadros sin luz ni decorado (la espera de carga muestra el plano antes de que la escena arranque); en el tráiler se recorta.
+   Resultado (19-11-2026, vídeo `12-03-16`): así. El rugido y el cierre nuevos, bien encuadrados.
+3. [ ] Cómics y reels (`Mounts_Comic`, `Mounts_Reel`, `Pets_*`, `Ballgame_*`, `Flag_Comic`, `Lab_Comic`, cómics y reels de las batallas).
+   ✅ Cortes secos, sin tránsitos.
+
+### 210.2 Conocido, sin arreglar
+
+4. [ ] Endless: el texto del reloj («Día 7» → «Día 8») cambia 1 o 2 cuadros reales después del corte (la luz ya llega a tiempo).
+   ✅ No se nota en el tráiler, o se arregla en otro bloque.
+5. [ ] Arranque de las batallas de jefes: la espera de carga (`waitTerrain`) enseña el plano sin la luz de la escena.
+   ✅ Para los jugadores, tapar con la tarjeta de carga hasta el primer cuadro real, probando el arranque en frío (CLAUDE.md avisa de la pantalla negra).
 
 ## Cuando termines
 

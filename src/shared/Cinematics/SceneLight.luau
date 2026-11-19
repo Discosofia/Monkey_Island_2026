@@ -219,6 +219,18 @@ function SceneLight.install(sequencer: any)
 		end
 		built[event] = true
 		build(event, ctx.anchor or CFrame.identity)
+		-- Una luz que sigue a la cámara se recoloca también justo después de que el Sequencer mueva la cámara (frameHooks):
+		-- la conexión a PreRender puede correr antes que la suya y, tras un corte de 50 st, los actores salían a oscuras 1-2
+		-- cuadros (cierre del Orangután, vídeo del 19-11).
+		if event.follow == true and not ctx._followHook then
+			local hooks = ctx.frameHooks
+			if not hooks then
+				hooks = {}
+				ctx.frameHooks = hooks
+			end
+			ctx._followHook = true
+			table.insert(hooks, placeFollowers)
+		end
 	end)
 	sequencer.registerHandler("exposure", function(event: any)
 		setExposure(event)

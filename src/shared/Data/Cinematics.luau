@@ -1818,7 +1818,7 @@ local GLIDE_YAW = math.deg(math.atan2(-GLIDE_DIR.X, -GLIDE_DIR.Z)) -- la montura
 local GLIDE_PITCH = -math.deg(math.atan((GLIDE_FROM.Y - GLIDE_TO.Y) / GLIDE_FLAT.Magnitude)) -- nariz abajo
 local FLYOVER_CUT_GAP = 0.05 -- segundos entre el final de un plano y el principio del siguiente (corte seco)
 
-type CameraPoint = { t: number, pos: Vector3, look: Vector3, fov: number? }
+type CameraPoint = { t: number, pos: Vector3, look: Vector3, fov: number?, cut: boolean? }
 
 -- Posición de la montura en el instante t de la escena (el movimiento es lineal).
 local function glideAt(t: number): Vector3
@@ -4251,7 +4251,8 @@ local function ballgameBallAt(plan: BallPlan, t: number): Vector3
 end
 
 -- Un plano que se muestrea cada 0,3 s: `at(t)` da la posición, la mirada y el fov de la cámara en ese segundo. Se repiten el
--- primer y el último punto 1 ms después para que la spline no curve el plano con los vecinos del corte.
+-- primer y el último punto 1 ms después para que la spline no curve el plano con los vecinos del corte. El primero lleva la
+-- marca de corte (CameraPath.sampleTimed): sin ella se recorría el hueco con el plano anterior (vídeos del 19-11, Lab).
 local function ballgameFollow(
 	camera: { CameraPoint },
 	t0: number,
@@ -4262,7 +4263,7 @@ local function ballgameFollow(
 	for index = 0, steps do
 		local t = t0 + (t1 - t0) * index / steps
 		local pos, look, fov = at(t)
-		table.insert(camera, { t = t, pos = pos, look = look, fov = fov })
+		table.insert(camera, { t = t, pos = pos, look = look, fov = fov, cut = index == 0 or nil })
 		if index == 0 or index == steps then
 			table.insert(camera, { t = t + 0.001, pos = pos, look = look, fov = fov })
 		end
@@ -6389,7 +6390,9 @@ local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 					fov = 70,
 				})
 				add({ t = 2.9, kind = "fpAnim", key = "Equip" })
-				add({ t = 3.98, kind = "fpView", on = false })
+				-- Se apaga en el mismo instante en que se enciende la del avatar (4): con 3,98 se veía un cuadro de la cámara de
+				-- fondo (vídeo del 19-11).
+				add({ t = 4, kind = "fpView", on = false })
 			end
 			-- Sigue avanzando mientras el avatar le apunta (1.2).
 			anim(4, "pDart", "RunDartGun", 1.6, A1_RIVAL_SPEED / 16)
@@ -6402,7 +6405,8 @@ local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				add({ t = 4.1, kind = "fpAnim", key = "Equip" })
 				add({ t = 4.7, kind = "fpAnim", key = "Aim", weight = 1, fov = 30, seconds = 0.4 })
 				add({ t = 5.6, kind = "fpAnim", key = "Fire" })
-				add({ t = 7, kind = "fpView", on = false })
+				-- Hasta que empieza el plano 1.3 (7,05, tras el hueco del corte): a 7 se veían 3 cuadros desde la cabeza del avatar.
+				add({ t = 7.05, kind = "fpView", on = false })
 			end
 			lines(4.5, 0.3, 2)
 			glide(4.4, "avatar", A1_AVATAR_2, yawBetween(A1_AVATAR_2, A1_RIVAL_2), 2.4, Enum.EasingStyle.Sine)
@@ -6584,7 +6588,9 @@ local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 						for _, ft in fireAt do
 							add({ t = ft, kind = "fpAnim", key = "Fire" })
 						end
-						add({ t = to, kind = "fpView", on = false })
+						-- Se apaga cuando se enciende la siguiente (to + 0,05): en el hueco de 0,05 s se veían 3 cuadros de la cámara de
+						-- esquina con un duelista delante (vídeo del 19-11). La última acaba en act.three.
+						add({ t = to + 0.05, kind = "fpView", on = false })
 					end
 					fp(14.5, 16.3, "avatar", { 15.6 }, 74)
 					fp(16.35, 17.8, "pNet", { 16.6, 17.1 }, 70)
@@ -6647,7 +6653,7 @@ local labScenes: { [string]: Scene? } = (function(): { [string]: Scene? }
 				add({ t = 37, kind = "fpView", on = true, actor = "avatar", target = "pDart", fov = 70, scope = true })
 				add({ t = 37.3, kind = "fpAnim", key = "Aim", weight = 1, fov = 30, seconds = 0.4 })
 				add({ t = 39.6, kind = "fpAnim", key = "Fire" })
-				add({ t = 40, kind = "fpView", on = false })
+				add({ t = 40.05, kind = "fpView", on = false }) -- en el instante en que se enciende la del Pirata del cañón
 			end
 			lshot(39.6, "avatar", "pDart", { speed = 90, hit = { damage = 96, head = true, ko = true } })
 			add({ t = 39.9, kind = "shake", amp = 0.15, seconds = 0.3 })
