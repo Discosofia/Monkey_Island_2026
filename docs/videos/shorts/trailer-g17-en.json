@@ -1,0 +1,525 @@
+{
+	"id": "trailer-g17",
+	"titulo": "Tráiler G17: el viaje del jugador (YouTube, 16:9, 100 s) — tomas en inglés (G17-EN, 20-11-2026)",
+	"formato": "youtube",
+	"carpeta": "O:/Videos Primal banana",
+	"clase": "studio",
+	"zona_ancho": [
+		0.0125,
+		0.826,
+		0.2376,
+		0.8337
+	],
+	"cortes": [
+		{
+			"toma": "2026-11-20 10-57-27.mkv",
+			"desde": 37.7,
+			"dura": 2.5,
+			"velocidad": 1.0,
+			"nota": "1 Gancho: rugido del Caudillo (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-02-56.mkv",
+			"desde": 5.1,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "2 Naufragio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-02-56.mkv",
+			"desde": 15.1,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "2 Naufragio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-02-56.mkv",
+			"desde": 23.1,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "2 Naufragio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-02-56.mkv",
+			"desde": 35.1,
+			"dura": 2.5,
+			"velocidad": 1.0,
+			"nota": "2 Naufragio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-53-12.mkv",
+			"desde": 9.6,
+			"dura": 3,
+			"velocidad": 1.0,
+			"nota": "3 Llegada (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-53-12.mkv",
+			"desde": 16.6,
+			"dura": 3,
+			"velocidad": 1.0,
+			"nota": "3 Llegada (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-53-43.mkv",
+			"desde": 11.7,
+			"dura": 3.5,
+			"velocidad": 1.0,
+			"nota": "4 Supervivencia (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-53-43.mkv",
+			"desde": 22.7,
+			"dura": 2.5,
+			"velocidad": 1.0,
+			"nota": "4 Supervivencia (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-53-43.mkv",
+			"desde": 28.7,
+			"dura": 4,
+			"velocidad": 1.0,
+			"nota": "4 Supervivencia (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-54-23.mkv",
+			"desde": 8.5,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "5 Noche y Luna roja (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-54-23.mkv",
+			"desde": 25.5,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "5 Noche y Luna roja (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-54-23.mkv",
+			"desde": 28.5,
+			"dura": 3,
+			"velocidad": 1.0,
+			"nota": "5 Noche y Luna roja (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-54-23.mkv",
+			"desde": 32.3,
+			"dura": 3,
+			"velocidad": 1.0,
+			"nota": "5 Noche y Luna roja (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-57-27.mkv",
+			"desde": 12.9,
+			"dura": 5,
+			"velocidad": 1.0,
+			"nota": "6 Orangután (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-57-27.mkv",
+			"desde": 42.5,
+			"dura": 5,
+			"velocidad": 1.0,
+			"nota": "7 Caudillo (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-58-23.mkv",
+			"desde": 36.8,
+			"dura": 2.3,
+			"velocidad": 1.0,
+			"nota": "8 Albino (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-58-23.mkv",
+			"desde": 42.6,
+			"dura": 2.7,
+			"velocidad": 1.0,
+			"nota": "8 Albino (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-58-23.mkv",
+			"desde": 12.7,
+			"dura": 1.7,
+			"velocidad": 1.0,
+			"nota": "9 Ceniza (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-58-23.mkv",
+			"desde": 15.7,
+			"dura": 1.7,
+			"velocidad": 1.0,
+			"nota": "9 Ceniza (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-58-23.mkv",
+			"desde": 22.1,
+			"dura": 1.6,
+			"velocidad": 1.0,
+			"nota": "9 Ceniza (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-59-26.mkv",
+			"desde": 22.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "10 Mascotas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-59-26.mkv",
+			"desde": 27.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "10 Mascotas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-59-26.mkv",
+			"desde": 34.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "10 Mascotas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-59-26.mkv",
+			"desde": 48.4,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "10 Mascotas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-55-05.mkv",
+			"desde": 8.3,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "11 Monturas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-55-05.mkv",
+			"desde": 13.3,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "11 Monturas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 10-55-05.mkv",
+			"desde": 18.3,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "11 Monturas (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-00-26.mkv",
+			"desde": 9.6,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "12 Modo infinito (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-00-26.mkv",
+			"desde": 18.6,
+			"dura": 3.5,
+			"velocidad": 1.0,
+			"nota": "12 Modo infinito (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-00-26.mkv",
+			"desde": 31.6,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "12 Modo infinito (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-00-26.mkv",
+			"desde": 36.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "12 Modo infinito (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-06-04.mkv",
+			"desde": 9.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "13 Captura la bandera (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-06-04.mkv",
+			"desde": 14.1,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "13 Captura la bandera (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-06-04.mkv",
+			"desde": 30.1,
+			"dura": 1.5,
+			"velocidad": 1.0,
+			"nota": "13 Captura la bandera (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-05-37.mkv",
+			"desde": 8.1,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "14 Juego de pelota (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-05-37.mkv",
+			"desde": 16.6,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "14 Juego de pelota (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-07-04.mkv",
+			"desde": 18.2,
+			"dura": 2.75,
+			"velocidad": 1.0,
+			"nota": "15 Laboratorio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-07-04.mkv",
+			"desde": 48.45,
+			"dura": 2.25,
+			"velocidad": 1.0,
+			"nota": "15 Laboratorio (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-01-10.mkv",
+			"desde": 10.3,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "16 Rescate (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "2026-11-20 11-01-10.mkv",
+			"desde": 17.3,
+			"dura": 2,
+			"velocidad": 1.0,
+			"nota": "16 Rescate (EN)",
+			"ancho": true
+		},
+		{
+			"toma": "portada",
+			"dura": 5.0,
+			"nota": "17 Portada"
+		}
+	],
+	"textos": {
+		"en": [
+			{
+				"en": 3.0,
+				"dura": 4,
+				"texto": "Primal Banana Islands",
+				"y": 0.38
+			},
+			{
+				"en": 11.5,
+				"dura": 4,
+				"texto": "Up to 5 friends",
+				"y": 0.38
+			},
+			{
+				"en": 37.3,
+				"dura": 3.5,
+				"texto": "Mangrove Orangutan",
+				"y": 0.38
+			},
+			{
+				"en": 42.3,
+				"dura": 3.5,
+				"texto": "Chimpanzee Warlord",
+				"y": 0.38
+			},
+			{
+				"en": 47.3,
+				"dura": 3.5,
+				"texto": "Albino Gorilla",
+				"y": 0.38
+			},
+			{
+				"en": 52.3,
+				"dura": 3.5,
+				"texto": "Ash Gorilla",
+				"y": 0.38
+			},
+			{
+				"en": 63.3,
+				"dura": 4,
+				"texto": "Pets & mounts",
+				"y": 0.38
+			},
+			{
+				"en": 77.3,
+				"dura": 3,
+				"texto": "Capture the flag",
+				"y": 0.38
+			},
+			{
+				"en": 82.3,
+				"dura": 3,
+				"texto": "Ball game",
+				"y": 0.38
+			},
+			{
+				"en": 86.3,
+				"dura": 3.5,
+				"texto": "Ruined Laboratory",
+				"y": 0.38
+			},
+			{
+				"en": 95.0,
+				"dura": 5.0,
+				"texto": "Bring your friends!",
+				"y": 0.2
+			},
+			{
+				"en": 95.0,
+				"dura": 5.0,
+				"texto": "Free on Roblox · Up to 5 friends",
+				"chico": true,
+				"y": -0.3
+			}
+		]
+	},
+	"voz": {
+		"en": [
+			{
+				"en": 0.2,
+				"dura": 2.1,
+				"texto": "Oops. He doesn't want friends.",
+				"y": -0.45
+			},
+			{
+				"en": 2.7,
+				"dura": 8.1,
+				"texto": "Your ship sinks… and you wash up on an island full of monkeys.",
+				"y": -0.45
+			},
+			{
+				"en": 11.2,
+				"dura": 5.6,
+				"texto": "Pick a role: warrior, hunter, mage or medic.",
+				"y": -0.45
+			},
+			{
+				"en": 17.2,
+				"dura": 9.6,
+				"texto": "Chop, eat, craft and build. The monkeys won't wait!",
+				"y": -0.45
+			},
+			{
+				"en": 27.2,
+				"dura": 9.6,
+				"texto": "At night the red moon rises… and they all come.",
+				"y": -0.45
+			},
+			{
+				"en": 37.2,
+				"dura": 4.6,
+				"texto": "Four bosses. Zero mercy.",
+				"y": -0.45
+			},
+			{
+				"en": 47.2,
+				"dura": 4.6,
+				"texto": "Freeze him!",
+				"y": -0.45
+			},
+			{
+				"en": 52.2,
+				"dura": 4.6,
+				"texto": "Lava? Of course!",
+				"y": -0.45
+			},
+			{
+				"en": 57.2,
+				"dura": 5.6,
+				"texto": "Make furry friends…",
+				"y": -0.45
+			},
+			{
+				"en": 63.2,
+				"dura": 5.6,
+				"texto": "…then ride them.",
+				"y": -0.45
+			},
+			{
+				"en": 69.2,
+				"dura": 7.6,
+				"texto": "Love the island? Stay. Your plot grows every day.",
+				"y": -0.45
+			},
+			{
+				"en": 77.2,
+				"dura": 4.6,
+				"texto": "Rather beat your friends? Steal their flag…",
+				"y": -0.45
+			},
+			{
+				"en": 82.2,
+				"dura": 3.6,
+				"texto": "…sink the ball…",
+				"y": -0.45
+			},
+			{
+				"en": 86.2,
+				"dura": 4.6,
+				"texto": "…or blast them in the lab.",
+				"y": -0.45
+			},
+			{
+				"en": 91.2,
+				"dura": 3.6,
+				"texto": "Had enough? Call for rescue!",
+				"y": -0.45
+			},
+			{
+				"en": 95.2,
+				"dura": 4.6,
+				"texto": "Bring your friends!",
+				"y": -0.45
+			}
+		]
+	}
+}

@@ -8251,17 +8251,32 @@ La versión EN no se exportó. Las tomas del tráiler salen con los títulos y s
 
 ### 212.1 Grabar y montar (en Studio y CapCut)
 
-1. [ ] Pon el Studio en inglés y regraba las escenas de la tabla «Tomas usadas» de [trailer.md](videos/trailer.md) con los mismos encuadres y duraciones.
-   ✅ Títulos, subtítulos, rótulos del HUD y carteles salen en inglés en todas las tomas; ninguna frase del juego queda en español.
-2. [ ] Cambia en `docs/videos/shorts/trailer-g17.json` las rutas de las tomas EN (o un JSON propio para el EN), regenera el borrador `trailer-g17-en-v1` con `short.py` y ábrelo en CapCut.
-   ✅ Abre sin error con los 43 cortes, unos 100 s y lienzo de 1920×1080; las tomas son las nuevas en inglés.
+> 20-11-2026: 13 tomas EN grabadas entre las 10:53 y las 11:07 (tabla «Tomas usadas (EN)» de [trailer.md](videos/trailer.md)). Desfases medidos por comparación de cuadros y revisados con hojas ES|EN. Todos los cortes salen en inglés, con el mismo encuadre y sin HUD ni paneles. Las Alcantarillas del Lab salen quemadas de luz, así que se quitan del EN (decisión del usuario: no se regraba): 42 cortes. JSON propio `docs/videos/shorts/trailer-g17-en.json`. El borrador sale como **`trailer-g17-en-v2`** (`short.py` no sobrescribe el v1, que tiene las tomas en español).
+
+1. [x] Pon el Studio en inglés y regraba las escenas de la tabla «Tomas usadas» de [trailer.md](videos/trailer.md) con los mismos encuadres y duraciones.
+   ✅ Títulos, subtítulos, rótulos del HUD y carteles salen en inglés en todas las tomas; ninguna frase del juego queda en español. (Cumple el 20-11 en los 42 cortes, hoja `build/videos/g17en/vista_en.jpg`.)
+2. [x] Abre `trailer-g17-en-v2` en CapCut (creado el 20-11 con `trailer-g17-en.json`; CapCut ya es la 9.8.0.4213 y el script se probó en la 9.7.0).
+   ✅ Abre sin error con los 42 cortes, unos 100 s y lienzo de 1920×1080; las tomas son las nuevas en inglés. (Abierto y exportado por el usuario en CapCut 9.8.0 el 20-11.)
 3. [ ] Genera la voz «hype guy» desde la pista `voz`, añade la música y, antes de exportar, oculta **todas** las frases de la pista `voz` (también la primera, la del gancho).
-   ✅ Cada frase cabe en su plano y coincide con `trailer.en.srt`; no queda ningún subtítulo amarillo abajo.
+   ✅ Cada frase cabe en su plano y coincide con `trailer.en.srt`; no queda ningún subtítulo amarillo abajo. (20-11: como en el ES, solo queda a la vista la primera frase, «Oops. He doesn't want friends.», 0,2-2,3 s; las otras 15 están ocultas (franja en `build/videos/g17/export/cues-en.jpg`). Que cada frase cabe en su plano lo juzga el usuario.)
 
 ### 212.2 Exportar y medir
 
-4. [ ] Exporta a `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-en-….mp4` y mídelo (ffprobe, hoja cada 2 s, `ebur128` y `astats`).
-   ✅ 1920×1080, 30 fps, unos 100 s, sin marca de agua; pico ≤ -1 dB y sonoridad entre -14 y -12 LUFS (si no, mismo arreglo con ffmpeg que en §211.7b).
+> 20-11-2026: el usuario exportó `trailer-g17-en-v2.mp4` (con el nombre del borrador). Hoja en `build/videos/g17/export/hoja-en.jpg`: 1920×1080, 30 fps, 100,0 s, sin marca de agua, todo en inglés y portada al final. El audio fallaba (-16,1 LUFS, pico +0,2 dB), así que se arregló con ffmpeg sin recodificar el vídeo: `-c:v copy -af "aresample=176400,volume=4.5dB,alimiter=limit=0.85:attack=2:release=60:level=false,aresample=44100" -c:a aac -b:a 320k`. Con +2,7 dB y +4 dB, y el límite a 0,79, se quedaba en -14,8 y -14,1 LUFS. El archivo final del EN es **`P:\VIDEO\Primal banana islands\Trailer\trailer-g17-en-v3.mp4`**: 100,0 s, -13,5 LUFS, pico real -1,3 dB, decodifica sin errores.
+
+4. [x] Exporta a `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-en-….mp4` y mídelo (ffprobe, hoja cada 2 s, `ebur128` y `astats`).
+   ✅ 1920×1080, 30 fps, unos 100 s, sin marca de agua; pico ≤ -1 dB y sonoridad entre -14 y -12 LUFS (si no, mismo arreglo con ffmpeg que en §211.7b). (Cumple `trailer-g17-en-v3.mp4` tras el arreglo con ffmpeg.)
+
+## 213. Luz del Laboratorio en la escena `Lab` (20-11-2026)
+
+En la toma EN (`2026-11-20 11-07-04`) el acto 2 entero (Alcantarillas, ~18,7-33 s de la toma) sale quemado: paredes beige y blancas en lugar del azul oscuro y el ladrillo. La escena se lanzó con el panel «Pick your weapon · Map: Sewers» abierto, que es el caso que `LabActor.holdLight` debía cubrir (la luz del servidor pisa la de la escena). En la toma del 19-11 salió bien. No se ha depurado: se quitó el corte del tráiler EN.
+
+### 213.1 En el Studio del Laboratorio (Play)
+
+1. [ ] Lanza `CineLab` con el panel de elegir arma abierto y deja que acabe su cuenta atrás durante la escena.
+   ✅ El acto 2 (Alcantarillas) se ve oscuro, con el ladrillo y las franjas, igual que en `2026-11-19 12-10-41` (~28 s). Si sale quemado, revisa qué propiedad de `Lighting` (o qué `ColorCorrection` o `Bloom`) cambia sin que `holdLight` la vuelva a poner.
+2. [ ] Repite lanzando `CineLab` con la partida ya en marcha (después de elegir arma).
+   ✅ Mismo resultado: acto 2 sin quemar.
 
 ## Cuando termines
 

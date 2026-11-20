@@ -65,3 +65,27 @@ Los cortes salen sin sonido (el recorte quita el audio): mandan la voz y la mús
 | Juego de pelota (`Ballgame`, Dunas) | `2026-11-19 11-53-20` | — |
 | Laboratorio (`Lab`) | `2026-11-19 12-10-41` | 21,6 y 36,6 s (cuadro de cielo al cambiar de mapa) |
 | Rescate (`Rescue`) | `2026-11-19 13-58-06` | — |
+
+## Tomas usadas (EN)
+
+Grabadas el 20-11-2026 con el juego en inglés (⚙️ Ajustes → English), en la misma ventana de Studio que el 19-11 (imagen de y = 240 a 842, sin `geomA`). Borrador: [trailer-g17-en.json](shorts/trailer-g17-en.json), los mismos cortes que el ES con `desde` = ES + desfase. El desfase de cada escena se midió comparando cuadros pequeños (10 fps, gris) de los tramos ES con la toma EN, y es el mismo en todos sus cortes. **Sin las Alcantarillas:** en la toma EN salen quemadas de luz (ver VERIFICACION §213). Ese corte de 1,5 s se quita y su tiempo se reparte entre los otros dos del Lab (+0,75 s cada uno): 42 cortes y 100 s, y la voz y los textos no se mueven.
+
+| Escena | Vídeo EN | Desfase (s) |
+|---|---|---|
+| Naufragio | `2026-11-20 11-02-56` | +0,1 |
+| Llegada | `2026-11-20 10-53-12` | -0,4 |
+| Supervivencia | `2026-11-20 10-53-43` | +7,7 |
+| Noche | `2026-11-20 10-54-23` | -43,5 |
+| Monturas | `2026-11-20 10-55-05` | -6,7 |
+| Batallas del Orangután y el Caudillo | `2026-11-20 10-57-27` | -33,1 y -30,5 |
+| Batallas de Ceniza y el Albino | `2026-11-20 10-58-23` | -1,6 y +6,6 |
+| Mascotas | `2026-11-20 10-59-26` | +11,1 |
+| Modo infinito | `2026-11-20 11-00-26` | -32,4 |
+| Rescate | `2026-11-20 11-01-10` | -2,7 |
+| Captura la bandera | `2026-11-20 11-06-04` | -7,9 |
+| Juego de pelota | `2026-11-20 11-05-37` | -6,9 |
+| Laboratorio (duelo y visor) | `2026-11-20 11-07-04` | +3,2 |
+
+**Archivos finales:** `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-es-v2.mp4` y `trailer-g17-en-v3.mp4` (100 s, -13,4 y -13,5 LUFS, pico -1,6 y -1,3 dB; el audio de los dos se arregló con ffmpeg, ver VERIFICACION §211 y §212).
+
+La luz cambia un poco respecto al ES: el Caudillo del gancho sale más iluminado, el cubo de hielo del Albino más azul y la arena de la Llegada más clara.
