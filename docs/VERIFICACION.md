@@ -8203,6 +8203,10 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
 ### 211.1 En CapCut 9.7.1 (abrir y revisar)
 
 > Revisión del 19-11-2026 de `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-es-v1.mp4` (hoja de un cuadro cada 2 s en `build/videos/g17/export/hoja.jpg` y medida del audio con ffmpeg): 1920×1080, 30 fps, 100,0 s, sin marca de agua y con audio; rótulos, jefes, PvP, rescate y portada en su sitio. Fallos: el audio satura (pico +0,8 dB, -11,6 LUFS), la pista `voz` se ve como subtítulo amarillo y pisa los subtítulos de las escenas, y el tercer corte del Naufragio (~6,5-8,5 s, toma 23-25 s) queda casi negro tras el rayo (aceptado por el usuario: es la tormenta). Falta exportar la versión EN.
+>
+> Revisión del 20-11-2026 de la reexportación `trailer-g17-es-v1(1).mp4` (hoja en `build/videos/g17/export/hoja2.jpg`, franja de subtítulos en cada una de las 16 frases del `.srt` en `cues.jpg`): 1920×1080, 30 fps, 100,0 s, sin marca de agua; la imagen cambia respecto al 19-11. Sigue fallando: el audio es el mismo (-11,6 LUFS, pico +0,4 dB, pico real +0,5 dBFS) y la pista `voz` queda oculta en 15 de las 16 frases, pero la primera («¡Ups! Este no quiere amigos.», 0,2-2,3 s) sigue en amarillo sobre el gancho. Prueba en `build/videos/g17/export/prueba-audio2.mp4` (vídeo copiado sin recodificar, `volume=-1.2dB` + `alimiter` a 0,79): -13,4 LUFS y pico -1,6 dB, así que el audio se puede arreglar con ffmpeg sin volver a CapCut. La versión EN pasa a §212 (se regraba con el Studio en inglés en otra tanda).
+>
+> Cierre del 20-11-2026: la primera frase de `voz` se queda a propósito (decisión del usuario: es el chiste del gancho). El audio se arregló con ffmpeg sobre `trailer-g17-es-v1(1).mp4` (vídeo copiado, `volume=-1.2dB` + `alimiter` a 0,79, AAC 320k) en **`P:\VIDEO\Primal banana islands\Trailer\trailer-g17-es-v2.mp4`**, el archivo final del ES: 1920×1080, 30 fps, 100,0 s, -13,4 LUFS, pico -1,6 dB, decodifica sin errores.
 
 1. [x] Abre `trailer-g17-es-v1` en CapCut 9.7.1 (la versión no está probada; el borrador se hizo en 9.7.0).
    ✅ Abre sin error, se ven los 43 cortes, la duración es de unos 100 s y el lienzo de 1920×1080. (Abierto por el usuario el 19-11; exportado a 100,0 s.)
@@ -8222,17 +8226,17 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
 
 ### 211.3 Exportar y medir
 
-7. [ ] Exporta en 1920×1080, 30 fps, sin marca de agua, y reproduce el archivo.
-   ✅ El archivo sale a 1920×1080 y 30 fps, sin marca de agua, de unos 100 s (±1 s). (ES: cumple el 19-11; falta el EN.)
-7b. [ ] Antes de reexportar: oculta o borra la pista de texto `voz` (ya convertida en voz) y baja el audio unos 3 dB o pon un limitador a -1 dB. Repite en el EN.
-   ✅ No se ve el subtítulo amarillo abajo; ffmpeg (`astats`) da un pico ≤ -1 dB y la sonoridad queda entre -14 y -12 LUFS.
+7. [x] Exporta en 1920×1080, 30 fps, sin marca de agua, y reproduce el archivo.
+   ✅ El archivo sale a 1920×1080 y 30 fps, sin marca de agua, de unos 100 s (±1 s). (ES: cumple el 19-11 y el 20-11. El EN pasa a §212.)
+7b. [x] Antes de reexportar: oculta o borra la pista de texto `voz` (ya convertida en voz) y baja el audio unos 3 dB o pon un limitador a -1 dB. (Solo ES; el EN pasa a §212.)
+   ✅ No se ve el subtítulo amarillo abajo; ffmpeg (`astats`) da un pico ≤ -1 dB y la sonoridad queda entre -14 y -12 LUFS. (20-11: falla. Queda la primera frase de `voz` a la vista, 0,2-2,3 s, y el audio no cambió: -11,6 LUFS, pico +0,4 dB. Cerrado el mismo día: la primera frase se queda a propósito y el audio, arreglado con ffmpeg en `trailer-g17-es-v2.mp4`, da -13,4 LUFS y pico -1,6 dB.)
 8. [ ] Mide los minutos de retoque desde que se abre el borrador hasta que sale el archivo exportado.
    ✅ Objetivo de 5 minutos o menos. Si pasa, anota aquí qué lo alargó y si conviene automatizarlo en `tools/video/short.py`.
 
 ### 211.4 Versión EN y textos del juego
 
-9. [ ] Mira `trailer-g17-en-v1` entero y decide si molestan los textos del juego en español que salen en las tomas (títulos y subtítulos de las escenas).
-   ✅ Decisión anotada aquí. Si molestan, se regraban las escenas con el Studio en inglés (tabla de la sección «Tomas usadas» de `trailer.md`) y se rehace la versión EN. Si no molestan, se publica así.
+9. [x] Mira `trailer-g17-en-v1` entero y decide si molestan los textos del juego en español que salen en las tomas (títulos y subtítulos de las escenas).
+   ✅ Decisión anotada aquí. Si molestan, se regraban las escenas con el Studio en inglés (tabla de la sección «Tomas usadas» de `trailer.md`) y se rehace la versión EN. Si no molestan, se publica así. (Decisión del usuario, 20-11-2026: se regraban las tomas en inglés y el EN se hace en otra tanda, ver §212.)
 
 ### 211.5 Regenerar el borrador (dependencias)
 
@@ -8240,6 +8244,24 @@ Tráiler de unos 100 s en el orden «viaje del jugador» (gancho, naufragio, lle
     ✅ Sin esos cambios, `trailer-g17.json` no funciona: `short.py` no reconoce `ancho` ni `zona_ancho`. (Subidos el 19-11-2026 en `b4f3efa`.)
 11. [ ] Para regenerar los borradores hacen falta las tres tomas de `build/videos/g17/geomA` (Survival 15-26-33, Albino 15-27-34 y Ceniza 15-37-45, pasadas a la disposición del 19-11). El comando está en `trailer.md`.
     ✅ Con `build/videos/g17/geomA` presente, `python -I tools/video/short.py docs/videos/shorts/trailer-g17.json` crea los dos borradores sin error. Sin esas tomas, el JSON apunta a rutas que no existen.
+
+## 212. Tráiler G17 en inglés: regrabar las tomas (20-11-2026)
+
+La versión EN no se exportó. Las tomas del tráiler salen con los títulos y subtítulos del juego en español, así que se regraban con el Studio en inglés y se rehace el borrador `trailer-g17-en-v1` en su propia tanda. Se mide con el mismo método que el ES (§211, nota del 20-11).
+
+### 212.1 Grabar y montar (en Studio y CapCut)
+
+1. [ ] Pon el Studio en inglés y regraba las escenas de la tabla «Tomas usadas» de [trailer.md](videos/trailer.md) con los mismos encuadres y duraciones.
+   ✅ Títulos, subtítulos, rótulos del HUD y carteles salen en inglés en todas las tomas; ninguna frase del juego queda en español.
+2. [ ] Cambia en `docs/videos/shorts/trailer-g17.json` las rutas de las tomas EN (o un JSON propio para el EN), regenera el borrador `trailer-g17-en-v1` con `short.py` y ábrelo en CapCut.
+   ✅ Abre sin error con los 43 cortes, unos 100 s y lienzo de 1920×1080; las tomas son las nuevas en inglés.
+3. [ ] Genera la voz «hype guy» desde la pista `voz`, añade la música y, antes de exportar, oculta **todas** las frases de la pista `voz` (también la primera, la del gancho).
+   ✅ Cada frase cabe en su plano y coincide con `trailer.en.srt`; no queda ningún subtítulo amarillo abajo.
+
+### 212.2 Exportar y medir
+
+4. [ ] Exporta a `P:\VIDEO\Primal banana islands\Trailer\trailer-g17-en-….mp4` y mídelo (ffprobe, hoja cada 2 s, `ebur128` y `astats`).
+   ✅ 1920×1080, 30 fps, unos 100 s, sin marca de agua; pico ≤ -1 dB y sonoridad entre -14 y -12 LUFS (si no, mismo arreglo con ffmpeg que en §211.7b).
 
 ## Cuando termines
 
